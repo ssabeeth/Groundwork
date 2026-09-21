@@ -1,0 +1,140 @@
+{
+  "metric": "recall@100",
+  "seed": 0,
+  "resamples": 10000,
+  "holm_adjusted": true,
+  "comparisons": [
+    {
+      "a": {
+        "file": "results/scifact-colbert-len512.json",
+        "label": "len512 [colbert]"
+      },
+      "b": {
+        "file": "results/scifact-bm25.json",
+        "label": "bm25 [bm25] (stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "recall@100",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.02777777777777778,
+      "p_value": 0.05369463053694631,
+      "num_queries": 300,
+      "num_ties": 280,
+      "effective_queries": 20,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.21477852214778523
+    },
+    {
+      "a": {
+        "file": "results/nfcorpus-colbert-len512.json",
+        "label": "len512 [colbert]"
+      },
+      "b": {
+        "file": "results/nfcorpus-bm25-graded.json",
+        "label": "graded [bm25] (stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "recall@100",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.03615716814845583,
+      "p_value": 9.999000099990002e-05,
+      "num_queries": 323,
+      "num_ties": 146,
+      "effective_queries": 177,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.0005999400059994001
+    },
+    {
+      "a": {
+        "file": "results/scifact-colbert-len512.json",
+        "label": "len512 [colbert]"
+      },
+      "b": {
+        "file": "results/scifact-dense-bge.json",
+        "label": "bge [dense] (BAAI/bge-small-en-v1.5, truncated=9%)"
+      },
+      "metric": "recall@100",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": -0.024666666666666667,
+      "p_value": 0.10318968103189681,
+      "num_queries": 300,
+      "num_ties": 277,
+      "effective_queries": 23,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.30956904309569044
+    },
+    {
+      "a": {
+        "file": "results/nfcorpus-colbert-len512.json",
+        "label": "len512 [colbert]"
+      },
+      "b": {
+        "file": "results/nfcorpus-dense-bge.json",
+        "label": "bge [dense] (BAAI/bge-small-en-v1.5, truncated=9%)"
+      },
+      "metric": "recall@100",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": -0.020355807115465398,
+      "p_value": 0.017298270172982702,
+      "num_queries": 323,
+      "num_ties": 118,
+      "effective_queries": 205,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.08649135086491351
+    },
+    {
+      "a": {
+        "file": "results/scifact-rrf-colbertfusion.json",
+        "label": "colbertfusion [rrf] (bm25+colbert, k=5.0)"
+      },
+      "b": {
+        "file": "results/scifact-colbert-len512.json",
+        "label": "len512 [colbert]"
+      },
+      "metric": "recall@100",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.006666666666666667,
+      "p_value": 0.6851314868513149,
+      "num_queries": 300,
+      "num_ties": 294,
+      "effective_queries": 6,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 1.0
+    },
+    {
+      "a": {
+        "file": "results/nfcorpus-rrf-colbertfusion.json",
+        "label": "colbertfusion [rrf] (bm25+colbert, k=5.0)"
+      },
+      "b": {
+        "file": "results/nfcorpus-colbert-len512.json",
+        "label": "len512 [colbert]"
+      },
+      "metric": "recall@100",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": -0.00019769175320002525,
+      "p_value": 0.9422057794220577,
+      "num_queries": 323,
+      "num_ties": 220,
+      "effective_queries": 103,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 1.0
+    }
+  ]
+}

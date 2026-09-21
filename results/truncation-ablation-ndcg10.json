@@ -1,0 +1,96 @@
+{
+  "metric": "ndcg@10",
+  "seed": 0,
+  "resamples": 10000,
+  "holm_adjusted": true,
+  "comparisons": [
+    {
+      "a": {
+        "file": "results/scifact-splade-len512.json",
+        "label": "len512 [splade]"
+      },
+      "b": {
+        "file": "results/scifact-splade.json",
+        "label": "splade [splade]"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.005466022819535077,
+      "p_value": 0.5672432756724327,
+      "num_queries": 300,
+      "num_ties": 240,
+      "effective_queries": 60,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.5672432756724327
+    },
+    {
+      "a": {
+        "file": "results/nfcorpus-splade-len512.json",
+        "label": "len512 [splade]"
+      },
+      "b": {
+        "file": "results/nfcorpus-splade.json",
+        "label": "splade [splade]"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.004894124757525749,
+      "p_value": 0.11708829117088292,
+      "num_queries": 323,
+      "num_ties": 178,
+      "effective_queries": 145,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.23417658234176583
+    },
+    {
+      "a": {
+        "file": "results/scifact-colbert-len512.json",
+        "label": "len512 [colbert]"
+      },
+      "b": {
+        "file": "results/scifact-colbert.json",
+        "label": "colbert [colbert]"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.04944479627930432,
+      "p_value": 9.999000099990002e-05,
+      "num_queries": 300,
+      "num_ties": 213,
+      "effective_queries": 87,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.00039996000399960006
+    },
+    {
+      "a": {
+        "file": "results/scifact-colbert-len300.json",
+        "label": "len300 [colbert]"
+      },
+      "b": {
+        "file": "results/scifact-colbert.json",
+        "label": "colbert [colbert]"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.04526385904903809,
+      "p_value": 0.00019998000199980003,
+      "num_queries": 300,
+      "num_ties": 219,
+      "effective_queries": 81,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.0005999400059994001
+    }
+  ]
+}

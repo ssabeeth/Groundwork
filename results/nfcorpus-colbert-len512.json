@@ -1,0 +1,67 @@
+{
+  "dataset": "nfcorpus",
+  "split": "test",
+  "tag": "len512",
+  "method": "colbert",
+  "metrics": {
+    "ndcg@1": 0.479876160990712,
+    "recall@1": 0.06264102190361386,
+    "ndcg@10": 0.3534547313846739,
+    "recall@10": 0.16404277938189746,
+    "ndcg@100": 0.31430943286451024,
+    "recall@100": 0.28558169773043357
+  },
+  "num_queries": 323,
+  "num_documents": 3633,
+  "oracle_recall_at_100": 0.9647038661258809,
+  "retriever": {
+    "method": "colbert",
+    "model": "colbert-ir/colbertv2.0",
+    "similarity": "maxsim-cosine",
+    "dim": 128,
+    "query_length": 32,
+    "doc_length": 512,
+    "mask_punctuation": true,
+    "truncation_rate": 0.09221029452243325,
+    "mean_tokens_per_document": 296.2950729424718,
+    "batch_size": 8,
+    "exhaustive": true,
+    "device": "mps"
+  },
+  "published_ndcg_at_10": 0.338,
+  "delta_vs_published_ndcg_at_10": 0.0155,
+  "top_k": 100,
+  "gain": "exponential",
+  "graded_qrels": true,
+  "relevance_levels": [
+    1,
+    2
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.479876160990712,
+      "recall@1": 0.06264102190361386,
+      "ndcg@10": 0.3534547313846739,
+      "recall@10": 0.16404277938189746,
+      "ndcg@100": 0.31430943286451024,
+      "recall@100": 0.28558169773043357
+    },
+    "linear": {
+      "ndcg@1": 0.4845201238390093,
+      "recall@1": 0.06264102190361386,
+      "ndcg@10": 0.35114031531310347,
+      "recall@10": 0.16404277938189746,
+      "ndcg@100": 0.30737668451076366,
+      "recall@100": 0.28558169773043357
+    }
+  },
+  "timing_seconds": {
+    "index": 152.79,
+    "retrieve": 27.53
+  },
+  "per_query_file": "per-query/nfcorpus-colbert-len512.json",
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T23:29:45+00:00"
+}

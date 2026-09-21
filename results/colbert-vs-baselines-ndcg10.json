@@ -1,0 +1,140 @@
+{
+  "metric": "ndcg@10",
+  "seed": 0,
+  "resamples": 10000,
+  "holm_adjusted": true,
+  "comparisons": [
+    {
+      "a": {
+        "file": "results/scifact-colbert-len512.json",
+        "label": "len512 [colbert]"
+      },
+      "b": {
+        "file": "results/scifact-bm25.json",
+        "label": "bm25 [bm25] (stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.03223712360777289,
+      "p_value": 0.030296970302969704,
+      "num_queries": 300,
+      "num_ties": 196,
+      "effective_queries": 104,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.15148485151484853
+    },
+    {
+      "a": {
+        "file": "results/nfcorpus-colbert-len512.json",
+        "label": "len512 [colbert]"
+      },
+      "b": {
+        "file": "results/nfcorpus-bm25-graded.json",
+        "label": "graded [bm25] (stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.028196160814632335,
+      "p_value": 9.999000099990002e-05,
+      "num_queries": 323,
+      "num_ties": 139,
+      "effective_queries": 184,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.0005999400059994001
+    },
+    {
+      "a": {
+        "file": "results/scifact-colbert-len512.json",
+        "label": "len512 [colbert]"
+      },
+      "b": {
+        "file": "results/scifact-dense-bge.json",
+        "label": "bge [dense] (BAAI/bge-small-en-v1.5, truncated=9%)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": -0.024149904815521043,
+      "p_value": 0.15058494150584942,
+      "num_queries": 300,
+      "num_ties": 185,
+      "effective_queries": 115,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.46915308469153083
+    },
+    {
+      "a": {
+        "file": "results/nfcorpus-colbert-len512.json",
+        "label": "len512 [colbert]"
+      },
+      "b": {
+        "file": "results/nfcorpus-dense-bge.json",
+        "label": "bge [dense] (BAAI/bge-small-en-v1.5, truncated=9%)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.014351652796860771,
+      "p_value": 0.11728827117288271,
+      "num_queries": 323,
+      "num_ties": 110,
+      "effective_queries": 213,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.46915308469153083
+    },
+    {
+      "a": {
+        "file": "results/scifact-rrf-colbertfusion.json",
+        "label": "colbertfusion [rrf] (bm25+colbert, k=5.0)"
+      },
+      "b": {
+        "file": "results/scifact-colbert-len512.json",
+        "label": "len512 [colbert]"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.009472755726740856,
+      "p_value": 0.28077192280771923,
+      "num_queries": 300,
+      "num_ties": 221,
+      "effective_queries": 79,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.5383461653834617
+    },
+    {
+      "a": {
+        "file": "results/nfcorpus-rrf-colbertfusion.json",
+        "label": "colbertfusion [rrf] (bm25+colbert, k=5.0)"
+      },
+      "b": {
+        "file": "results/nfcorpus-colbert-len512.json",
+        "label": "len512 [colbert]"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": -0.004615103276385118,
+      "p_value": 0.26917308269173085,
+      "num_queries": 323,
+      "num_ties": 159,
+      "effective_queries": 164,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.5383461653834617
+    }
+  ]
+}

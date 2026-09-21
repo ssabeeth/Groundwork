@@ -1,0 +1,140 @@
+{
+  "metric": "recall@100",
+  "seed": 0,
+  "resamples": 10000,
+  "holm_adjusted": true,
+  "comparisons": [
+    {
+      "a": {
+        "file": "results/scifact-splade-len512.json",
+        "label": "len512 [splade]"
+      },
+      "b": {
+        "file": "results/scifact-bm25.json",
+        "label": "bm25 [bm25] (stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "recall@100",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.04777777777777778,
+      "p_value": 0.0021997800219978004,
+      "num_queries": 300,
+      "num_ties": 276,
+      "effective_queries": 24,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.006299370062993701
+    },
+    {
+      "a": {
+        "file": "results/nfcorpus-splade-len512.json",
+        "label": "len512 [splade]"
+      },
+      "b": {
+        "file": "results/nfcorpus-bm25-graded.json",
+        "label": "graded [bm25] (stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "recall@100",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.039718436927479416,
+      "p_value": 9.999000099990002e-05,
+      "num_queries": 323,
+      "num_ties": 155,
+      "effective_queries": 168,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.0005999400059994001
+    },
+    {
+      "a": {
+        "file": "results/scifact-splade-len512.json",
+        "label": "len512 [splade]"
+      },
+      "b": {
+        "file": "results/scifact-rrf-bge.json",
+        "label": "bge [rrf] (bm25+dense, k=1.0)"
+      },
+      "metric": "recall@100",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": -0.008,
+      "p_value": 0.5090490950904909,
+      "num_queries": 300,
+      "num_ties": 285,
+      "effective_queries": 15,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.5090490950904909
+    },
+    {
+      "a": {
+        "file": "results/nfcorpus-splade-len512.json",
+        "label": "len512 [splade]"
+      },
+      "b": {
+        "file": "results/nfcorpus-rrf-bge.json",
+        "label": "bge [rrf] (bm25+dense, k=5.0)"
+      },
+      "metric": "recall@100",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": -0.02573547831565944,
+      "p_value": 0.0020997900209979003,
+      "num_queries": 323,
+      "num_ties": 133,
+      "effective_queries": 190,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.006299370062993701
+    },
+    {
+      "a": {
+        "file": "results/nfcorpus-splade-len512.json",
+        "label": "len512 [splade]"
+      },
+      "b": {
+        "file": "results/nfcorpus-query-expansion-hyde.json",
+        "label": "hyde [query-expansion] (stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "recall@100",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.03312066386371008,
+      "p_value": 9.999000099990002e-05,
+      "num_queries": 323,
+      "num_ties": 153,
+      "effective_queries": 170,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.0005999400059994001
+    },
+    {
+      "a": {
+        "file": "results/nfcorpus-splade-len512.json",
+        "label": "len512 [splade]"
+      },
+      "b": {
+        "file": "results/nfcorpus-document-expansion-doc2query.json",
+        "label": "doc2query [document-expansion] (stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "recall@100",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.0376073643956149,
+      "p_value": 9.999000099990002e-05,
+      "num_queries": 323,
+      "num_ties": 159,
+      "effective_queries": 164,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.0005999400059994001
+    }
+  ]
+}

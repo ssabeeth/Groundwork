@@ -2130,6 +2130,247 @@ meaningless, and none is claimed. Quality is the only axis this can speak to.
 
 ---
 
+## 2026-09-22 — Experiment 19 (result): the modern method that works
+
+Pre-registered above. `naver/splade-cocondenser-ensembledistil`, document and query
+representations `max` over positions of `log(1 + ReLU(logits))`, dot product over an
+inverted index. SciFact and NFCorpus, documents capped at 512 tokens.
+
+**All three predictions held. This is the first modern method in this project to beat the
+older ones on their own ground.**
+
+| Prediction | Measured | Verdict |
+|---|---|---|
+| **H1** beats BM25 on both | +0.0443 (Holm 0.0069) and +0.0295 (Holm 0.0006) | **held** |
+| **H2** does not beat the BM25+dense fusion | −0.0128 and −0.0062, neither detectable | **held** |
+| **H3** beats HyDE *and* doc2query on NFCorpus | +0.0341 and +0.0287, both **Holm 0.0006** | **held** |
+
+### The reproduction check, which came first
+
+| | measured | published | delta |
+|---|---|---|---|
+| SciFact | 0.7079 | 0.693 | +0.0149 |
+| NFCorpus | 0.3548 | 0.348 | +0.0068 |
+
+Both inside the 0.03 tolerance this project uses for a reproduction. Without that, nothing
+below would mean anything — a point experiment 20 went on to demonstrate the hard way.
+
+### nDCG@10 on test, against everything else measured here
+
+| | SciFact | NFCorpus |
+|---|---|---|
+| HyDE (experiment 13) | 0.6643 | 0.3207 |
+| BM25 | 0.6636 | 0.3253 |
+| doc2query (experiment 14) | 0.6695 | 0.3260 |
+| RM3 | 0.6550 | 0.3440 |
+| **SPLADE** | **0.7079** | **0.3548** |
+| bge-small dense | 0.7200 | 0.3391 |
+| RRF fusion, BM25+dense | **0.7207** | **0.3610** |
+
+SPLADE is the best *single* retriever on NFCorpus and the best lexical-family method on
+both. It is still below the fusion on both, which is H2 and which keeps this project's
+central recommendation intact for a sixth method.
+
+### H3 is the result, because it rewrites two earlier experiments
+
+Experiments 13 and 14 measured two ways of expanding text with a language model and found
+nothing. Read alone, the natural conclusion is that expansion does not help on this data.
+That conclusion is wrong, and SPLADE is how we know.
+
+SPLADE expands too — a document gets weight on terms it does not contain — and it beats
+HyDE by 0.0341 and doc2query by 0.0287 on NFCorpus, both at Holm 0.0006. It also beats
+RM3, which those two lost to. The difference is not that it expands more carefully; it is
+what the expansion was optimised for. HyDE and doc2query generate text that reads like
+something a human would write. SPLADE learns term weights against relevance judgements.
+Only the second is trained on the thing being measured.
+
+So the corrected lesson from experiments 13 and 14 is **not** "expansion does not work
+here". It is that generating plausible text and improving retrieval are different
+objectives, and a model trained for the first should not be expected to deliver the
+second. That is a claim neither experiment could support on its own, and it took a method
+that expands *and* works to separate the two.
+
+### What this does to the MS MARCO story, which needs narrowing rather than repeating
+
+Four times this project has watched an MS MARCO-trained model disappoint — the
+cross-encoder in experiment 7, the bi-encoders in 5 and 9, doc2query in 14 — and each time
+the reading offered was domain mismatch: MS MARCO is web queries against web passages, and
+scientific text is neither.
+
+**SPLADE is MS MARCO-trained, and it is the best single retriever here.** So "MS MARCO
+training does not transfer to scientific retrieval" is refuted as stated. Whatever is
+wrong in those four cases is more specific than the training corpus — it has to be
+something about how those particular models use it, and this experiment does not identify
+what. The honest move is to stop offering the general version, which is what the entries
+above now do.
+
+### Cost, since that is what sank the reranker
+
+| | index | retrieve | terms per document |
+|---|---|---|---|
+| SciFact | 292.1s | 7.4s | 207 |
+| NFCorpus | 203.4s | 5.5s | 206 |
+
+Indexing is a one-off and retrieval is seconds, because scoring is a sparse dot product
+over an inverted index — the same operation as BM25. Set that against experiment 15's
+reranker, which spent 1220s per dataset at query time to make results worse. SPLADE is the
+only neural method measured here whose cost structure resembles the thing it improves on.
+
+---
+
+## 2026-09-22 — Experiment 20 (result): late interaction, and two bugs that did not error
+
+Pre-registered above. `colbert-ir/colbertv2.0`, MaxSim over per-token vectors, exhaustive
+against the full corpus. SciFact and NFCorpus, documents capped at 512 tokens.
+
+**One prediction of three held.**
+
+| Prediction | Measured | Verdict |
+|---|---|---|
+| **H1** beats BM25 on both, Holm-significant | +0.0322 (Holm **0.1515**) and +0.0282 (Holm 0.0006) | **failed** on SciFact |
+| **H2** does not beat bge-small on SciFact | −0.0241 (Holm 0.4692) | **held** |
+| **H3** fusing with BM25 beats ColBERT alone on both | +0.0095 (Holm 0.5383) and **−0.0046** | **failed** |
+
+### Before any of that: the implementation was wrong twice, and neither raised an error
+
+The pre-registration made the reproduction check a precondition. It earned its place.
+
+| | SciFact nDCG@10 | vs published 0.693 |
+|---|---|---|
+| Marker written as text, 180-token documents | 0.6071 | −0.0859 |
+| Marker fixed, 180-token documents | 0.6464 | −0.0466 |
+| Marker fixed, 300-token documents | 0.6917 | −0.0013 |
+| Marker fixed, 512-token documents | 0.6959 | +0.0029 |
+
+**Bug one: the marker token.** ColBERT distinguishes queries from documents with a marker
+inserted after `[CLS]`. Writing it into the text as `"[unused0] "` does not work — this
+tokenizer lowercases and splits, so every query and document began with `[`, `unused`,
+`##0`, `]`. Four junk tokens, which also consumed four of the thirty-two query positions
+and could win a MaxSim on their own. The official implementation prepends a placeholder
+and overwrites position one with the marker *id*. Cost: **0.0393**.
+
+**Bug two: trusting the checkpoint's document length.** `artifact.metadata` says
+`doc_maxlen: 180`, and that number is right for the MS MARCO passages ColBERT was trained
+on. SciFact abstracts have a median of 304 BERT tokens, so 180 truncated **91%** of the
+corpus. Cost: **0.0494 (Holm 0.0004)**. Reading settings from the checkpoint instead of
+guessing was the correct instinct; not checking them against *this* data was not.
+
+Neither bug threw. Both produced runs that completed, retrieved plausibly, and would have
+supported a confident negative result about late interaction. The only signal was the
+distance from a published number. The 0.6071 run is preserved as
+`scifact-colbert-brokenmarker.json` with a note.
+
+### nDCG@10 on test
+
+| | SciFact | NFCorpus |
+|---|---|---|
+| BM25 | 0.6636 | 0.3253 |
+| **ColBERT** | 0.6959 | 0.3535 |
+| SPLADE | 0.7079 | 0.3548 |
+| bge-small dense | 0.7200 | 0.3391 |
+| RRF fusion, BM25+dense | 0.7207 | 0.3610 |
+| RRF fusion, BM25+ColBERT | 0.7053 | 0.3488 |
+
+Reproduction: +0.0029 on SciFact and +0.0155 on NFCorpus against published 0.693 and 0.338.
+
+### H1 failed on a technicality worth stating precisely
+
+ColBERT beats BM25 by +0.0322 on SciFact, which is a larger point estimate than several
+results this project has called findings — but Holm 0.1515, so it does not survive
+correction across its family of six. On NFCorpus the smaller +0.0282 does, at Holm 0.0006.
+The difference is the number of queries: 300 against 323 is not the issue, the variance is.
+H1 asked for both, so H1 failed, and reporting it as "beats BM25 on one of two" would be
+reporting the half that worked.
+
+### H2 held: a 2020 late-interaction model loses to a 2023 bi-encoder
+
+ColBERT is below `bge-small-en-v1.5` on SciFact by 0.0241, and the fusion built on it
+(0.7053) is below the fusion built on bge-small (0.7207). On NFCorpus ColBERT is ahead by
++0.0144, but Holm 0.4692, so nothing is established there either way — and that comparison
+was not pre-registered, so it is an observation rather than a result.
+
+The expressiveness argument for late interaction — a vector per token rather than one per
+document — does not pay for itself here against a much smaller, much cheaper, much more
+recent single-vector model. That is the same shape as experiment 9's finding for
+bi-encoders: model quality and training recency beat architectural sophistication on this
+data, twice now, measured two different ways.
+
+### H3 failed, and it is the first crack in this project's central recommendation
+
+Every fusion measured here has beaten its own components. The pre-registration said what
+an exception would mean: *"if it is, that is the first sign of a retriever this project's
+central recommendation does not apply to."*
+
+Fusing ColBERT with BM25 gains +0.0095 on SciFact (Holm 0.5383, not detectable) and
+**loses** 0.0046 on NFCorpus. Neither is significant, so the honest statement is that
+fusion stopped helping rather than that it hurt. Compare the BM25+dense fusion on the same
+NFCorpus data, which took 0.3253 and 0.3391 to 0.3610 — comfortably above both.
+
+A plausible reading, offered as a hypothesis and not a result: RRF pays when components are
+comparably strong and disagree, and costs when one is clearly weaker. BM25 at 0.3253 against
+ColBERT at 0.3535 is a wider gap than BM25 against bge-small at 0.3391. Nothing here tests
+that, and it would need a deliberate sweep of component strength to do so. It is the most
+interesting thing left open by this experiment.
+
+### Cost, and what is not claimed
+
+| | index | retrieve | tokens per document |
+|---|---|---|---|
+| SciFact | 213.8s | 35.4s | 286 |
+| NFCorpus | 152.8s | 27.5s | 296 |
+
+Retrieval is five times SPLADE's and the index holds a vector per token rather than per
+document. As the pre-registration said, this is exhaustive MaxSim with none of ColBERT's
+serving machinery — no centroid candidate generation, no residual compression, no PLAID —
+so these timings bound quality, not efficiency, and no efficiency claim is made from them.
+
+---
+
+## 2026-09-22 — Truncation costs late interaction five times what it costs learned sparse
+
+Both experiments 19 and 20 needed a document-length check before their comparisons could
+mean anything, and the two answers came out so differently that the contrast is worth its
+own entry. Same datasets, same harness, same paired test, Holm-corrected within a family
+of four.
+
+| | short | long | delta nDCG@10 | Holm |
+|---|---|---|---|---|
+| SPLADE, SciFact | 256 tokens | 512 | +0.0055 | 0.5672 |
+| SPLADE, NFCorpus | 256 tokens | 512 | +0.0049 | 0.2342 |
+| ColBERT, SciFact | 180 tokens | 512 | **+0.0494** | **0.0004** |
+| ColBERT, SciFact | 180 tokens | 300 | **+0.0453** | **0.0006** |
+
+Recall@100 agrees: +0.0167 and +0.0048 for SPLADE, neither detectable; +0.0344 (Holm
+0.0240) and +0.0311 (Holm 0.0297) for ColBERT.
+
+**Late interaction needs the tokens. Learned sparse does not.** The mechanism is visible in
+the two representations. SPLADE takes a `max` over sequence positions, so a term mentioned
+anywhere in the first 256 tokens carries the whole document, and a second mention later
+adds nothing. ColBERT keeps a vector per token, and a query token can only match a document
+token that was encoded — cut the document in half and half the possible matches are gone.
+
+This also completes a three-way comparison this project did not set out to make. Experiment
+9 chunked a **bi-encoder** so it could see whole documents and found results got slightly
+*worse*: the tails carried no signal a single pooled vector could use. So across three
+representation types, on the same corpora:
+
+| representation | seeing more of the document |
+|---|---|
+| single dense vector (experiment 9) | slightly worse |
+| learned sparse (SPLADE) | no detectable change |
+| per-token vectors (ColBERT) | **+0.0494, Holm 0.0004** |
+
+The tails of these documents do carry retrievable signal. Whether a method can use it
+depends entirely on how it represents them, and that is not something any of the three
+results shows on its own.
+
+**The practical version, for anyone setting a maximum length:** a checkpoint's own default
+is a statement about its training data, not about yours. ColBERT's `doc_maxlen: 180` is
+correct for MS MARCO passages and truncated 91% of SciFact, costing more than most of the
+effects this project has spent experiments chasing.
+
+---
+
 ## Experiments 13, 14 and 15: what they cost to run
 
 All three are finished and written up above. What is kept here is the operational part,
