@@ -198,6 +198,8 @@ def main() -> int:
     fused = reciprocal_rank_fusion(list(runs.values()), k=args.k, top_k=args.top_k)
 
     reranker_described = None
+    rerank_seconds: float | None = None
+    before_rerank: dict[str, float] | None = None
     if args.rerank:
         # Reranking reorders the candidate set; it cannot add to it. The fused run's
         # recall@100 is therefore a hard ceiling on what this can recover, which is why
@@ -209,6 +211,7 @@ def main() -> int:
         rerank_seconds = time.perf_counter() - start
         reranker_described = reranker.describe()
         after = evaluate_run(fused, dataset.qrels, k_values=(10, 100), gain=args.gain)
+        before_rerank = {a: b for a, b in before.items() if a != "num_queries"}
         print(
             f"  reranked {len(dataset.queries)} x {args.rerank_depth} pairs "
             f"in {rerank_seconds:.0f}s"
@@ -258,7 +261,15 @@ def main() -> int:
             name: {a: b for a, b in scores.items() if a != "num_queries"}
             for name, scores in metrics_by_gain.items()
         },
-        "timing_seconds": {"build": round(build_seconds, 2)},
+        # Reranking is the most expensive thing in this project and the cost is the
+        # finding, so it is recorded rather than printed and lost. The pre-rerank scores
+        # go in too: they are the run this is being compared against, and keeping them
+        # beside the reranked ones makes the comparison readable without a second file.
+        "timing_seconds": {
+            "build": round(build_seconds, 2),
+            **({} if rerank_seconds is None else {"rerank": round(rerank_seconds, 1)}),
+        },
+        "before_rerank": before_rerank,
         "per_query_file": str(per_query_path.relative_to(output.parent)),
         "groundwork_version": __version__,
         "python": platform.python_version(),
