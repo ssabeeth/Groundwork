@@ -7,9 +7,10 @@ the experiment: BM25, dense, hybrid and reranked retrieval are scored against th
 human relevance judgements, with a tested evaluation harness, and the results are
 reported including the ones that did not help.
 
-**Status:** milestone 1 — BM25 baseline with a tested nDCG implementation. No dense
-retrieval, no hybrid, no reranking yet, by design. Everything later is compared to
-this number, so the number has to be trustworthy first.
+**Status:** BM25, RM3, dense and hybrid retrieval all measured on the same harness,
+with paired significance testing throughout. The central claim — that retrieval method
+is query-dependent — is now tested rather than asserted, on a hypothesis fixed before
+the data was looked at. It holds, on two datasets, and it is invisible in the aggregate.
 
 ---
 
@@ -104,6 +105,61 @@ python scripts/run_baseline.py --dataset scifact
 | NFCorpus | **RM3** (fb=5, terms=50, α=0.8) | **0.3433** | **0.3105** | — |
 | SciFact | RM3 (fb=20, terms=20, α=0.2) | 0.6848 | 0.9253 | — |
 
+### The main table
+
+nDCG@10 on test, all methods on the same harness and the same corpora:
+
+| Method | SciFact | NFCorpus |
+|---|---|---|
+| BM25 | 0.6802 | 0.3224 |
+| Dense (MiniLM-L6) | 0.6451 | 0.3173 |
+| RM3 | 0.6848 | 0.3433 |
+| **Hybrid (RRF)** | **0.7146** | **0.3559** |
+
+Fusion beats both its parents on both datasets (Holm p ≤ 0.0021 against BM25,
+≤ 0.0001 against dense) — and by more than the parents differ from each other, which
+is the signature of two systems making uncorrelated errors rather than one being better.
+
+The fusion constant `k` was tuned on train: 1 on SciFact, 10 on NFCorpus. Both are far
+below the conventional default of 60, which would have cost 0.013 and 0.005 nDCG@10.
+
+### Is retrieval method query-dependent?
+
+This is the question the project exists to ask, so it was asked in a form that could
+come out wrong. The hypothesis was written into
+[`scripts/analyse_queries.py`](scripts/analyse_queries.py) before it was run:
+
+> per-query (nDCG@10 of BM25 − nDCG@10 of dense) correlates **positively** with the
+> rarity of the query's rarest term (`max_idf`, computed from the index alone, before
+> any retrieval).
+
+One continuous predictor rather than query-type buckets, because with enough candidate
+groupings one will always show an effect.
+
+| Dataset | Spearman rho | p | Holm across datasets |
+|---|---|---|---|
+| NFCorpus | **+0.158** | 0.0046 | **0.0092** |
+| SciFact | **+0.119** | 0.0362 | **0.0362** |
+
+Mean BM25-minus-dense advantage, by tercile of query term rarity:
+
+| Tercile | NFCorpus | SciFact |
+|---|---|---|
+| lowest `max_idf` | **−0.0169** | **−0.0240** |
+| middle | −0.0002 | +0.0560 |
+| highest `max_idf` | **+0.0327** | **+0.0733** |
+
+**NFCorpus is the clean demonstration.** Compare BM25 and dense the ordinary way and the
+answer is "no difference" — 0.3224 against 0.3173, p = 0.655. Split the same 323 queries
+by how rare their rarest term is and the answer becomes "it depends, systematically":
+dense ahead on the least lexically specific third, BM25 ahead on the most specific.
+The aggregate was not wrong; it was averaging two opposite effects.
+
+The correlations are modest — rho of 0.12 to 0.16 explains a small share of the variance,
+and that is stated rather than rounded up. What makes it a result is that it is in the
+predicted direction on two independent datasets, survives Holm adjustment, and has
+monotone terciles on both.
+
 **RM3 pseudo-relevance feedback is the first method here to beat its baseline** — and
 only where there was room. On NFCorpus it gains +0.0208 nDCG@10 (Holm p = 0.0005) and
 +0.0645 recall@100 (p < 0.0001). On SciFact it gains +0.0046 at p = 0.29, which is no
@@ -182,6 +238,33 @@ the evaluation code that everything downstream depends on.
 Full run records, including settings and timings, are written to `results/`.
 
 ## What didn't work
+
+**Dense retrieval never beat BM25 at ranking.** On NFCorpus the two are
+indistinguishable at nDCG@10 (−0.0051, p = 0.655); on SciFact dense is worse
+(−0.0351, p = 0.064). What dense *does* do is find documents BM25 misses entirely —
+recall@100 on NFCorpus goes 0.2461 → 0.3115 (p < 0.0001) — and then fail to rank them
+above BM25's own hits. That is why fusion works.
+
+It also carries a caveat that belongs next to every dense number here: **78.8% of
+NFCorpus documents and 71.0% of SciFact documents exceed the model's 256-token limit**
+and are silently truncated. These are not measurements of dense retrieval on scientific
+abstracts, but on the first 256 word pieces of them. The model — MiniLM-L6, small and
+general-purpose, not domain-matched — is likewise a variable, not a constant.
+
+**The expensive method was not reliably better than the cheap one.** Hybrid fusion beats
+RM3 on SciFact (+0.0298, Holm p 0.0056) but not on NFCorpus (+0.0126, Holm p 0.290).
+RM3 needs numpy, runs in seconds, and has no model to download, no GPU and no 2 GB
+dependency tree. Before deploying a GPU to serve fusion, it is worth knowing that on one
+of two datasets a far cheaper method was statistically indistinguishable from it.
+
+**A prediction this project made and got half wrong.** Experiment 4 measured that BM25
+had already captured 92.2% of achievable recall@100 on SciFact, and inferred that a
+better method had almost nothing to win there whatever its quality. RM3 confirmed it.
+Fusion refuted it: +0.0344 nDCG@10 at Holm p 0.0021. A recall ceiling bounds what
+*recall-limited* methods can gain and says nothing about reordering documents already
+retrieved — and SciFact's nDCG@10 of 0.68 left plenty of room for that. The claim was
+right about RM3 for the right reason and wrong about fusion for a reason the original
+argument never considered. It stays on the record rather than being quietly amended.
 
 **Stopword removal buys nothing on SciFact.** Dropping Lucene's 33-word English list
 moves nDCG@10 by about a thousandth of a point, and the sign flips depending on whether
@@ -262,10 +345,19 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev,stem]"
 ```
 
+Dense and hybrid retrieval need the optional `dense` extra, which pulls in torch:
+
+```bash
+pip install -e ".[dense]"
+```
+
+The core package stays on numpy and tqdm; everything except dense and hybrid runs
+without it.
+
 ## Development
 
 ```bash
-pytest          # 138 tests
+pytest          # 195 tests
 ruff check .
 ruff format .
 ```
@@ -282,13 +374,17 @@ src/groundwork/
   retrieval/dense.py    bi-encoder dense retrieval (optional extra)
   retrieval/tokenize.py tokenisation, stopwords, stemming
   eval/metrics.py       nDCG@k, recall@k, per-query scoring
-  eval/significance.py  paired randomisation test, Holm-Bonferroni
+  eval/significance.py  paired randomisation test, Spearman, Holm-Bonferroni
+  retrieval/fusion.py   reciprocal rank fusion
 scripts/run_baseline.py the one command behind the results table
 scripts/compare_runs.py paired significance test between two runs
 scripts/run_sweep.py    k1/b grid over one shared index
 scripts/run_rm3.py      RM3, with its own train-tuned sweep
+scripts/run_dense.py    bi-encoder retrieval, embeddings cached
+scripts/run_hybrid.py   RRF over BM25/dense/RM3, k tuned on train
+scripts/analyse_queries.py  the pre-specified query-type hypothesis
 docs/experiments.md     running log, including what failed
-tests/                  138 tests
+tests/                  195 tests
 ```
 
 ## Licence

@@ -281,3 +281,155 @@ def holm_bonferroni(p_values: Sequence[float]) -> list[float]:
         running = max(running, scaled)
         adjusted[index] = min(1.0, running)
     return adjusted
+
+
+def _average_ranks(values: np.ndarray) -> np.ndarray:
+    """Ranks of ``values``, ties sharing their average rank.
+
+    Average ranks are what makes Spearman well defined on data with ties, and per-query
+    nDCG has a great many of them — a majority of queries often score exactly 0 or
+    exactly 1. Assigning ties arbitrary distinct ranks would invent an ordering the data
+    does not contain and bias the correlation.
+
+    Args:
+        values: One dimensional array.
+
+    Returns:
+        Ranks starting at 1.0, same shape as ``values``.
+    """
+    order = np.argsort(values, kind="stable")
+    ranks = np.empty(values.size, dtype=np.float64)
+    ranks[order] = np.arange(1, values.size + 1, dtype=np.float64)
+
+    sorted_values = values[order]
+    start = 0
+    while start < sorted_values.size:
+        stop = start + 1
+        while stop < sorted_values.size and sorted_values[stop] == sorted_values[start]:
+            stop += 1
+        if stop - start > 1:
+            ranks[order[start:stop]] = ranks[order[start:stop]].mean()
+        start = stop
+    return ranks
+
+
+def spearman_correlation(x: Sequence[float], y: Sequence[float]) -> float:
+    """Spearman's rank correlation between ``x`` and ``y``.
+
+    Pearson correlation computed on average ranks, which is the definition that handles
+    ties correctly. Rank-based because the quantities being related here — a query's
+    term rarity and a difference in nDCG — have no reason to be linearly related, and
+    only their monotone association is being claimed.
+
+    Args:
+        x: First variable.
+        y: Second variable, paired with ``x`` by position.
+
+    Returns:
+        Correlation in [-1, 1], or 0.0 when either variable is constant and the
+        correlation is undefined.
+
+    Raises:
+        ValueError: If the inputs differ in length or have fewer than two elements.
+    """
+    if len(x) != len(y):
+        raise ValueError(f"paired inputs must be the same length, got {len(x)} and {len(y)}")
+    if len(x) < 2:
+        raise ValueError("correlation needs at least two observations")
+
+    rank_x = _average_ranks(np.asarray(x, dtype=np.float64))
+    rank_y = _average_ranks(np.asarray(y, dtype=np.float64))
+
+    centred_x = rank_x - rank_x.mean()
+    centred_y = rank_y - rank_y.mean()
+    denominator = np.sqrt((centred_x**2).sum() * (centred_y**2).sum())
+    if denominator == 0.0:
+        return 0.0
+    return float((centred_x * centred_y).sum() / denominator)
+
+
+@dataclass(frozen=True)
+class CorrelationResult:
+    """Outcome of a permutation-tested correlation.
+
+    Attributes:
+        correlation: Spearman's rho.
+        p_value: Two-sided p-value from the permutation test.
+        num_observations: Number of paired observations.
+        num_permutations: Permutations sampled.
+        seed: Random seed used.
+    """
+
+    correlation: float
+    p_value: float
+    num_observations: int
+    num_permutations: int
+    seed: int
+
+    def describe(self) -> dict[str, object]:
+        """Settings and outcome, for recording alongside results."""
+        return {
+            "test": "spearman_permutation",
+            "alternative": "two-sided",
+            "correlation": self.correlation,
+            "p_value": self.p_value,
+            "num_observations": self.num_observations,
+            "num_permutations": self.num_permutations,
+            "seed": self.seed,
+        }
+
+
+def correlation_permutation_test(
+    x: Sequence[float],
+    y: Sequence[float],
+    num_permutations: int = DEFAULT_RESAMPLES,
+    seed: int = 0,
+) -> CorrelationResult:
+    """Test whether two variables are associated, by permuting the pairing.
+
+    Under the null hypothesis that ``x`` and ``y`` are unrelated, any pairing of one
+    against the other is as likely as the pairing observed. Shuffling one of them
+    repeatedly builds the distribution of the correlation under that null, with no
+    appeal to a t-distribution whose assumptions per-query nDCG does not satisfy.
+
+    Args:
+        x: First variable.
+        y: Second variable, paired with ``x`` by position.
+        num_permutations: Shuffles to sample.
+        seed: Seed, so a reported p-value can be reproduced.
+
+    Returns:
+        The correlation and its two-sided p-value.
+
+    Raises:
+        ValueError: If the inputs are mismatched, too short, or the permutation count
+            is not positive.
+    """
+    if num_permutations <= 0:
+        raise ValueError("num_permutations must be positive")
+
+    observed = spearman_correlation(x, y)
+
+    # Ranks are permutation-invariant, so they are computed once and shuffled directly.
+    rank_x = _average_ranks(np.asarray(x, dtype=np.float64))
+    rank_y = _average_ranks(np.asarray(y, dtype=np.float64))
+    centred_x = rank_x - rank_x.mean()
+    centred_y = rank_y - rank_y.mean()
+    scale = np.sqrt((centred_x**2).sum() * (centred_y**2).sum())
+
+    if scale == 0.0:
+        return CorrelationResult(0.0, 1.0, len(x), num_permutations, seed)
+
+    rng = np.random.default_rng(seed)
+    tolerance = 1e-12 * max(1.0, abs(observed))
+    at_least_as_extreme = 0
+    for _ in range(num_permutations):
+        shuffled = rng.permutation(centred_y)
+        candidate = float((centred_x * shuffled).sum() / scale)
+        if abs(candidate) + tolerance >= abs(observed):
+            at_least_as_extreme += 1
+
+    # As in the paired test, the observed arrangement counts as one valid draw, so a
+    # p-value of exactly zero is never reported.
+    p_value = (at_least_as_extreme + 1) / (num_permutations + 1)
+    return CorrelationResult(observed, min(1.0, p_value), len(x), num_permutations, seed)

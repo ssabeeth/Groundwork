@@ -1,0 +1,60 @@
+{
+  "dataset": "nfcorpus",
+  "split": "test",
+  "tag": "",
+  "method": "dense",
+  "metrics": {
+    "ndcg@1": 0.39422084623323,
+    "recall@1": 0.043896804988942224,
+    "ndcg@10": 0.3172715136675965,
+    "recall@10": 0.15498797328057842,
+    "ndcg@100": 0.3008147927377891,
+    "recall@100": 0.3115099240116931
+  },
+  "num_queries": 323,
+  "num_documents": 3633,
+  "retriever": {
+    "method": "dense",
+    "model": "sentence-transformers/all-MiniLM-L6-v2",
+    "similarity": "cosine",
+    "pooling": "mean",
+    "normalized": true,
+    "max_seq_length": 256,
+    "truncation_rate": 0.7883292045141757,
+    "batch_size": 64
+  },
+  "top_k": 100,
+  "gain": "exponential",
+  "graded_qrels": true,
+  "relevance_levels": [
+    1,
+    2
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.39422084623323,
+      "recall@1": 0.043896804988942224,
+      "ndcg@10": 0.3172715136675965,
+      "recall@10": 0.15498797328057842,
+      "ndcg@100": 0.3008147927377891,
+      "recall@100": 0.3115099240116931
+    },
+    "linear": {
+      "ndcg@1": 0.40092879256965946,
+      "recall@1": 0.043896804988942224,
+      "ndcg@10": 0.31667312754717797,
+      "recall@10": 0.15498797328057842,
+      "ndcg@100": 0.29515329298510906,
+      "recall@100": 0.3115099240116931
+    }
+  },
+  "timing_seconds": {
+    "encode": 18.78,
+    "retrieve": 1.14
+  },
+  "per_query_file": "per-query/nfcorpus-dense.json",
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T03:42:59+00:00"
+}

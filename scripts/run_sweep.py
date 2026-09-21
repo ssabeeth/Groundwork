@@ -26,6 +26,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
+import numpy as np
 from tqdm import tqdm
 
 from groundwork import __version__
@@ -142,6 +143,7 @@ def main() -> int:
         "timing_seconds": {"index": round(index_seconds, 2), "sweep": round(sweep_seconds, 2)},
         "groundwork_version": __version__,
         "python": platform.python_version(),
+        "numpy": np.__version__,
         "run_at": datetime.now(UTC).isoformat(timespec="seconds"),
     }
 

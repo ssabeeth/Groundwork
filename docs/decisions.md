@@ -98,3 +98,46 @@ So `results/<run>.json` keeps the summary and gains a `per_query_file` pointer, 
 `results/per-query/<run>.json` holds the scores. Both are committed. This is distinct
 from `results/runs/`, which is gitignored and reserved for full rankings — those are
 large, and nothing downstream needs them to reproduce a number.
+
+
+## Dense retrieval is an optional extra, and torch pins numpy
+
+`sentence-transformers` pulls in torch, which is roughly two orders of magnitude larger
+than everything else here combined. The core package stays on numpy and tqdm, and dense
+and hybrid retrieval live behind `pip install -e '.[dense]'`, the same shape as stemming.
+
+There is a constraint worth writing down because it cost time to find. On this machine
+pip offers torch only up to 2.2.2 — the conda environment's Python is x86_64 running
+under Rosetta, and torch dropped x86 macOS wheels after that release. torch 2.2.2
+predates numpy 2 and fails to initialise against it, which surfaces as
+`Failed to initialize NumPy: _ARRAY_API not found` followed by transformers deciding
+torch is absent entirely and raising a `NameError` from an unrelated module. The fix is
+`numpy<2` with `transformers==4.40.2` and `sentence-transformers==2.7.0`.
+
+Downgrading numpy under an evaluation harness is exactly the kind of change that can
+move results silently, so it was verified rather than assumed: the SciFact BM25 baseline
+re-run under numpy 1.26.4 reproduces 0.6802137133984872 bit-for-bit, and all tests pass.
+Every results file now records its numpy version alongside its Python version, because
+this episode demonstrates that it is a variable and not a constant.
+
+## Query-type analysis uses one pre-specified continuous predictor
+
+The obvious way to test "retrieval method is query-dependent" is to label queries by
+type and compare group means. It is also the easiest way to find an effect that is not
+there: labelling schemes are cheap to invent, and with enough of them one will separate
+the systems by chance.
+
+So the claim was reduced to a single hypothesis, fixed in the script before it was run:
+the per-query advantage of BM25 over dense correlates positively with `max_idf`, the
+rarity of the query's rarest term. One predictor, one test, one direction predicted in
+advance. `max_idf` is computable from the query and the index alone, before any
+retrieval happens, which is what stops the correlation being circular — a predictor
+derived from how a system performed would guarantee its own result.
+
+Other predictors (`mean_idf`, out-of-vocabulary rate, query length) are computed and
+reported, but labelled secondary and Holm-adjusted among themselves. The primary is not
+adjusted against them: penalising a hypothesis fixed in advance for tests invented
+afterwards gets the logic backwards. The distinction is the only thing that keeps either
+number meaningful, and query length on NFCorpus is a live example — it correlates more
+strongly than the primary predictor and was not predicted, so it is recorded as a lead
+for a pre-registered test on a third dataset rather than as a finding.

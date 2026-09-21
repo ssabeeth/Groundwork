@@ -17,6 +17,13 @@ dependencies = [
 
 [project.optional-dependencies]
 stem = ["snowballstemmer>=2.2"]
+# Dense and hybrid retrieval only. Kept out of the core install because a torch
+# dependency tree is a reason people do not run portfolio code, and everything except
+# these two methods runs on numpy and tqdm alone.
+dense = [
+    "sentence-transformers>=2.7",
+    "torch>=2.2",
+]
 dev = [
     "pytest>=8.0",
     "ruff>=0.6",

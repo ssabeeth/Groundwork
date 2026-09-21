@@ -1,0 +1,59 @@
+{
+  "dataset": "scifact",
+  "split": "test",
+  "tag": "",
+  "method": "dense",
+  "metrics": {
+    "ndcg@1": 0.5033333333333333,
+    "recall@1": 0.4823333333333333,
+    "ndcg@10": 0.6450816521455774,
+    "recall@10": 0.7833333333333333,
+    "ndcg@100": 0.6766476669524601,
+    "recall@100": 0.925
+  },
+  "num_queries": 300,
+  "num_documents": 5183,
+  "retriever": {
+    "method": "dense",
+    "model": "sentence-transformers/all-MiniLM-L6-v2",
+    "similarity": "cosine",
+    "pooling": "mean",
+    "normalized": true,
+    "max_seq_length": 256,
+    "truncation_rate": 0.710206444144318,
+    "batch_size": 64
+  },
+  "top_k": 100,
+  "gain": "exponential",
+  "graded_qrels": false,
+  "relevance_levels": [
+    1
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.5033333333333333,
+      "recall@1": 0.4823333333333333,
+      "ndcg@10": 0.6450816521455774,
+      "recall@10": 0.7833333333333333,
+      "ndcg@100": 0.6766476669524601,
+      "recall@100": 0.925
+    },
+    "linear": {
+      "ndcg@1": 0.5033333333333333,
+      "recall@1": 0.4823333333333333,
+      "ndcg@10": 0.6450816521455774,
+      "recall@10": 0.7833333333333333,
+      "ndcg@100": 0.6766476669524601,
+      "recall@100": 0.925
+    }
+  },
+  "timing_seconds": {
+    "encode": 24.96,
+    "retrieve": 0.48
+  },
+  "per_query_file": "per-query/scifact-dense.json",
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T03:43:35+00:00"
+}

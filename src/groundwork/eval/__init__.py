@@ -7,14 +7,19 @@ from groundwork.eval.metrics import (
     recall_at_k,
 )
 from groundwork.eval.significance import (
+    CorrelationResult,
     SignificanceResult,
+    correlation_permutation_test,
     holm_bonferroni,
     paired_randomization_test,
     paired_test_from_per_query,
+    spearman_correlation,
 )
 
 __all__ = [
+    "CorrelationResult",
     "SignificanceResult",
+    "correlation_permutation_test",
     "evaluate_run",
     "evaluate_run_per_query",
     "holm_bonferroni",
@@ -22,4 +27,5 @@ __all__ = [
     "paired_randomization_test",
     "paired_test_from_per_query",
     "recall_at_k",
+    "spearman_correlation",
 ]

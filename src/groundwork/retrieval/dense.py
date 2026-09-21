@@ -193,8 +193,8 @@ class DenseRetriever:
             with np.load(cache_path, allow_pickle=False) as cached:
                 self.embeddings = cached["embeddings"]
                 stored = cached["truncation_rate"]
-                self.truncation_rate = float(stored) if stored.size else None
-                self.effective_max_seq_length = int(cached["max_seq_length"])
+                self.truncation_rate = float(stored[0]) if stored.size else None
+                self.effective_max_seq_length = int(cached["max_seq_length"].item())
             logger.info("Loaded %d cached embeddings from %s", len(self.doc_ids), cache_path)
             if self.embeddings.shape[0] != len(self.doc_ids):
                 raise ValueError(

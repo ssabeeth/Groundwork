@@ -19,9 +19,11 @@ import itertools
 import pytest
 
 from groundwork.eval.significance import (
+    correlation_permutation_test,
     holm_bonferroni,
     paired_randomization_test,
     paired_test_from_per_query,
+    spearman_correlation,
 )
 
 
@@ -223,3 +225,92 @@ class TestHolmBonferroni:
     def test_rejects_empty_input(self):
         with pytest.raises(ValueError, match="must not be empty"):
             holm_bonferroni([])
+
+
+class TestSpearman:
+    def test_worked_example(self):
+        # x = [1,2,3,4], y = [2,1,4,3]. Ranks equal values; d = [-1,1,-1,1], sum d^2 = 4.
+        # rho = 1 - 6*4 / (4*(16-1)) = 1 - 24/60 = 0.6
+        assert spearman_correlation([1, 2, 3, 4], [2, 1, 4, 3]) == pytest.approx(0.6)
+
+    def test_perfect_monotone_agreement_is_one(self):
+        assert spearman_correlation([1, 2, 3], [10, 20, 30]) == pytest.approx(1.0)
+
+    def test_perfect_reversal_is_minus_one(self):
+        assert spearman_correlation([1, 2, 3], [30, 20, 10]) == pytest.approx(-1.0)
+
+    def test_monotone_but_non_linear_still_scores_one(self):
+        # The reason for using ranks: the association is monotone, not linear.
+        assert spearman_correlation([1, 2, 3, 4], [1, 4, 9, 16]) == pytest.approx(1.0)
+
+    def test_ties_share_an_average_rank(self):
+        # x = [1,2,3,4] ranks 1,2,3,4. y = [5,5,7,7] ranks 1.5,1.5,3.5,3.5.
+        # Centred: x -> [-1.5,-0.5,0.5,1.5], y -> [-1,-1,1,1]
+        #   numerator   = 1.5 + 0.5 + 0.5 + 1.5 = 4
+        #   denominator = sqrt(5 * 4) = sqrt(20)
+        #   rho = 4 / sqrt(20) = 2 / sqrt(5) = 0.894427191
+        # Note this is NOT 1.0, and that is correct rather than a defect: when one
+        # variable has ties and the other does not, no pairing can be perfectly
+        # monotone, so perfect correlation is unattainable. This matters here because
+        # per-query nDCG is full of ties.
+        assert spearman_correlation([1, 2, 3, 4], [5, 5, 7, 7]) == pytest.approx(
+            0.894427191, abs=1e-9
+        )
+
+    def test_ties_in_both_variables_can_still_reach_one(self):
+        # With the same tie structure on both sides the ranks match exactly.
+        assert spearman_correlation([1, 1, 3, 3], [5, 5, 7, 7]) == pytest.approx(1.0)
+
+    def test_constant_input_has_undefined_correlation_reported_as_zero(self):
+        assert spearman_correlation([1, 2, 3], [7, 7, 7]) == 0.0
+
+    def test_mismatched_lengths_raise(self):
+        with pytest.raises(ValueError, match="same length"):
+            spearman_correlation([1, 2], [1])
+
+    def test_single_observation_raises(self):
+        with pytest.raises(ValueError, match="at least two"):
+            spearman_correlation([1], [1])
+
+
+class TestCorrelationPermutationTest:
+    def test_perfect_correlation_is_significant(self):
+        x = list(range(30))
+        result = correlation_permutation_test(x, x, num_permutations=2000, seed=0)
+        assert result.correlation == pytest.approx(1.0)
+        assert result.p_value == pytest.approx(1 / 2001)
+
+    def test_unrelated_variables_are_not_significant(self):
+        # A fixed pattern with no monotone trend against x.
+        x = list(range(20))
+        y = [0, 1] * 10
+        result = correlation_permutation_test(x, y, num_permutations=2000, seed=1)
+        assert result.p_value > 0.05
+
+    def test_two_sided_test_treats_reversal_the_same(self):
+        x = list(range(25))
+        forward = correlation_permutation_test(x, x, num_permutations=2000, seed=3)
+        reverse = correlation_permutation_test(x, list(reversed(x)), num_permutations=2000, seed=3)
+        assert forward.p_value == pytest.approx(reverse.p_value)
+        assert forward.correlation == pytest.approx(-reverse.correlation)
+
+    def test_reproducible_from_its_seed(self):
+        x = [i % 7 for i in range(40)]
+        y = [(i * 3) % 11 for i in range(40)]
+        first = correlation_permutation_test(x, y, num_permutations=1000, seed=5)
+        second = correlation_permutation_test(x, y, num_permutations=1000, seed=5)
+        assert first.p_value == second.p_value
+
+    def test_p_value_is_never_zero(self):
+        x = list(range(50))
+        result = correlation_permutation_test(x, x, num_permutations=500, seed=0)
+        assert result.p_value > 0.0
+
+    def test_constant_input_is_not_significant(self):
+        result = correlation_permutation_test([1, 2, 3], [7, 7, 7], num_permutations=100)
+        assert result.correlation == 0.0
+        assert result.p_value == 1.0
+
+    def test_non_positive_permutations_raise(self):
+        with pytest.raises(ValueError, match="num_permutations must be positive"):
+            correlation_permutation_test([1, 2, 3], [1, 2, 3], num_permutations=0)

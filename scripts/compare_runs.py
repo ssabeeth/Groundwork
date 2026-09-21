@@ -87,10 +87,46 @@ def load_per_query(summary_path: Path, metric: str) -> tuple[str, dict[str, floa
             raise KeyError(f"{per_query_path} has no {metric!r}; found {sorted(metrics)}")
         scores[query_id] = float(metrics[metric])
 
-    tokenizer = summary["retriever"]["tokenizer"]
-    label = summary["tag"] or "baseline"
-    label = f"{label} (stem={tokenizer['stem']}, stopwords={tokenizer['stopwords']})"
-    return label, scores
+    return describe_run(summary), scores
+
+
+def describe_run(summary: dict) -> str:
+    """A short label naming the system and the settings that distinguish it.
+
+    Built defensively across methods: a dense run has no tokeniser and a fused run has
+    no single set of parameters, so anything method-specific is included only when it
+    is actually there.
+
+    Args:
+        summary: A parsed results file.
+
+    Returns:
+        A one-line label.
+    """
+    retriever = summary.get("retriever", {})
+    method = summary.get("method") or retriever.get("method") or "bm25"
+    parts: list[str] = []
+
+    if method == "dense":
+        parts.append(str(retriever.get("model", "?")))
+        if retriever.get("truncation_rate") is not None:
+            parts.append(f"truncated={100 * retriever['truncation_rate']:.0f}%")
+    elif method == "rrf":
+        parts.append("+".join(summary.get("systems", [])))
+        parts.append(f"k={summary.get('rrf_k')}")
+    else:
+        if method == "rm3":
+            parts.append(
+                f"fb={retriever.get('fb_docs')}, terms={retriever.get('fb_terms')}, "
+                f"alpha={retriever.get('alpha')}"
+            )
+        tokenizer = retriever.get("tokenizer") or {}
+        if tokenizer.get("stem"):
+            parts.append(f"stem={tokenizer['stem']}, stopwords={tokenizer['stopwords']}")
+
+    tag = summary.get("tag") or method
+    detail = ", ".join(part for part in parts if part)
+    return f"{tag} [{method}]" + (f" ({detail})" if detail else "")
 
 
 def main() -> int:

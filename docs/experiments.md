@@ -452,6 +452,193 @@ to be off.
 
 ---
 
+## 2026-09-21 — Dense retrieval
+
+**Question:** Does a bi-encoder beat BM25 on this harness, and what does it cost?
+
+**Setup:** `sentence-transformers/all-MiniLM-L6-v2`, mean pooling, L2-normalised so the
+inner product is cosine similarity, maximum sequence length 256 word pieces. Embeddings
+cached to gitignored `data/embeddings/`, keyed by model, length and a digest of the
+corpus. SciFact and NFCorpus test splits, depth 100. Dense is an optional extra: core
+install stays numpy and tqdm.
+
+**Result:**
+
+| Dataset | metric | BM25 | dense | delta | p |
+|---|---|---|---|---|---|
+| NFCorpus | nDCG@10 | 0.3224 | 0.3173 | −0.0051 | 0.655 |
+| NFCorpus | recall@100 | 0.2461 | **0.3115** | **+0.0654** | **<0.0001** |
+| SciFact | nDCG@10 | 0.6802 | 0.6451 | −0.0351 | 0.064 |
+| SciFact | recall@100 | 0.9220 | 0.9250 | +0.0030 | 0.885 |
+
+Encoding: 18.8s for NFCorpus, 25.0s for SciFact, on MPS.
+
+**Read:** **Dense retrieval never beats BM25 at ranking here, and on NFCorpus it finds
+substantially more.** That combination is the interesting part. On NFCorpus the two are
+indistinguishable at nDCG@10 (p 0.655) while dense recovers 6.5 points more of the
+relevant set by depth 100 — it is locating documents BM25 misses entirely and then
+failing to rank them above BM25's own hits. That is the profile of a system that should
+fuse well, which is what the next experiment tests.
+
+**The truncation number belongs next to every one of these figures. 78.8% of NFCorpus
+documents and 71.0% of SciFact documents exceed the model's 256-token limit** and are
+silently cut off. So this is not a measurement of "dense retrieval on scientific
+abstracts"; it is a measurement of dense retrieval on the first 256 word pieces of them.
+Whether the remaining text would help is untested and would need either a
+longer-context encoder or chunking. Reporting the nDCG without this would make the
+comparison look like a property of dense retrieval rather than a property of this
+configuration, which is why `describe()` records it on every run.
+
+The model is also a variable, not a constant. all-MiniLM-L6-v2 is a small general-purpose
+encoder, not a scientific-domain one, and it was chosen for being cheap rather than for
+being the strongest available. A stronger or domain-matched model would move these
+numbers, possibly a lot. What is claimed here is only what was measured.
+
+**Next:** Fuse it with BM25.
+
+---
+
+## 2026-09-21 — Hybrid retrieval by reciprocal rank fusion
+
+**Question:** Does fusing BM25 and dense beat both parents, and does it beat the much
+cheaper RM3?
+
+**Setup:** Reciprocal rank fusion, `RRF(d) = Σ 1/(k + rank(d))`, which discards scores
+and keeps only positions — so no score normalisation has to be invented between BM25's
+unbounded sums and cosine similarities. `k` is swept on **train** and the chosen value
+scored once on **test**, because tuning a fusion parameter on the evaluation split is
+the most common way a hybrid result is overstated. Paired randomisation tests with Holm
+across the four comparisons per dataset per metric.
+
+**Result:**
+
+Swept on train, the best `k` was **10 on NFCorpus and 1 on SciFact** — both far below
+the conventional default of 60, which would have cost 0.005 and 0.013 nDCG@10
+respectively. The default is a default, not a constant.
+
+nDCG@10 on test:
+
+| Dataset | BM25 | dense | RM3 | **RRF** |
+|---|---|---|---|---|
+| NFCorpus | 0.3224 | 0.3173 | 0.3433 | **0.3559** |
+| SciFact | 0.6802 | 0.6451 | 0.6848 | **0.7146** |
+
+Fusion against each parent, Holm-adjusted:
+
+| Dataset | comparison | delta nDCG@10 | Holm p |
+|---|---|---|---|
+| NFCorpus | RRF vs BM25 | +0.0334 | **<0.0001** |
+| NFCorpus | RRF vs dense | +0.0386 | **<0.0001** |
+| NFCorpus | RRF vs RM3 | +0.0126 | 0.290 |
+| SciFact | RRF vs BM25 | +0.0344 | **0.0021** |
+| SciFact | RRF vs dense | +0.0695 | **<0.0001** |
+| SciFact | RRF vs RM3 | +0.0298 | **0.0056** |
+
+Recall@100 rises with it: NFCorpus 0.2461 → 0.3217, SciFact 0.9220 → 0.9550.
+
+**Read:** **Fusion beats both parents on both datasets, and this is the project's
+strongest result.** It also beats each parent by more than the parents differ from each
+other, which is the signature of the two systems making uncorrelated errors rather than
+one simply being better.
+
+**But the comparison that matters commercially is RRF against RM3, and on NFCorpus it is
+not significant** (+0.0126, Holm p 0.290). RM3 needs numpy, runs in seconds, and has no
+model to download, no GPU, and no 2GB dependency tree. Fusion needs all of that and, on
+that dataset, cannot be shown to do better. On SciFact fusion does win over RM3 (+0.0298,
+Holm p 0.0056). So the honest summary is that fusion is the better method where it has
+been measured, and that on one of two datasets a far cheaper method was statistically
+indistinguishable from it — which is worth knowing before anyone deploys a GPU to serve
+it.
+
+**A correction to experiment 4.** That entry inferred from the recall-ceiling table that
+SciFact, at 92.2% of achievable recall@100, had "almost nothing to win... whatever the
+method". RM3 confirmed it. Fusion refutes it: +0.0344 nDCG@10 at Holm p 0.0021, and
+recall@100 up to 0.9550. The inference was too broad. A recall ceiling bounds what
+*recall-limited* methods can gain; it says nothing about improvements to the *ordering*
+of documents already retrieved, and SciFact's nDCG@10 of 0.68 left plenty of room there.
+The prediction was right about RM3 for the right reason and wrong about fusion for a
+reason the original argument did not consider. Recorded rather than quietly amended.
+
+**Next:** The per-query question the project was built to ask.
+
+---
+
+## 2026-09-21 — Is retrieval method query-dependent?
+
+**Question:** The README's central claim. Does lexical retrieval win on lexically
+specific queries and lose on the rest, or is one method simply better?
+
+**Setup and pre-specification.** The hypothesis was fixed before any correlation was
+computed, and stated in `scripts/analyse_queries.py` before it was run:
+
+> per-query (nDCG@10 of BM25 − nDCG@10 of dense) correlates **positively** with the
+> rarity of the query's rarest term, measured as `max_idf` from the BM25 index.
+
+The mechanism it encodes: BM25 rewards exact matches weighted by rarity, so a query
+containing a genuinely rare token hands it something close to a unique key, while a
+bi-encoder maps that token into a neighbourhood of things keeping similar company.
+
+One continuous predictor rather than query-type buckets, deliberately. Labelling queries
+by type and comparing group means invites choosing the labelling that shows an effect,
+and with enough candidate groupings one always will. `max_idf` is computable from the
+query and the index alone, before any retrieval is run, which rules out circularity.
+`mean_idf`, out-of-vocabulary rate and query length are reported as **secondary** and
+labelled as such, Holm-adjusted among themselves, because they were not pre-specified.
+
+Significance is a permutation test on the pairing, 20,000 permutations, seed 0.
+
+**Result:**
+
+| Dataset | queries | mean advantage | rho (`max_idf`) | p | Holm across datasets |
+|---|---|---|---|---|---|
+| NFCorpus | 323 | +0.0051 | **+0.1578** | 0.0046 | **0.0092** |
+| SciFact | 300 | +0.0351 | **+0.1191** | 0.0362 | **0.0362** |
+
+Mean BM25-minus-dense advantage by `max_idf` tercile:
+
+| Tercile | NFCorpus | SciFact |
+|---|---|---|
+| lowest `max_idf` | **−0.0169** | **−0.0240** |
+| middle | −0.0002 | +0.0560 |
+| highest `max_idf` | **+0.0327** | **+0.0733** |
+
+**Read:** **The claim holds, on both datasets, in the predicted direction, and it is
+invisible in the aggregate.**
+
+NFCorpus is the clean demonstration. Compare the two systems the ordinary way and the
+answer is "no difference": BM25 0.3224 against dense 0.3173, p 0.655, a mean per-query
+advantage of +0.005. Split the same 323 queries by how rare their rarest term is and the
+answer becomes "it depends, and systematically so": dense is ahead by 0.017 on the least
+lexically specific third and behind by 0.033 on the most specific third. The aggregate
+comparison was not wrong, it was answering a question whose true answer is an average of
+two opposite effects.
+
+The correlations are modest — rho around 0.12 to 0.16, so lexical specificity explains a
+small share of the variance in which system wins. That is worth stating plainly rather
+than rounding up. Many other things determine per-query outcomes. But the effect is in
+the predicted direction on two independent datasets, survives Holm adjustment across
+them, and the terciles are monotone on both, which is more than a marginal correlation
+alone would establish.
+
+One secondary result is worth flagging *as* secondary, because it was not predicted:
+query length correlates negatively with BM25's advantage on NFCorpus (rho −0.2219,
+Holm p 0.0004) and more strongly than the primary predictor does positively. Longer
+queries favour the encoder. That is plausible after the fact — more context to embed,
+more terms to dilute an IDF-weighted sum — but it was not the hypothesis, it was found
+by looking, and it should be treated as a lead for a pre-registered test on a third
+dataset rather than as an established finding. Recording the distinction is the only
+thing that keeps the primary result meaningful.
+
+**What this does not show.** Correlation across queries, not causation, and a single
+encoder at a 256-token limit that truncates 71-79% of documents. Whether the effect
+survives a longer-context or domain-matched model is untested and is the obvious next
+thing to break.
+
+**Next:** Cross-encoder reranking over the fused candidate set, bounded by the
+recall@100 now measured at 0.3217 on NFCorpus and 0.9550 on SciFact.
+
+---
+
 ## Pending
 
 Planned runs, in order. Each is a separate entry when it happens.
@@ -463,10 +650,10 @@ Planned runs, in order. Each is a separate entry when it happens.
 | 3 | ~~`k1`/`b` sweep~~ | **Done** — tuned on train, no held-out gain (p 0.22); defaults kept |
 | 4 | ~~BM25 on TREC-COVID and NFCorpus~~ | **Done** — NFCorpus reproduces; TREC-COVID does not (query formulation, −0.092) |
 | 4b | ~~RM3 pseudo-relevance feedback~~ | **Done** — +0.0208 nDCG@10 on NFCorpus (Holm p 0.0005); nothing on SciFact |
-| 5 | Dense retrieval, same harness | The first real comparison |
-| 6 | Hybrid via reciprocal rank fusion | Whether fusion beats both parents |
+| 5 | ~~Dense retrieval~~ | **Done** — never beats BM25 at ranking; +0.065 recall@100 on NFCorpus; 71-79% truncated |
+| 6 | ~~Hybrid via reciprocal rank fusion~~ | **Done** — beats both parents on both datasets; ties RM3 on NFCorpus |
 | 7 | Cross-encoder reranking over hybrid | Cost/benefit at depth 100 |
-| 8 | Breakdown by query type | The actual question the project asks |
+| 8 | ~~Breakdown by query type~~ | **Done** — lexical advantage rises with query term rarity, both datasets |
 
 ## Notes to self
 

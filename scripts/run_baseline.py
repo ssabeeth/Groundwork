@@ -23,6 +23,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
+import numpy as np
+
 from groundwork import __version__
 from groundwork.data import load_beir_dataset
 from groundwork.eval import evaluate_run, evaluate_run_per_query
@@ -164,6 +166,7 @@ def main() -> int:
         "within_reference_tolerance": within_tolerance,
         "groundwork_version": __version__,
         "python": platform.python_version(),
+        "numpy": np.__version__,
         "run_at": datetime.now(UTC).isoformat(timespec="seconds"),
     }
 

@@ -276,6 +276,44 @@ class BM25Retriever:
         iterator = tqdm(items, desc="Retrieving", unit="query") if show_progress else items
         return {qid: dict(self.search(text, top_k=top_k)) for qid, text in iterator}
 
+    def query_statistics(self, query: str) -> dict[str, float]:
+        """Lexical properties of a query, computed from the index alone.
+
+        These are the predictors the query-type analysis uses, and the reason they are
+        computed here is that they must be knowable *before* any retrieval is run. A
+        property derived from how well a system did on a query would make any
+        correlation with that system's performance circular.
+
+        IDF is the natural measure of how much signal an exact match carries: a term
+        appearing in almost every document distinguishes nothing, while a rare one —
+        a gene symbol, an accession number — is close to a unique key. Terms absent
+        from the index are counted separately rather than scored as maximally rare,
+        because a term no document contains gives BM25 nothing to match on.
+
+        Args:
+            query: Query text, tokenised with this index's tokeniser.
+
+        Returns:
+            ``max_idf``, ``mean_idf``, ``num_terms``, ``num_in_vocabulary`` and
+            ``out_of_vocabulary_rate``. IDF statistics are 0.0 when no query term
+            appears in the index.
+
+        Raises:
+            RuntimeError: If the index has not been built.
+        """
+        if not self.doc_ids:
+            raise RuntimeError("index() must be called before query_statistics()")
+
+        tokens = self.tokenizer(query)
+        known = [self._idf[token] for token in tokens if token in self._idf]
+        return {
+            "max_idf": max(known) if known else 0.0,
+            "mean_idf": sum(known) / len(known) if known else 0.0,
+            "num_terms": float(len(tokens)),
+            "num_in_vocabulary": float(len(known)),
+            "out_of_vocabulary_rate": ((len(tokens) - len(known)) / len(tokens) if tokens else 0.0),
+        }
+
     def describe(self) -> dict[str, object]:
         """Settings, for recording alongside results."""
         return {
