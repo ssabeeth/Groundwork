@@ -33,6 +33,10 @@ dense = [
     "transformers>=4.39,<5",
     "numpy<2",
 ]
+# The MCP server only. Kept optional for the same reason as dense: the measurement
+# harness is the point of this repository, and a protocol server is a way to use it
+# rather than something anyone needs in order to reproduce a number.
+mcp = ["mcp>=1.2"]
 dev = [
     "pytest>=8.0",
     "ruff>=0.6",
