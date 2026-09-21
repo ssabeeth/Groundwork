@@ -831,13 +831,107 @@ effect is real at the size the SciFact runs suggest or the size the NFCorpus run
 
 ---
 
+## 2026-09-21 — Multi-field indexing, and why TREC-COVID would not reproduce
+
+**Question:** Experiment 4 left TREC-COVID as a failed reproduction, 0.0916 below the
+published figure, and attributed it to query formulation. Was that diagnosis right?
+
+**Setup:** Read BEIR's paper rather than reasoning further from inside the repository.
+Two sentences settle it, and both contradict this project's own documentation:
+
+> "We use Anserini with the default Lucene parameters (k=0.9 and b=0.4)."
+
+> "We index the title (if available) and passage as separate fields for documents."
+
+The first corrects an attribution: `decisions.md` said the published baselines came from
+Elasticsearch. They come from Anserini. The paper adds that they "also tested
+Elasticsearch BM25 and Anserini + RM3 expansion, but found Anserini BM25 to perform the
+best". Anserini is Lucene-based, so the argument for the Lucene IDF variant survives
+intact — but the reason recorded for making the choice was factually wrong.
+
+The second is the substantive one. This project indexes `title + " " + text` as a single
+bag of words, and the `bm25.py` docstring asserted that this matched BEIR's convention.
+It does not. Under Lucene, separate fields mean each field carries its own document
+lengths, its own average length and its own document frequencies; a query scores against
+each independently and the scores are summed. Concatenation collapses all of that into
+one distribution.
+
+`MultiFieldBM25Retriever` implements the BEIR arrangement. Same tokenisation, same
+`k1=0.9, b=0.4`, same everything else.
+
+**Result:**
+
+| Dataset | concatenated | delta | multi-field | delta | published |
+|---|---|---|---|---|---|
+| SciFact | 0.6802 | +0.0152 | **0.6636** | **−0.0014** | 0.665 |
+| NFCorpus | 0.3224 | −0.0026 | **0.3253** | **+0.0003** | 0.325 |
+| TREC-COVID | 0.5644 | −0.0916 ✗ | **0.6362** | **−0.0198** ✓ | 0.656 |
+
+**Read:** **All three datasets now reproduce, and the failure was never about queries.**
+
+The magnitudes are hard to argue with. On SciFact the gap to the published figure goes
+from +0.0152 to −0.0014, and on NFCorpus from −0.0026 to +0.0003 — both within a
+thousandth of numbers produced by different software on different hardware five years
+earlier. That is not the accuracy a reimplementation gets by coincidence. On TREC-COVID
+the gap closes from −0.0916, three times the tolerance, to −0.0198, inside it.
+
+The mechanism is the one the field structure predicts, and TREC-COVID is where it bites
+hardest because 24.6% of its documents have empty abstracts. Under concatenation a
+title-only document is a very short *document*, and BM25's length normalisation inflates
+whatever it matches — 42,140 documents getting an unearned boost. Split into fields, the
+same document is an ordinary-length title plus an empty body contributing nothing.
+SciFact and NFCorpus have almost no title-only documents, which is exactly why they
+reproduced tolerably under concatenation and TREC-COVID did not.
+
+**Experiment 4's diagnosis was wrong, and the discipline it applied was right.** That
+entry identified query formulation as the cause, having measured a 0.24 spread across
+formulations, and noted that `query + text` would land within 0.006 of the published
+figure. It then refused to adopt it, on the grounds that nothing independent established
+BEIR had done that and the only argument for it was that it matched the target.
+
+That refusal is now vindicated in the strongest available way. Adopting `query + text`
+would have produced a number within 0.006 of the published one **for entirely the wrong
+reason**, closed the investigation, and left the real defect — a baseline that did not
+match the method it claimed to match — in place across every dataset and every
+experiment built on top of it. The right number by the wrong route would have been worse
+than the honest failure, because the honest failure kept the question open until the
+actual cause turned up.
+
+The query-formulation measurement itself stands: the spread across formulations really
+is 0.2416 nDCG@10 and is worth knowing. It was simply not the explanation for this gap.
+
+**What is not being changed yet.** Concatenation remains the default. Every result in
+this repository — the tokenisation ablation, the `k1`/`b` sweep, RM3, dense, fusion,
+reranking, the query-dependence analysis — was produced with it, and switching the
+default silently would invalidate all of them at once while leaving the prose describing
+them intact. The comparisons between methods are internally consistent under
+concatenation, and there is no reason to think the qualitative findings depend on it,
+but "no reason to think" is not a measurement.
+
+So this is recorded as a decision to take deliberately rather than a fix to apply
+quietly. The options, with the trade-off stated:
+
+- **Switch the default and re-run everything.** Correct, and makes every published number
+  comparable to BEIR. Costs a full re-run of nine experiments, including the two that
+  take six minutes of GPU each and the three that index 171,332 documents.
+- **Keep concatenation for method comparisons, use multi-field for reproduction claims.**
+  Cheaper and defensible — the baseline-versus-published question and the
+  method-versus-method question are different questions — but it means the repository
+  contains two BM25 baselines, which is exactly the kind of ambiguity this project exists
+  to avoid.
+
+**Next:** That decision, then a third dataset.
+
+---
+
 ## Still open
 
 | Experiment | Settles |
 |---|---|
 | ~~Domain-matched encoder~~ | **Done (experiment 9)** — general model quality beat domain matching; experiment 5's conclusion overturned |
 | ~~Chunking instead of truncation~~ | **Done (experiment 9)** — removing truncation made results slightly worse; the tails carried no signal |
-| TREC-COVID query formulation | Which formulation BEIR's published 0.656 used; currently recorded as not reproduced |
+| ~~TREC-COVID query formulation~~ | **Done (experiment 10)** — not the cause; multi-field indexing was, and all three datasets now reproduce |
+| Migrate to multi-field BM25, or not | Whether to re-run all nine experiments on a baseline that matches BEIR's method |
 | Query-length effect, pre-registered | Found by looking on NFCorpus (rho -0.22); needs a fresh dataset to count |
 | Paired tests on TREC-COVID | Only 50 queries, so almost nothing will be detectable; worth confirming that explicitly |
 

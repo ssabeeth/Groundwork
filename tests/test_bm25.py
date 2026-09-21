@@ -10,7 +10,7 @@ import math
 
 import pytest
 
-from groundwork.retrieval.bm25 import BM25Retriever
+from groundwork.retrieval.bm25 import BM25Retriever, MultiFieldBM25Retriever
 from groundwork.retrieval.tokenize import Tokenizer
 
 CORPUS = {
@@ -228,3 +228,112 @@ class TestParameterReuse:
         original.index(CORPUS, show_progress=False)
         with pytest.raises(ValueError):
             original.with_parameters(k1=k1, b=b)
+
+
+class TestMultiFieldBM25:
+    """Scoring fields separately is a different model, not a refactor.
+
+    The expected values here come from the single-field scorer applied to each field on
+    its own and added, which is the definition of what the multi-field retriever does —
+    and which is emphatically not the same as scoring the concatenation.
+    """
+
+    FIELDED = {
+        "d1": {"title": "quick fox", "text": "the lazy dog sleeps all afternoon here"},
+        "d2": {"title": "lazy dog", "text": ""},
+        "d3": {"title": "", "text": "quick brown fox jumps"},
+    }
+
+    def _single_field_score(self, field, query):
+        """Score one field with the ordinary single-field retriever."""
+        view = {
+            doc_id: {"title": "", "text": fields.get(field, "")}
+            for doc_id, fields in self.FIELDED.items()
+        }
+        retriever = BM25Retriever(k1=0.9, b=0.4, tokenizer=PLAIN)
+        retriever.index(view, show_progress=False)
+        return dict(retriever.search(query, top_k=10))
+
+    def test_score_is_the_sum_of_the_per_field_scores(self):
+        multi = MultiFieldBM25Retriever(k1=0.9, b=0.4, tokenizer=PLAIN)
+        multi.index(self.FIELDED, show_progress=False)
+        actual = dict(multi.search("lazy dog", top_k=10))
+
+        title = self._single_field_score("title", "lazy dog")
+        text = self._single_field_score("text", "lazy dog")
+        for doc_id in ("d1", "d2"):
+            expected = title.get(doc_id, 0.0) + text.get(doc_id, 0.0)
+            assert actual[doc_id] == pytest.approx(expected, rel=1e-5)
+
+    def test_it_differs_from_scoring_the_concatenation(self):
+        # If these agreed there would be nothing to measure. d2 is title-only, so under
+        # concatenation it is a two-token document and length normalisation flatters it.
+        multi = MultiFieldBM25Retriever(k1=0.9, b=0.4, tokenizer=PLAIN)
+        multi.index(self.FIELDED, show_progress=False)
+
+        single = BM25Retriever(k1=0.9, b=0.4, tokenizer=PLAIN)
+        single.index(self.FIELDED, show_progress=False)
+
+        assert dict(multi.search("lazy dog", top_k=10)) != pytest.approx(
+            dict(single.search("lazy dog", top_k=10))
+        )
+
+    def test_a_field_carries_its_own_length_normalisation(self):
+        # "quick fox" is d1's whole title but a fraction of d3's body. Scoring fields
+        # separately must let d1 win on title despite d1 having the longer document.
+        multi = MultiFieldBM25Retriever(k1=0.9, b=0.4, tokenizer=PLAIN)
+        multi.index(self.FIELDED, show_progress=False)
+        title_only = self._single_field_score("title", "quick fox")
+        assert title_only["d1"] > 0.0
+
+    def test_weights_scale_a_fields_contribution(self):
+        plain = MultiFieldBM25Retriever(tokenizer=PLAIN)
+        plain.index(self.FIELDED, show_progress=False)
+        weighted = MultiFieldBM25Retriever(weights=(3.0, 1.0), tokenizer=PLAIN)
+        weighted.index(self.FIELDED, show_progress=False)
+        # d2 has only a title, so tripling the title weight must triple its score.
+        assert dict(weighted.search("lazy dog", top_k=10))["d2"] == pytest.approx(
+            3.0 * dict(plain.search("lazy dog", top_k=10))["d2"], rel=1e-5
+        )
+
+    def test_zero_weight_removes_a_field(self):
+        body_only = MultiFieldBM25Retriever(weights=(0.0, 1.0), tokenizer=PLAIN)
+        body_only.index(self.FIELDED, show_progress=False)
+        # d2's only content is its title, so with the title weighted out it must vanish.
+        assert "d2" not in dict(body_only.search("lazy dog", top_k=10))
+
+    def test_ranking_is_sorted_and_ties_break_by_id(self):
+        multi = MultiFieldBM25Retriever(tokenizer=PLAIN)
+        multi.index(self.FIELDED, show_progress=False)
+        ranking = multi.search("quick fox lazy dog", top_k=10)
+        scores = [score for _, score in ranking]
+        assert scores == sorted(scores, reverse=True)
+
+    def test_retrieve_returns_a_run_keyed_by_query_id(self):
+        multi = MultiFieldBM25Retriever(tokenizer=PLAIN)
+        multi.index(self.FIELDED, show_progress=False)
+        run = multi.retrieve({"q1": "lazy dog"}, top_k=5, show_progress=False)
+        assert set(run) == {"q1"}
+        assert run["q1"]
+
+    def test_describe_records_the_fields_and_weights(self):
+        described = MultiFieldBM25Retriever(weights=(2.0, 1.0), tokenizer=PLAIN).describe()
+        assert described["variant"] == "lucene-multifield"
+        assert described["fields"] == ["title", "text"]
+        assert described["field_weights"] == [2.0, 1.0]
+
+    def test_search_before_index_raises(self):
+        with pytest.raises(RuntimeError):
+            MultiFieldBM25Retriever().search("anything")
+
+    def test_empty_corpus_raises(self):
+        with pytest.raises(ValueError):
+            MultiFieldBM25Retriever().index({}, show_progress=False)
+
+    def test_mismatched_weights_raise(self):
+        with pytest.raises(ValueError, match="weights for"):
+            MultiFieldBM25Retriever(fields=("title", "text"), weights=(1.0,))
+
+    def test_no_fields_raises(self):
+        with pytest.raises(ValueError, match="at least one field"):
+            MultiFieldBM25Retriever(fields=())

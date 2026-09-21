@@ -16,8 +16,15 @@ baselines. Anserini's defaults are ``k1=0.9, b=0.4`` for BEIR too, but the Lucen
 out-of-the-box defaults are ``k1=1.2, b=0.75`` — results are not comparable across
 those settings, so the values used are always recorded with the run.
 
-Documents are indexed as ``title + " " + text``, matching BEIR's convention. Doing
-anything else, such as dropping the title, materially changes the numbers.
+Documents are indexed as ``title + " " + text``: one field, one bag of words.
+
+This does **not** match how BEIR produced its published baselines, and the docstring
+here previously claimed it did. BEIR used Anserini and, in its own words, "index the
+title (if available) and passage as separate fields for documents" — so a query is
+scored against each field with its own length normalisation and its own IDF, and the
+scores are summed. :class:`MultiFieldBM25Retriever` implements that arrangement, and
+experiment 10 measures what the difference is worth. Concatenation is kept as the
+default because every result in this repository so far was produced with it.
 """
 
 from __future__ import annotations
@@ -149,6 +156,25 @@ class BM25Retriever:
     def _length_factor(self) -> np.ndarray:
         """Per-document denominator term: ``k1 * (1 - b + b * |D| / avgdl)``."""
         return self.k1 * (1.0 - self.b + self.b * (self.doc_lengths / self.avg_doc_length))
+
+    def score_query(self, query: str) -> np.ndarray:
+        """Score every document against ``query``, in :attr:`doc_ids` order.
+
+        Exposed so a multi-field retriever can hold one index per field and add their
+        scores, which is how Lucene scores a query against several fields.
+
+        Args:
+            query: Query text.
+
+        Returns:
+            One score per document.
+
+        Raises:
+            RuntimeError: If the index has not been built.
+        """
+        if not self.doc_ids:
+            raise RuntimeError("index() must be called before score_query()")
+        return self._score_all(query)
 
     def _score_all(self, query: str) -> np.ndarray:
         """Score every document against ``query``."""
@@ -319,6 +345,126 @@ class BM25Retriever:
         return {
             "method": "bm25",
             "variant": "lucene",
+            "k1": self.k1,
+            "b": self.b,
+            "tokenizer": self.tokenizer.describe(),
+        }
+
+
+class MultiFieldBM25Retriever:
+    """BM25 over several document fields scored separately, as Anserini indexes them.
+
+    The single-field :class:`BM25Retriever` glues title and body into one bag of words.
+    Lucene, and therefore Anserini and therefore BEIR's published baselines, does
+    something different: each field is its own index with its own document lengths, its
+    own average length and its own document frequencies, and a query scores against each
+    and the results are added.
+
+    The difference is not cosmetic, and it is largest exactly where documents are
+    lopsided. A title-only document — 24.6% of TREC-COVID — is a very short document
+    under concatenation, so length normalisation inflates whatever it does match. Split
+    into fields, its title is an ordinary-length title and its body is empty and
+    contributes nothing.
+
+    Args:
+        fields: Document fields to index, in order.
+        weights: Per-field multipliers, defaulting to 1.0 each. Anserini's BEIR setup
+            weights fields equally; anything else is a parameter that must be tuned on
+            a training split and recorded.
+        k1: Term frequency saturation, shared across fields.
+        b: Length normalisation, shared across fields.
+        tokenizer: Tokeniser; defaults to Lucene stopwords with Porter stemming.
+    """
+
+    def __init__(
+        self,
+        fields: tuple[str, ...] = ("title", "text"),
+        weights: tuple[float, ...] | None = None,
+        k1: float = 0.9,
+        b: float = 0.4,
+        tokenizer: Tokenizer | None = None,
+    ) -> None:
+        if not fields:
+            raise ValueError("at least one field is required")
+        if weights is not None and len(weights) != len(fields):
+            raise ValueError(f"{len(weights)} weights for {len(fields)} fields")
+
+        self.fields = fields
+        self.weights = weights if weights is not None else tuple(1.0 for _ in fields)
+        self.k1 = k1
+        self.b = b
+        self.tokenizer = tokenizer if tokenizer is not None else Tokenizer()
+        self._indexes: dict[str, BM25Retriever] = {}
+        self.doc_ids: list[str] = []
+
+    def index(self, corpus: Mapping[str, Mapping[str, str]], show_progress: bool = True) -> None:
+        """Build one index per field.
+
+        Args:
+            corpus: ``{doc_id: {"title": ..., "text": ...}}``.
+            show_progress: Display a progress bar per field.
+        """
+        if not corpus:
+            raise ValueError("corpus is empty")
+
+        self.doc_ids = list(corpus)
+        self._indexes = {}
+        for field in self.fields:
+            # A view exposing only this field, so the single-field indexer sees it alone.
+            view = {
+                doc_id: {"title": "", "text": fields.get(field, "") or ""}
+                for doc_id, fields in corpus.items()
+            }
+            retriever = BM25Retriever(k1=self.k1, b=self.b, tokenizer=self.tokenizer)
+            retriever.index(view, show_progress=show_progress)
+            self._indexes[field] = retriever
+
+    def search(self, query: str, top_k: int = 100) -> list[tuple[str, float]]:
+        """Return the ``top_k`` highest scoring documents, summing over fields.
+
+        Args:
+            query: Query text.
+            top_k: Maximum documents to return.
+
+        Returns:
+            ``[(doc_id, score), ...]``, highest first, ties broken by doc id.
+        """
+        if not self._indexes:
+            raise RuntimeError("index() must be called before search()")
+
+        total = None
+        for field, weight in zip(self.fields, self.weights, strict=True):
+            scores = self._indexes[field].score_query(query) * weight
+            total = scores if total is None else total + scores
+        return self._indexes[self.fields[0]].rank_scores(total, top_k)
+
+    def retrieve(
+        self,
+        queries: Mapping[str, str],
+        top_k: int = 100,
+        show_progress: bool = True,
+    ) -> dict[str, dict[str, float]]:
+        """Score documents for every query.
+
+        Args:
+            queries: ``{query_id: query_text}``.
+            top_k: Documents per query.
+            show_progress: Display a progress bar.
+
+        Returns:
+            ``{query_id: {doc_id: score}}``.
+        """
+        items = list(queries.items())
+        iterator = tqdm(items, desc="Retrieving", unit="query") if show_progress else items
+        return {qid: dict(self.search(text, top_k=top_k)) for qid, text in iterator}
+
+    def describe(self) -> dict[str, object]:
+        """Settings, for recording alongside results."""
+        return {
+            "method": "bm25",
+            "variant": "lucene-multifield",
+            "fields": list(self.fields),
+            "field_weights": list(self.weights),
             "k1": self.k1,
             "b": self.b,
             "tokenizer": self.tokenizer.describe(),

@@ -28,7 +28,12 @@ import numpy as np
 from groundwork import __version__
 from groundwork.data import load_beir_dataset
 from groundwork.eval import evaluate_run, evaluate_run_per_query, oracle_recall_at_k
-from groundwork.retrieval import LUCENE_ENGLISH_STOPWORDS, BM25Retriever, Tokenizer
+from groundwork.retrieval import (
+    LUCENE_ENGLISH_STOPWORDS,
+    BM25Retriever,
+    MultiFieldBM25Retriever,
+    Tokenizer,
+)
 
 # BM25 nDCG@10 as published in the BEIR paper (Thakur et al., 2021), which used
 # Elasticsearch with k1=0.9, b=0.4. A reimplementation will not match to three decimal
@@ -67,6 +72,11 @@ def parse_args() -> argparse.Namespace:
         choices=["exponential", "linear"],
         help="nDCG gain function; identical on binary qrels, not on graded ones",
     )
+    parser.add_argument(
+        "--multi-field",
+        action="store_true",
+        help="Score title and text as separate fields, as Anserini indexes them",
+    )
     parser.add_argument("--tag", default="", help="Short label for this run")
     return parser.parse_args()
 
@@ -94,7 +104,11 @@ def main() -> int:
         stopwords=None if args.no_stopwords else LUCENE_ENGLISH_STOPWORDS,
         stem=not args.no_stem,
     )
-    retriever = BM25Retriever(k1=args.k1, b=args.b, tokenizer=tokenizer)
+    retriever = (
+        MultiFieldBM25Retriever(k1=args.k1, b=args.b, tokenizer=tokenizer)
+        if args.multi_field
+        else BM25Retriever(k1=args.k1, b=args.b, tokenizer=tokenizer)
+    )
 
     start = time.perf_counter()
     retriever.index(dataset.corpus)

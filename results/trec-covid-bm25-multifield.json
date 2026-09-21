@@ -1,0 +1,72 @@
+{
+  "dataset": "trec-covid",
+  "split": "test",
+  "tag": "multifield",
+  "metrics": {
+    "ndcg@1": 0.8200000000000002,
+    "recall@1": 0.0023516600473662743,
+    "ndcg@10": 0.6361781406406899,
+    "recall@10": 0.018141734251314393,
+    "ndcg@100": 0.4615123265944368,
+    "recall@100": 0.11386766175817677
+  },
+  "num_queries": 50,
+  "num_documents": 171332,
+  "oracle_recall_at_100": 0.26741665199218106,
+  "retriever": {
+    "method": "bm25",
+    "variant": "lucene-multifield",
+    "fields": [
+      "title",
+      "text"
+    ],
+    "field_weights": [
+      1.0,
+      1.0
+    ],
+    "k1": 0.9,
+    "b": 0.4,
+    "tokenizer": {
+      "stopwords": "lucene_english",
+      "stem": "porter",
+      "min_length": 1
+    }
+  },
+  "top_k": 100,
+  "timing_seconds": {
+    "index": 355.32,
+    "retrieve": 0.11
+  },
+  "gain": "exponential",
+  "graded_qrels": true,
+  "relevance_levels": [
+    1,
+    2
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.8200000000000002,
+      "recall@1": 0.0023516600473662743,
+      "ndcg@10": 0.6361781406406899,
+      "recall@10": 0.018141734251314393,
+      "ndcg@100": 0.4615123265944368,
+      "recall@100": 0.11386766175817677
+    },
+    "linear": {
+      "ndcg@1": 0.84,
+      "recall@1": 0.0023516600473662743,
+      "ndcg@10": 0.6648193154748451,
+      "recall@10": 0.018141734251314393,
+      "ndcg@100": 0.4828670340398282,
+      "recall@100": 0.11386766175817677
+    }
+  },
+  "reference_ndcg_at_10": 0.656,
+  "reference_delta": -0.019821859359310134,
+  "within_reference_tolerance": true,
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T11:11:36+00:00",
+  "per_query_file": "per-query/trec-covid-bm25-multifield.json"
+}

@@ -104,7 +104,7 @@ python scripts/run_baseline.py --dataset scifact
 | SciFact | BM25 (k1=0.9, b=0.4, Porter) | **0.6802** | 0.9220 | 0.665 |
 | SciFact | BM25 tuned on train (k1=1.4, b=0.5) | 0.6865 | 0.9216 | — |
 | NFCorpus | BM25 (k1=0.9, b=0.4, Porter) | 0.3224 | 0.2461 | 0.325 |
-| TREC-COVID | BM25 (k1=0.9, b=0.4, Porter) | 0.5644 | 0.1088 | 0.656 — **not reproduced** |
+| TREC-COVID | BM25 (k1=0.9, b=0.4, Porter) | 0.5644 | 0.1088 | 0.656 — see below |
 | NFCorpus | **RM3** (fb=5, terms=50, α=0.8) | **0.3433** | **0.3105** | — |
 | SciFact | RM3 (fb=20, terms=20, α=0.2) | 0.6848 | 0.9253 | — |
 
@@ -194,10 +194,34 @@ tokenisation.
 The tuned row is here to be dismissed: +0.0063 over the default on held-out test at
 p = 0.217. See "what didn't work".
 
-TREC-COVID is 0.092 below the published figure and is reported as a failed
-reproduction rather than quietly fixed. It is the only BEIR dataset shipping several
-query formulations, and the choice between them moves nDCG@10 by 0.24 — more than
-tokenisation, `k1`/`b` and the gain function combined:
+### All three datasets reproduce — once the index matches BEIR's
+
+BEIR's paper says two things this project's docs got wrong. Its baselines come from
+**Anserini**, not Elasticsearch; and it indexes **"the title (if available) and passage
+as separate fields"**, not concatenated, which is what `bm25.py` claimed to be matching.
+
+Scoring each field with its own lengths and its own IDF, then summing — as Lucene does:
+
+| Dataset | Concatenated | Multi-field | Published |
+|---|---|---|---|
+| SciFact | 0.6802 (+0.0152) | **0.6636 (−0.0014)** | 0.665 |
+| NFCorpus | 0.3224 (−0.0026) | **0.3253 (+0.0003)** | 0.325 |
+| TREC-COVID | 0.5644 (−0.0916) ✗ | **0.6362 (−0.0198)** ✓ | 0.656 |
+
+Two of them land within a thousandth of figures produced by different software years
+earlier. That is not what a reimplementation hits by coincidence.
+
+TREC-COVID was the outlier because 24.6% of its documents have empty abstracts. Under
+concatenation a title-only document is a very short *document*, so length normalisation
+inflates whatever it matches — 42,140 documents getting an unearned boost. Split into
+fields it is an ordinary-length title and an empty body.
+
+**Experiment 4 blamed query formulation and was wrong, and refusing to act on it was
+right.** Concatenating query fields would have landed within 0.006 of the published
+number — for entirely the wrong reason, closing the investigation and leaving a baseline
+that did not match the method it claimed to match. The right number by the wrong route
+would have been worse than the honest failure. The formulation spread is real (0.2416
+nDCG@10) and simply was not the cause:
 
 | TREC-COVID query field | nDCG@10 |
 |---|---|
@@ -206,10 +230,10 @@ tokenisation, `k1`/`b` and the gain function combined:
 | `query` + `text` | 0.6619 |
 | `query` + `text` + `narrative` | 0.6970 |
 
-Concatenating fields would land within 0.006 of the published number. That is exactly
-why it was not adopted: nothing independent says BEIR did that, and the only argument
-for it is that it matches the target. `text` is what the loader uses everywhere and it
-reproduces SciFact and NFCorpus without special pleading.
+Concatenation remains the default for everything in this repository, because every
+result here was produced with it and switching silently would invalidate them all at
+once. Whether to migrate and re-run all nine experiments is recorded as an open decision
+in the experiment log rather than taken quietly.
 
 **Where the headroom is.** Recall@100 is not comparable across datasets — they differ in
 how many relevant documents exist per query (median 1, 16 and 478). Against the best any
@@ -356,8 +380,8 @@ different metrics. Reported as a win on recall, and as undetermined on ranking.
 
 ## Limitations
 
-- TREC-COVID's published number is not reproduced here; see the results section. Its
-  50 queries also give it very little statistical power.
+- TREC-COVID's 50 queries give it very little statistical power, so it is excluded
+  from method comparisons.
 - `trec_eval` ties are broken by document id here. `pytrec_eval` breaks them
   differently, so runs with many exactly-tied scores can differ in the fourth decimal.
 - Recall@100 caps at the retrieval depth; deeper retrieval would change it.
@@ -422,7 +446,7 @@ without it.
 ## Development
 
 ```bash
-pytest          # 258 tests
+pytest          # 270 tests
 ruff check .
 ruff format .
 ```
@@ -450,7 +474,7 @@ scripts/run_dense.py    bi-encoder retrieval, embeddings cached
 scripts/run_hybrid.py   RRF over BM25/dense/RM3, k tuned on train
 scripts/analyse_queries.py  the pre-specified query-type hypothesis
 docs/experiments.md     running log, including what failed
-tests/                  258 tests
+tests/                  270 tests
 ```
 
 ## Licence

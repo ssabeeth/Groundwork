@@ -7,8 +7,15 @@ Short notes on choices that are not obvious from the code, so the reasoning surv
 The baseline every later result is measured against should be understood rather than
 trusted. Practically: `rank_bm25` and most pip BM25 packages implement the Robertson
 IDF, `ln((N - df + 0.5) / (df + 0.5))`, which goes negative for any term appearing in
-more than half the corpus. Lucene adds 1 inside the log so it cannot. The published
-BEIR baselines come from Elasticsearch, so matching them means matching Lucene.
+more than half the corpus. Lucene adds 1 inside the log so it cannot.
+
+**Correction (experiment 10).** This note originally said the published BEIR baselines
+come from Elasticsearch. They do not. The BEIR paper states: "We use Anserini with the
+default Lucene parameters (k=0.9 and b=0.4)", and adds that they "also tested
+Elasticsearch BM25 and Anserini + RM3 expansion, but found Anserini BM25 to perform the
+best." Anserini is Lucene-based, so the argument for the Lucene IDF variant is unchanged
+and if anything stronger — but the attribution was wrong, and it was wrong in the
+document whose job is to record why the choice was made.
 
 ## `k1=0.9, b=0.4` rather than Lucene's defaults
 
@@ -169,3 +176,27 @@ produced by one-off commands that were never committed. Both are now scripts
 (`diagnose_query_fields.py`, and `oracle_recall_at_k` recorded with every run), and the
 numbers reproduce exactly. The rule now holds because it is checked, not because it was
 followed carefully.
+
+
+## Documents are concatenated, and BEIR does not do that
+
+`BM25Retriever` indexes `title + " " + text` as one bag of words. The docstring used to
+claim this matched BEIR's convention. It does not, and nobody checked until experiment 10
+went looking for the cause of the TREC-COVID reproduction failure.
+
+BEIR's paper is explicit: "We index the title (if available) and passage as separate
+fields for documents." Under Lucene that means each field carries its own document
+lengths, its own average length and its own document frequencies, and a query scores
+against each field independently before the scores are summed. Concatenation collapses
+all of that into one distribution.
+
+The difference is largest where documents are lopsided. A title-only document — 24.6% of
+TREC-COVID — is a very short *document* under concatenation, so length normalisation
+inflates whatever it matches. Split into fields it is an ordinary-length title plus an
+empty body that contributes nothing.
+
+`MultiFieldBM25Retriever` implements the BEIR arrangement and experiment 10 measures what
+it is worth. Concatenation remains the default rather than being silently swapped,
+because every result already in this repository was produced with it and changing the
+default would invalidate them all at once; the migration is a decision to take
+deliberately, with the numbers in hand.

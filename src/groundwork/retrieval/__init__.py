@@ -1,7 +1,7 @@
 """Retrieval methods."""
 
 from groundwork.retrieval.base import Retriever
-from groundwork.retrieval.bm25 import BM25Retriever
+from groundwork.retrieval.bm25 import BM25Retriever, MultiFieldBM25Retriever
 from groundwork.retrieval.dense import DenseRetriever
 from groundwork.retrieval.fusion import reciprocal_rank_fusion
 from groundwork.retrieval.rerank import CrossEncoderReranker
@@ -12,6 +12,7 @@ __all__ = [
     "LUCENE_ENGLISH_STOPWORDS",
     "BM25Retriever",
     "CrossEncoderReranker",
+    "MultiFieldBM25Retriever",
     "DenseRetriever",
     "RM3Retriever",
     "Retriever",
