@@ -126,6 +126,11 @@ def main() -> int:
         "sampling": do_sample,
         "max_new_tokens": max_new_tokens,
         "seed": args.seed,
+        # Recorded because it changes the OUTPUT, not just the speed. The seed is set
+        # once before the loop, so the batch a document lands in determines which random
+        # draws it gets when do_sample is on. A run reproduces at the same batch size and
+        # not across different ones.
+        "batch_size": args.batch_size,
         "num_inputs": len(texts),
         "num_empty": empty,
         "seconds": round(seconds, 1),

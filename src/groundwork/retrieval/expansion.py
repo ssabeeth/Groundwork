@@ -158,7 +158,13 @@ def generate_expansions(
         num_return_sequences: Generations per input. Above 1 requires ``do_sample``,
             since greedy decoding would return the same string repeatedly.
         max_new_tokens: Cap on generated length.
-        batch_size: Inputs per forward pass.
+        batch_size: Inputs per forward pass. With ``do_sample`` this changes the
+            generated text as well as the speed, because the seed is set once and
+            batching determines which draws each input receives. It is also the
+            main lever on memory: on unified-memory hardware the working set is
+            ``batch_size * num_return_sequences`` sequences of encoder states, and
+            exceeding physical memory degrades throughput by more than an order of
+            magnitude rather than gracefully.
         seed: Seed for sampling, recorded so the run reproduces.
         do_sample: Sample instead of decoding greedily.
         show_progress: Display a progress bar.
