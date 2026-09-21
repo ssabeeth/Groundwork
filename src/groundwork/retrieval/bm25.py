@@ -109,6 +109,43 @@ class BM25Retriever:
             df = len(doc_counts)
             self._idf[term] = math.log(1.0 + (num_docs - df + 0.5) / (df + 0.5))
 
+    def with_parameters(self, k1: float | None = None, b: float | None = None) -> BM25Retriever:
+        """Return a retriever over this same index, scoring with different parameters.
+
+        The inverted index, document lengths and IDF values are functions of the corpus
+        and the tokeniser alone — ``k1`` and ``b`` appear only in scoring. A parameter
+        sweep can therefore reuse one index across every cell, which on SciFact is the
+        difference between fifteen seconds and half an hour.
+
+        The index is shared, not copied. Neither retriever mutates it during scoring, so
+        this is safe, but re-indexing one does not affect the other.
+
+        Args:
+            k1: Replacement term-frequency saturation, or None to keep this one's.
+            b: Replacement length normalisation, or None to keep this one's.
+
+        Returns:
+            A retriever ready to search, with no indexing required.
+
+        Raises:
+            RuntimeError: If this retriever has not been indexed yet.
+            ValueError: If the replacement parameters are out of range.
+        """
+        if not self.doc_ids:
+            raise RuntimeError("index() must be called before with_parameters()")
+
+        clone = BM25Retriever(
+            k1=self.k1 if k1 is None else k1,
+            b=self.b if b is None else b,
+            tokenizer=self.tokenizer,
+        )
+        clone.doc_ids = self.doc_ids
+        clone.doc_lengths = self.doc_lengths
+        clone.avg_doc_length = self.avg_doc_length
+        clone._postings = self._postings
+        clone._idf = self._idf
+        return clone
+
     def _score_all(self, query: str) -> np.ndarray:
         """Score every document against ``query``."""
         scores = np.zeros(len(self.doc_ids), dtype=np.float32)

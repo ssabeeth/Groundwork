@@ -170,3 +170,61 @@ class TestTokenizer:
     def test_stemming_collapses_inflections(self):
         tokenizer = Tokenizer(stem=True)
         assert tokenizer("replicating") == tokenizer("replicate")
+
+
+class TestParameterReuse:
+    """`with_parameters` must be indistinguishable from indexing afresh.
+
+    The whole point is that a sweep can skip re-indexing, so the test that matters is
+    that skipping it changes nothing about the scores.
+    """
+
+    @pytest.mark.parametrize(("k1", "b"), [(0.9, 0.4), (1.2, 0.75), (0.0, 0.0), (2.0, 1.0)])
+    def test_scores_match_a_retriever_indexed_from_scratch(self, k1, b):
+        shared = BM25Retriever(k1=0.9, b=0.4, tokenizer=PLAIN)
+        shared.index(CORPUS, show_progress=False)
+        reused = shared.with_parameters(k1=k1, b=b)
+
+        fresh = BM25Retriever(k1=k1, b=b, tokenizer=PLAIN)
+        fresh.index(CORPUS, show_progress=False)
+
+        for query in ("quick fox", "lazy dog", "the", "quick quick brown"):
+            assert dict(reused.search(query, top_k=10)) == pytest.approx(
+                dict(fresh.search(query, top_k=10))
+            )
+
+    def test_the_original_is_left_alone(self):
+        original = BM25Retriever(k1=0.9, b=0.4, tokenizer=PLAIN)
+        original.index(CORPUS, show_progress=False)
+        before = dict(original.search("quick fox", top_k=10))
+
+        original.with_parameters(k1=2.0, b=1.0).search("quick fox", top_k=10)
+
+        assert dict(original.search("quick fox", top_k=10)) == pytest.approx(before)
+        assert original.k1 == 0.9
+        assert original.b == 0.4
+
+    def test_omitted_parameters_are_inherited(self):
+        original = BM25Retriever(k1=1.5, b=0.3, tokenizer=PLAIN)
+        original.index(CORPUS, show_progress=False)
+        clone = original.with_parameters(b=0.8)
+        assert clone.k1 == 1.5
+        assert clone.b == 0.8
+
+    def test_tokenizer_is_carried_over_so_describe_stays_truthful(self):
+        original = BM25Retriever(tokenizer=PLAIN)
+        original.index(CORPUS, show_progress=False)
+        clone = original.with_parameters(k1=1.2)
+        assert clone.describe()["tokenizer"] == original.describe()["tokenizer"]
+        assert clone.describe()["k1"] == 1.2
+
+    def test_requires_an_index(self):
+        with pytest.raises(RuntimeError):
+            BM25Retriever().with_parameters(k1=1.2)
+
+    @pytest.mark.parametrize(("k1", "b"), [(-1.0, 0.4), (0.9, 1.5)])
+    def test_invalid_parameters_still_raise(self, k1, b):
+        original = BM25Retriever(tokenizer=PLAIN)
+        original.index(CORPUS, show_progress=False)
+        with pytest.raises(ValueError):
+            original.with_parameters(k1=k1, b=b)

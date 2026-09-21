@@ -95,6 +95,10 @@ python scripts/run_baseline.py --dataset scifact
 | Dataset | Method | nDCG@10 | Recall@100 | BEIR published BM25 nDCG@10 |
 |---|---|---|---|---|
 | SciFact | BM25 (k1=0.9, b=0.4, Porter) | **0.6802** | 0.9220 | 0.665 |
+| SciFact | BM25 tuned on train (k1=1.4, b=0.5) | 0.6865 | 0.9216 | — |
+
+The tuned row is here to be dismissed: +0.0063 over the default on held-out test at
+p = 0.217. See "what didn't work".
 
 Tokenisation ablation, same corpus and parameters, nDCG@10 with recall@100 in brackets:
 
@@ -133,6 +137,22 @@ rather than a shock — IDF already discounts terms occurring in most documents,
 deleting them by list duplicates what the scoring function does. The list stays the
 default for comparability with BEIR's Elasticsearch runs, not because it earns its place.
 
+**Tuning `k1` and `b` bought nothing.** A 121-cell sweep on SciFact's 809 train queries
+picked `k1=1.4, b=0.5`, beating BEIR's `0.9/0.4` by 0.0028 nDCG@10 — on the split that
+chose it. Carried to held-out test the gap is +0.0063 at p = 0.217, and −0.0004 on
+recall@100. Not a win. The defaults stay.
+
+The surface says why: across all 121 cells nDCG@10 spans 0.0268, and 74% of cells sit
+within 0.010 of the best. `b` is nearly irrelevant on this corpus (0.0076 between its
+best and worst, including `b=0`, which disables length normalisation entirely — SciFact
+abstracts are uniform enough that there is little to normalise). `k1` only matters below
+about 0.8, where it costs real score; above that the curve is flat to 2.0. There is no
+peak to find here, only a cliff to stay off — and the whole parameter space is worth less
+than the stemming effect that experiment 2 could not establish as significant.
+
+Sweeping on the test split and reporting the best cell would have produced a much more
+flattering number, and a meaningless one.
+
 **Stemming's effect on ranking could not be established, only its effect on recall.**
 The difference of means says stemming is worth about two points of nDCG@10 — the sort of
 number that gets reported as a win. The paired test disagrees: Holm-adjusted p = 0.166
@@ -166,12 +186,13 @@ different metrics. Reported as a win on recall, and as undetermined on ranking.
 ## Roadmap
 
 1. ~~Tested metrics and BM25 baseline~~
-2. ~~Tokenisation ablation, with paired significance testing~~ ← current
-3. Dense retrieval, and the same numbers on the same harness
-4. Hybrid (reciprocal rank fusion), plus a cross-encoder reranker
-5. Results broken down by query type — the actual question
-6. Answer generation with citations, LLM judge calibrated against human labels
-7. MCP server so it plugs into any assistant
+2. ~~Tokenisation ablation, with paired significance testing~~
+3. ~~`k1`/`b` sweep, tuned on train and checked on held-out test~~ ← current
+4. Dense retrieval, and the same numbers on the same harness
+5. Hybrid (reciprocal rank fusion), plus a cross-encoder reranker
+6. Results broken down by query type — the actual question
+7. Answer generation with citations, LLM judge calibrated against human labels
+8. MCP server so it plugs into any assistant
 
 ## Install
 
@@ -190,7 +211,7 @@ pip install -e ".[dev,stem]"
 ## Development
 
 ```bash
-pytest          # 98 tests
+pytest          # 108 tests
 ruff check .
 ruff format .
 ```
@@ -208,8 +229,9 @@ src/groundwork/
   eval/significance.py  paired randomisation test, Holm-Bonferroni
 scripts/run_baseline.py the one command behind the results table
 scripts/compare_runs.py paired significance test between two runs
+scripts/run_sweep.py    k1/b grid over one shared index
 docs/experiments.md     running log, including what failed
-tests/                  98 tests
+tests/                  108 tests
 ```
 
 ## Licence

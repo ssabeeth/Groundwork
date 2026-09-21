@@ -185,6 +185,98 @@ testing hypotheses about each cell.
 
 ---
 
+## 2026-09-21 — k1/b sweep on SciFact
+
+**Question:** Are BEIR's `k1=0.9, b=0.4` right for this corpus, or is the baseline
+leaving something on the table?
+
+**Setup:** 121 cells — `k1` from 0.2 to 2.0 in steps of 0.2, `b` from 0.0 to 1.0 in steps
+of 0.1, with BEIR's default inserted into both axes so the setting under judgement is
+actually on the grid. Porter stemming and the Lucene stopword list throughout, depth 100.
+
+The sweep runs on the **train split** (809 queries) and the winner is then scored once on
+**test** (300 queries), which is never swept. This is the whole methodological point of
+the experiment. Sweeping on test and reporting the best cell does not answer the question
+asked: the winner of a 121-cell grid is partly winning by luck, and its margin over the
+default is inflated by the same selection that chose it. SciFact ships a train split over
+the identical 5,183-document corpus, so there is no excuse for tuning on the evaluation
+set. Held-out comparison uses the paired randomisation test, 100,000 resamples, seed 0.
+
+The index is built once — 14s — and shared across all 121 cells, because `k1` and `b`
+appear only in scoring and never in the postings, lengths or IDF. Whole sweep: 30.7s.
+Rebuilding per cell would have taken roughly half an hour to produce identical numbers.
+
+**Result:**
+
+Best cell on train is `k1=1.4, b=0.5` at nDCG@10 0.6958, against the BEIR default's
+0.6930. A gap of **+0.0028 on the split that chose it.**
+
+Carried over to held-out test:
+
+| Setting | nDCG@10 | recall@100 |
+|---|---|---|
+| `k1=0.9, b=0.4` (BEIR) | 0.6802 | 0.9220 |
+| `k1=1.4, b=0.5` (tuned on train) | 0.6865 | 0.9216 |
+| Paired difference | +0.0063, **p 0.217** | −0.0004, **p 1.000** |
+
+270 of 300 test queries score identically under the two settings.
+
+The surface, across all 121 train cells:
+
+| | nDCG@10 |
+|---|---|
+| Best cell | 0.6958 |
+| Worst cell | 0.6691 |
+| **Total spread** | **0.0268** |
+| Cells within 0.005 of best | 55 of 121 (45%) |
+| Cells within 0.010 of best | 90 of 121 (74%) |
+
+Best achievable at each value, maximising over the other axis:
+
+| `b` | 0.0 | 0.2 | 0.4 | 0.5 | 0.6 | 0.8 | 1.0 |
+|---|---|---|---|---|---|---|---|
+| nDCG@10 | 0.6882 | 0.6924 | 0.6949 | 0.6958 | 0.6947 | 0.6933 | 0.6927 |
+
+| `k1` | 0.2 | 0.4 | 0.6 | 0.8 | 1.0 | 1.4 | 1.8 | 2.0 |
+|---|---|---|---|---|---|---|---|---|
+| nDCG@10 | 0.6749 | 0.6838 | 0.6894 | 0.6940 | 0.6941 | 0.6958 | 0.6935 | 0.6911 |
+
+**Read:** **BEIR's defaults are fine and the baseline stays as it is.** Tuning over 121
+cells on 809 queries produced a setting that cannot be shown to beat the default on
+held-out data — +0.0063 nDCG@10 at p 0.217, and nothing at all on recall@100. Correcting
+for having asked about two metrics would only push those further from significance, so it
+is not worth doing; the answer does not change.
+
+Three things worth keeping from the surface.
+
+*`b` barely matters on this corpus.* The best achievable nDCG@10 varies by 0.0076 across
+the entire range of `b`, including `b=0`, which switches length normalisation off
+completely. SciFact abstracts are of fairly uniform length, so there is little for the
+normalisation to correct.
+
+*`k1` matters only at the bottom.* Below about 0.8 it costs real score — `k1=0.2` gives up
+two points — and above 0.8 the curve is flat to within a few thousandths all the way to
+2.0. The BEIR default sits just inside the plateau. This is the one shape in the data:
+not a peak to be found, but a cliff to stay off.
+
+*The entire parameter space is worth less than tokenisation.* The full grid spans 0.0268
+nDCG@10. Experiment 2 measured stemming at 0.0175 to 0.0204 — and could not establish
+even that as significant on ranking. So a difference smaller than one already shown to be
+undetectable is not a result, and a sweep is the wrong tool for finding one.
+
+The honest conclusion is a negative one: there was nothing here to find, and the value of
+running it is knowing that rather than assuming it. Keeping `0.9/0.4` also keeps
+comparability with published BEIR numbers, which `decisions.md` argues is worth more than
+a hundredth of a point even if a hundredth of a point had been real.
+
+**Next:** Experiment 4, BM25 on TREC-COVID and NFCorpus. Those have graded qrels, so the
+exponential-versus-linear gain choice starts to matter and must be recorded from that
+entry onward. They also have very different length distributions from SciFact, which is
+the natural place to check whether `b`'s irrelevance here is a property of this corpus or
+of the method.
+
+---
+
 ## Pending
 
 Planned runs, in order. Each is a separate entry when it happens.
@@ -193,7 +285,7 @@ Planned runs, in order. Each is a separate entry when it happens.
 |---|---|---|
 | 1 | ~~BM25 on SciFact~~ | **Done** — nDCG@10 0.6802 vs published 0.665 |
 | 2 | ~~Tokenisation ablation~~ | **Done** — stemming helps recall@100 (Holm p 0.018); stopwords do nothing |
-| 3 | `k1`/`b` sweep | Whether BEIR's 0.9/0.4 is right for this corpus |
+| 3 | ~~`k1`/`b` sweep~~ | **Done** — tuned on train, no held-out gain (p 0.22); defaults kept |
 | 4 | BM25 on TREC-COVID and NFCorpus | Does the harness hold on graded qrels |
 | 5 | Dense retrieval, same harness | The first real comparison |
 | 6 | Hybrid via reciprocal rank fusion | Whether fusion beats both parents |

@@ -133,8 +133,14 @@ recall@100 (Holm-adjusted p 0.018) and undetermined on nDCG@10 (Holm 0.166); sto
 removal does nothing on either. Paired significance testing now exists in
 `eval/significance.py` and per-query scores are committed under `results/per-query/`.
 
-Next is experiment 3, the `k1`/`b` sweep, then dense retrieval on the same harness. See
-the pending table in `docs/experiments.md`.
+Experiment 3 (`k1`/`b` sweep) is done. Tuned on SciFact's train split over 121 cells,
+the best setting does not beat BEIR's `0.9/0.4` on held-out test (+0.0063 nDCG@10,
+p 0.217), so the defaults stay. Sweeps tune on train and report on test; never sweep the
+evaluation split.
+
+Next is experiment 4, BM25 on TREC-COVID and NFCorpus. Those have graded qrels, so the
+exponential-versus-linear gain choice starts to matter and must be recorded from that
+entry onward. See the pending table in `docs/experiments.md`.
 
 ## How to work with me on this
 

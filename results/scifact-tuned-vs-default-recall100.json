@@ -1,0 +1,29 @@
+{
+  "metric": "recall@100",
+  "seed": 0,
+  "resamples": 100000,
+  "holm_adjusted": false,
+  "comparisons": [
+    {
+      "a": {
+        "file": "results/scifact-bm25-tuned.json",
+        "label": "tuned (stem=porter, stopwords=lucene_english)"
+      },
+      "b": {
+        "file": "results/scifact-bm25.json",
+        "label": "baseline (stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "recall@100",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": -0.00044444444444444474,
+      "p_value": 1.0,
+      "num_queries": 300,
+      "num_ties": 298,
+      "effective_queries": 2,
+      "method": "monte-carlo",
+      "num_assignments": 100000,
+      "seed": 0
+    }
+  ]
+}
