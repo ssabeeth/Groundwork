@@ -66,6 +66,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--fb-terms", type=int, default=50)
     parser.add_argument("--alpha", type=float, default=0.8)
     parser.add_argument("--model", default=DEFAULT_MODEL)
+    parser.add_argument(
+        "--chunk-words",
+        type=int,
+        default=None,
+        help="Split documents into word windows and score by the best",
+    )
+    parser.add_argument("--chunk-overlap", type=int, default=0)
     parser.add_argument("--top-k", type=int, default=100)
     parser.add_argument("--gain", default="exponential", choices=["exponential", "linear"])
     parser.add_argument(
@@ -109,7 +116,11 @@ def build_runs(args: argparse.Namespace, dataset) -> tuple[dict, dict]:  # noqa:
             described["rm3"] = rm3.describe()
 
     if "dense" in names:
-        dense = DenseRetriever(model_name=args.model)
+        dense = DenseRetriever(
+            model_name=args.model,
+            chunk_words=args.chunk_words,
+            chunk_overlap=args.chunk_overlap,
+        )
         dense.index(dataset.corpus)
         runs["dense"] = dense.retrieve(dataset.queries, top_k=args.top_k)
         described["dense"] = dense.describe()

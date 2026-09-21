@@ -711,12 +711,132 @@ Planned runs, in order. Each is a separate entry when it happens.
 | 7 | ~~Cross-encoder reranking over hybrid~~ | **Done** — no measurable gain; 6 min GPU for nothing |
 | 8 | ~~Breakdown by query type~~ | **Done** — lexical advantage rises with query term rarity, both datasets |
 
+## 2026-09-21 — Encoder choice, chunking, and a falsification test of experiment 8
+
+**Question:** Experiments 5 and 7 concluded that dense retrieval and reranking do not
+beat BM25 here. Both used models trained on web search text, reading documents truncated
+at 256 word pieces. Was that a finding about dense retrieval, or about one weak
+configuration? And does experiment 8's query-dependence result survive a competent
+encoder?
+
+The second question is the important one. Experiment 8's correlation compares BM25
+against dense per query. If the encoder is weak, "BM25 wins where the query has rare
+terms" and "BM25 wins where the weak model fails" are indistinguishable, and the result
+could be an artifact of model quality rather than a fact about lexical matching. This
+experiment was designed to be able to overturn it.
+
+**Setup:** Four encoders on NFCorpus, all with the same harness, depth and tokenisation
+as before: all-MiniLM-L6-v2 (the original, 256 tokens), all-mpnet-base-v2 (384),
+S-PubMedBert-MS-MARCO (350, biomedical), bge-small-en-v1.5 (512). Then chunking — 200-word
+windows with 50 overlap, scoring a document by its best-matching window — on the two
+strongest. The winner was then run on SciFact, fused with BM25 (`k` swept on train as
+always), and put through experiment 8's correlation unchanged.
+
+**Result — encoders, NFCorpus nDCG@10:**
+
+| Encoder | context | truncated | nDCG@10 | recall@100 |
+|---|---|---|---|---|
+| BM25 (reference) | — | — | 0.3224 | 0.2461 |
+| all-MiniLM-L6-v2 (experiment 5) | 256 | 78.8% | 0.3173 | 0.3115 |
+| S-PubMedBert-MS-MARCO | 350 | 37.8% | 0.3142 | 0.2921 |
+| all-mpnet-base-v2 | 384 | 40.0% | 0.3346 | 0.3385 |
+| **bge-small-en-v1.5** | 512 | 9.1% | **0.3391** | 0.3059 |
+
+Chunking, which removes truncation almost entirely:
+
+| Configuration | truncated | nDCG@10 | paired vs unchunked |
+|---|---|---|---|
+| bge-small | 9.1% | **0.3391** | — |
+| bge-small, chunked | 0.0% | 0.3348 | −0.0043, p 0.256 |
+| mpnet | 40.0% | **0.3346** | — |
+| mpnet, chunked | 2.1% | 0.3225 | −0.0120, p 0.026 (Holm 0.052) |
+
+**Result — the falsification test.** Experiment 8's correlation, re-run against
+bge-small instead of MiniLM, everything else identical:
+
+| Dataset | encoder | mean advantage | rho (`max_idf`) | p | Holm |
+|---|---|---|---|---|---|
+| NFCorpus | MiniLM (exp. 8) | +0.0051 | +0.1578 | 0.0046 | 0.0092 |
+| NFCorpus | **bge-small** | −0.0167 | **+0.0916** | **0.0990** | 0.0990 |
+| SciFact | MiniLM (exp. 8) | +0.0351 | +0.1191 | 0.0362 | 0.0362 |
+| SciFact | **bge-small** | −0.0398 | **+0.1550** | **0.0077** | 0.0154 |
+
+Terciles under bge-small remain monotone on both: NFCorpus −0.0315 / −0.0255 / +0.0071,
+SciFact −0.1023 / −0.0162 / −0.0010.
+
+**Read — three corrections, in descending order of how wrong I was.**
+
+*Experiment 5's headline conclusion does not survive.* It said dense retrieval "never
+beats BM25 at ranking". With bge-small it does, on both datasets: SciFact 0.7200 against
+0.6802 (+0.0398, raw p 0.023), NFCorpus 0.3391 against 0.3224 (+0.0167, p 0.120). Neither
+clears Holm across the family of four comparisons, so the honest claim is not "dense
+beats BM25" — it is that **the previous claim is no longer supportable**, because the
+point estimates changed sign and the margin on SciFact is the largest single-system gap
+measured in this project. On SciFact bge-small alone (0.7200) also matches the entire
+BM25 + MiniLM fusion from experiment 6 (0.7146, p 0.70). One better encoder was worth
+more than fusing two worse systems.
+
+*Domain matching did not help; general model quality did.* The biomedical encoder was
+the **worst** of the three strong candidates on a nutrition-and-medicine corpus — 0.3142,
+below BM25 and below both general models. This was the opposite of what I predicted when
+proposing the experiment. Whatever S-PubMedBert gains from biomedical pretraining, it
+loses to bge-small's retrieval training, and "use a domain model for a domain corpus" is
+not supported by anything measured here.
+
+*Truncation was the wrong thing to worry about.* Experiment 5 flagged 78.8% truncation
+as a caveat attached to every dense number, and it sounded damning. But eliminating it by
+chunking does not help. Paired, unchunked is ahead by 0.0043 on bge-small (p 0.256, no
+measurable difference) and by 0.0120 on mpnet (p 0.026 raw, Holm 0.052 — borderline, and
+in the direction of chunking being *worse*). So the discarded tails were not carrying
+signal, and max-pooling over windows gives one off-topic passage a chance to match
+spuriously. The caveat was reasonable to state and wrong about what was limiting
+performance — which is why it was worth testing rather than assuming in either direction. Context length still correlates with
+quality across encoders, but that is confounded with everything else those models differ
+in, and this experiment cannot separate the two.
+
+**Read — what happened to experiment 8.** The claim is weakened but not overturned, and
+the distinction matters.
+
+What replicates: the direction is positive under both encoders on both datasets, and the
+terciles are monotone in all four combinations. BM25's relative advantage does rise with
+query term rarity.
+
+What does not: significance is encoder-dependent. With MiniLM, NFCorpus was the stronger
+result (p 0.0046) and SciFact the weaker (p 0.0362). With bge-small they swap — SciFact
+holds at p 0.0077, NFCorpus falls to p 0.0990 and no longer clears 0.05. Since the
+underlying quantity should not depend on which encoder is used to estimate it, **the
+effect size is not robustly estimated, and experiment 8's numbers overstated it.** The
+README's confident framing of that result has been rewritten accordingly.
+
+The mean advantage flipping sign on both datasets — BM25 was ahead on average under
+MiniLM, behind under bge-small — is the clearest illustration of why. Experiment 8 was
+measuring a mixture of "lexical specificity favours BM25" and "this encoder is weak", and
+only the falsification test could separate them. It partially did: the effect is real in
+direction and about half the size originally claimed.
+
+**Result — fusion, rebuilt on the better encoder.** Best configurations measured:
+
+| Dataset | best single | RRF(BM25 + bge) | vs best single | vs BM25 |
+|---|---|---|---|---|
+| SciFact | bge 0.7200 | **0.7399** | +0.0199, p 0.079 | +0.0597, Holm <0.0001 |
+| NFCorpus | RM3 0.3433 | **0.3659** | +0.0268, Holm 0.0001 | +0.0435, Holm <0.0001 |
+
+Fusion still produces the best number on both datasets, and still beats BM25 decisively.
+But on SciFact it no longer beats its own strongest parent significantly (p 0.079), which
+is a weaker claim than experiment 6 was able to make when both parents were mediocre.
+
+**Next:** TREC-COVID's query formulation, then a third dataset — which now has a clearer
+job than it did yesterday, since it is the only way to settle whether the query-dependence
+effect is real at the size the SciFact runs suggest or the size the NFCorpus runs suggest.
+
+---
+
 ## Still open
 
 | Experiment | Settles |
 |---|---|
-| Domain-matched encoder (bi- and cross-) | Whether experiments 5 and 7 measured dense retrieval or just a model trained on the wrong text |
-| Chunking instead of truncation | 71-79% of documents are currently cut at 256 tokens; whether the tail matters |
+| ~~Domain-matched encoder~~ | **Done (experiment 9)** — general model quality beat domain matching; experiment 5's conclusion overturned |
+| ~~Chunking instead of truncation~~ | **Done (experiment 9)** — removing truncation made results slightly worse; the tails carried no signal |
 | TREC-COVID query formulation | Which formulation BEIR's published 0.656 used; currently recorded as not reproduced |
 | Query-length effect, pre-registered | Found by looking on NFCorpus (rho -0.22); needs a fresh dataset to count |
 | Paired tests on TREC-COVID | Only 50 queries, so almost nothing will be detectable; worth confirming that explicitly |

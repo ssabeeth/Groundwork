@@ -1,0 +1,64 @@
+{
+  "dataset": "nfcorpus",
+  "split": "test",
+  "tag": "bge",
+  "method": "dense",
+  "metrics": {
+    "ndcg@1": 0.41692466460268307,
+    "recall@1": 0.05800554517471261,
+    "ndcg@10": 0.3391030785878129,
+    "recall@10": 0.15804603404901182,
+    "ndcg@100": 0.31413603888592345,
+    "recall@100": 0.30593750484589877
+  },
+  "num_queries": 323,
+  "num_documents": 3633,
+  "oracle_recall_at_100": 0.9647038661258809,
+  "retriever": {
+    "method": "dense",
+    "model": "BAAI/bge-small-en-v1.5",
+    "similarity": "cosine",
+    "pooling": "mean",
+    "normalized": true,
+    "max_seq_length": 512,
+    "truncation_rate": 0.09083402146985962,
+    "chunk_words": null,
+    "chunk_overlap": null,
+    "num_chunks": 3633,
+    "batch_size": 64
+  },
+  "top_k": 100,
+  "gain": "exponential",
+  "graded_qrels": true,
+  "relevance_levels": [
+    1,
+    2
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.41692466460268307,
+      "recall@1": 0.05800554517471261,
+      "ndcg@10": 0.3391030785878129,
+      "recall@10": 0.15804603404901182,
+      "ndcg@100": 0.31413603888592345,
+      "recall@100": 0.30593750484589877
+    },
+    "linear": {
+      "ndcg@1": 0.42105263157894735,
+      "recall@1": 0.05800554517471261,
+      "ndcg@10": 0.3375352961489875,
+      "recall@10": 0.15804603404901182,
+      "ndcg@100": 0.3076772421809522,
+      "recall@100": 0.30593750484589877
+    }
+  },
+  "timing_seconds": {
+    "encode": 68.86,
+    "retrieve": 0.49
+  },
+  "per_query_file": "per-query/nfcorpus-dense-bge.json",
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T10:49:55+00:00"
+}

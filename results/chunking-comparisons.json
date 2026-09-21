@@ -1,0 +1,52 @@
+{
+  "metric": "ndcg@10",
+  "seed": 0,
+  "resamples": 100000,
+  "holm_adjusted": true,
+  "comparisons": [
+    {
+      "a": {
+        "file": "results/nfcorpus-dense-bge.json",
+        "label": "bge [dense] (BAAI/bge-small-en-v1.5, truncated=9%)"
+      },
+      "b": {
+        "file": "results/nfcorpus-dense-bge-chunked.json",
+        "label": "bge-chunked [dense] (BAAI/bge-small-en-v1.5, truncated=0%)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.004335715720061292,
+      "p_value": 0.25565744342556573,
+      "num_queries": 323,
+      "num_ties": 154,
+      "effective_queries": 169,
+      "method": "monte-carlo",
+      "num_assignments": 100000,
+      "seed": 0,
+      "p_value_holm": 0.25565744342556573
+    },
+    {
+      "a": {
+        "file": "results/nfcorpus-dense-mpnet.json",
+        "label": "mpnet [dense] (sentence-transformers/all-mpnet-base-v2, truncated=40%)"
+      },
+      "b": {
+        "file": "results/nfcorpus-dense-mpnet-chunked.json",
+        "label": "mpnet-chunked [dense] (sentence-transformers/all-mpnet-base-v2, truncated=2%)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.012040012379517956,
+      "p_value": 0.025919740802591976,
+      "num_queries": 323,
+      "num_ties": 151,
+      "effective_queries": 172,
+      "method": "monte-carlo",
+      "num_assignments": 100000,
+      "seed": 0,
+      "p_value_holm": 0.05183948160518395
+    }
+  ]
+}

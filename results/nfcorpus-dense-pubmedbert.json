@@ -1,0 +1,64 @@
+{
+  "dataset": "nfcorpus",
+  "split": "test",
+  "tag": "pubmedbert",
+  "method": "dense",
+  "metrics": {
+    "ndcg@1": 0.4324045407636738,
+    "recall@1": 0.05014456363849541,
+    "ndcg@10": 0.31422266430155293,
+    "recall@10": 0.14165278913372362,
+    "ndcg@100": 0.2893355167381761,
+    "recall@100": 0.2921293996059121
+  },
+  "num_queries": 323,
+  "num_documents": 3633,
+  "oracle_recall_at_100": 0.9647038661258809,
+  "retriever": {
+    "method": "dense",
+    "model": "pritamdeka/S-PubMedBert-MS-MARCO",
+    "similarity": "cosine",
+    "pooling": "mean",
+    "normalized": true,
+    "max_seq_length": 350,
+    "truncation_rate": 0.377924580236719,
+    "chunk_words": null,
+    "chunk_overlap": null,
+    "num_chunks": 3633,
+    "batch_size": 64
+  },
+  "top_k": 100,
+  "gain": "exponential",
+  "graded_qrels": true,
+  "relevance_levels": [
+    1,
+    2
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.4324045407636738,
+      "recall@1": 0.05014456363849541,
+      "ndcg@10": 0.31422266430155293,
+      "recall@10": 0.14165278913372362,
+      "ndcg@100": 0.2893355167381761,
+      "recall@100": 0.2921293996059121
+    },
+    "linear": {
+      "ndcg@1": 0.43653250773993807,
+      "recall@1": 0.05014456363849541,
+      "ndcg@10": 0.31276903650656146,
+      "recall@10": 0.14165278913372362,
+      "ndcg@100": 0.28298745604237724,
+      "recall@100": 0.2921293996059121
+    }
+  },
+  "timing_seconds": {
+    "encode": 99.49,
+    "retrieve": 0.7
+  },
+  "per_query_file": "per-query/nfcorpus-dense-pubmedbert.json",
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T10:48:38+00:00"
+}

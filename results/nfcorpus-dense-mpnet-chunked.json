@@ -1,0 +1,64 @@
+{
+  "dataset": "nfcorpus",
+  "split": "test",
+  "tag": "mpnet-chunked",
+  "method": "dense",
+  "metrics": {
+    "ndcg@1": 0.36532507739938075,
+    "recall@1": 0.047133546898562396,
+    "ndcg@10": 0.3225434537397975,
+    "recall@10": 0.1636627975359577,
+    "ndcg@100": 0.31208524613444755,
+    "recall@100": 0.32996200740191495
+  },
+  "num_queries": 323,
+  "num_documents": 3633,
+  "oracle_recall_at_100": 0.9647038661258809,
+  "retriever": {
+    "method": "dense",
+    "model": "sentence-transformers/all-mpnet-base-v2",
+    "similarity": "cosine",
+    "pooling": "mean",
+    "normalized": true,
+    "max_seq_length": 384,
+    "truncation_rate": 0.021178225205070844,
+    "chunk_words": 200,
+    "chunk_overlap": 50,
+    "num_chunks": 6705,
+    "batch_size": 64
+  },
+  "top_k": 100,
+  "gain": "exponential",
+  "graded_qrels": true,
+  "relevance_levels": [
+    1,
+    2
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.36532507739938075,
+      "recall@1": 0.047133546898562396,
+      "ndcg@10": 0.3225434537397975,
+      "recall@10": 0.1636627975359577,
+      "ndcg@100": 0.31208524613444755,
+      "recall@100": 0.32996200740191495
+    },
+    "linear": {
+      "ndcg@1": 0.369969040247678,
+      "recall@1": 0.047133546898562396,
+      "ndcg@10": 0.3219478108537815,
+      "recall@10": 0.1636627975359577,
+      "ndcg@100": 0.305920517786718,
+      "recall@100": 0.32996200740191495
+    }
+  },
+  "timing_seconds": {
+    "encode": 181.25,
+    "retrieve": 0.88
+  },
+  "per_query_file": "per-query/nfcorpus-dense-mpnet-chunked.json",
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T10:55:03+00:00"
+}

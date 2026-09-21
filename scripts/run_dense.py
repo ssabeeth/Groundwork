@@ -42,6 +42,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--split", default="test")
     parser.add_argument("--data-dir", default="data")
     parser.add_argument("--model", default=DEFAULT_MODEL)
+    parser.add_argument(
+        "--chunk-words",
+        type=int,
+        default=None,
+        help="Split documents into word windows and score by the best",
+    )
+    parser.add_argument("--chunk-overlap", type=int, default=0)
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--max-seq-length", type=int, default=None)
     parser.add_argument("--top-k", type=int, default=100)
@@ -64,6 +71,8 @@ def main() -> int:
         model_name=args.model,
         batch_size=args.batch_size,
         max_seq_length=args.max_seq_length,
+        chunk_words=args.chunk_words,
+        chunk_overlap=args.chunk_overlap,
         cache_dir=args.cache_dir or None,
     )
 

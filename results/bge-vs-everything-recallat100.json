@@ -1,0 +1,96 @@
+{
+  "metric": "recall@100",
+  "seed": 0,
+  "resamples": 100000,
+  "holm_adjusted": true,
+  "comparisons": [
+    {
+      "a": {
+        "file": "results/scifact-dense-bge.json",
+        "label": "bge [dense] (BAAI/bge-small-en-v1.5, truncated=9%)"
+      },
+      "b": {
+        "file": "results/scifact-bm25.json",
+        "label": "bm25 [bm25] (stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "recall@100",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.03133333333333333,
+      "p_value": 0.07308926910730892,
+      "num_queries": 300,
+      "num_ties": 270,
+      "effective_queries": 30,
+      "method": "monte-carlo",
+      "num_assignments": 100000,
+      "seed": 0,
+      "p_value_holm": 0.14617853821461785
+    },
+    {
+      "a": {
+        "file": "results/scifact-dense-bge.json",
+        "label": "bge [dense] (BAAI/bge-small-en-v1.5, truncated=9%)"
+      },
+      "b": {
+        "file": "results/scifact-rrf-tuned.json",
+        "label": "tuned [rrf] (bm25+dense, k=1.0)"
+      },
+      "metric": "recall@100",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": -0.0016666666666666668,
+      "p_value": 1.0,
+      "num_queries": 300,
+      "num_ties": 284,
+      "effective_queries": 16,
+      "method": "monte-carlo",
+      "num_assignments": 100000,
+      "seed": 0,
+      "p_value_holm": 1.0
+    },
+    {
+      "a": {
+        "file": "results/nfcorpus-dense-bge.json",
+        "label": "bge [dense] (BAAI/bge-small-en-v1.5, truncated=9%)"
+      },
+      "b": {
+        "file": "results/nfcorpus-bm25-graded.json",
+        "label": "graded [bm25] (stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "recall@100",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.05985904720445198,
+      "p_value": 9.99990000099999e-06,
+      "num_queries": 323,
+      "num_ties": 107,
+      "effective_queries": 216,
+      "method": "monte-carlo",
+      "num_assignments": 100000,
+      "seed": 0,
+      "p_value_holm": 3.999960000399996e-05
+    },
+    {
+      "a": {
+        "file": "results/nfcorpus-dense-bge.json",
+        "label": "bge [dense] (BAAI/bge-small-en-v1.5, truncated=9%)"
+      },
+      "b": {
+        "file": "results/nfcorpus-rrf-tuned.json",
+        "label": "tuned [rrf] (bm25+dense, k=10.0)"
+      },
+      "metric": "recall@100",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": -0.015771453527728827,
+      "p_value": 0.04209957900420996,
+      "num_queries": 323,
+      "num_ties": 122,
+      "effective_queries": 201,
+      "method": "monte-carlo",
+      "num_assignments": 100000,
+      "seed": 0,
+      "p_value_holm": 0.12629873701262986
+    }
+  ]
+}

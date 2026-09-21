@@ -19,7 +19,10 @@ can be checked rather than assumed.
 pieces. Scientific abstracts frequently exceed it, and the excess is silently discarded.
 "Dense retrieval underperforms on long documents" and "half the document was never
 encoded" are different findings, so this class measures the truncation rate rather than
-leaving it to be assumed.
+leaving it to be assumed — and ``chunk_words`` offers the alternative: split a document
+into overlapping windows, embed each, and score the document by its best-matching window.
+That is the standard MaxP arrangement, and it trades more encoding for keeping the text
+the model would otherwise never see.
 
 *The pooling and normalisation.* Mean pooling with L2 normalisation, so the inner
 product is cosine similarity. Stated because it is a choice, not a law.
@@ -92,6 +95,12 @@ class DenseRetriever:
         model_name: Sentence-transformers model id, recorded with every result.
         batch_size: Encoding batch size. Affects speed only.
         max_seq_length: Word-piece cap. None keeps the model's own default.
+        chunk_words: Split documents into windows of this many whitespace-separated
+            words and score by the best-matching window. None encodes each document
+            once, truncating whatever exceeds the model's limit.
+        chunk_overlap: Words shared between consecutive windows, so a passage straddling
+            a boundary still appears whole in one of them. Must be less than
+            ``chunk_words``.
         cache_dir: Where to cache embeddings. None disables caching.
         device: Torch device string, or None to let the library choose.
     """
@@ -101,12 +110,22 @@ class DenseRetriever:
         model_name: str = DEFAULT_MODEL,
         batch_size: int = 64,
         max_seq_length: int | None = None,
+        chunk_words: int | None = None,
+        chunk_overlap: int = 0,
         cache_dir: Path | str | None = "data/embeddings",
         device: str | None = None,
     ) -> None:
+        if chunk_words is not None:
+            if chunk_words <= 0:
+                raise ValueError("chunk_words must be positive")
+            if not 0 <= chunk_overlap < chunk_words:
+                raise ValueError("chunk_overlap must be in [0, chunk_words)")
+
         self.model_name = model_name
         self.batch_size = batch_size
         self.max_seq_length = max_seq_length
+        self.chunk_words = chunk_words
+        self.chunk_overlap = chunk_overlap
         self.cache_dir = Path(cache_dir) if cache_dir is not None else None
         self.device = device
 
@@ -115,6 +134,11 @@ class DenseRetriever:
         self.embeddings: np.ndarray = np.zeros((0, 0), dtype=np.float32)
         self.truncation_rate: float | None = None
         self.effective_max_seq_length: int | None = None
+        # Index of each document's first embedding row. With chunking off this is simply
+        # arange(len(doc_ids)); with it on, documents own a contiguous run of rows and
+        # this is what collapses chunk scores back to document scores.
+        self._chunk_starts: np.ndarray = np.zeros(0, dtype=np.int64)
+        self.num_chunks: int = 0
 
     @property
     def model(self):  # noqa: ANN201 - third-party class, not ours to name
@@ -158,12 +182,66 @@ class DenseRetriever:
                 over += 1
         return over / len(texts) if texts else 0.0
 
+    def split_into_chunks(self, text: str) -> list[str]:
+        """Split ``text`` into overlapping word windows.
+
+        Always returns at least one chunk, including for empty text, so every document
+        owns a row in the embedding matrix and the document boundaries stay aligned.
+
+        Args:
+            text: Document text.
+
+        Returns:
+            The windows, in order.
+        """
+        if self.chunk_words is None:
+            return [text]
+
+        words = text.split()
+        if len(words) <= self.chunk_words:
+            return [" ".join(words)]
+
+        stride = self.chunk_words - self.chunk_overlap
+        chunks = [
+            " ".join(words[start : start + self.chunk_words])
+            for start in range(0, len(words), stride)
+            if start == 0 or start < len(words)
+        ]
+        # The final stride can produce a window entirely inside its predecessor when the
+        # overlap is large; those add cost and no information.
+        return [chunk for chunk in chunks if chunk] or [""]
+
+    def _document_scores(self, chunk_scores: np.ndarray) -> np.ndarray:
+        """Collapse per-chunk similarities to one score per document, by maximum.
+
+        A document matches a query if *any* part of it does, which is what MaxP encodes.
+        Averaging instead would penalise a long document for the passages that happen to
+        be about something else.
+
+        Args:
+            chunk_scores: Scores over embedding rows, either 1-D or (queries, chunks).
+
+        Returns:
+            Scores over documents, same leading shape.
+        """
+        if self.chunk_words is None:
+            return chunk_scores
+        axis = chunk_scores.ndim - 1
+        return np.maximum.reduceat(chunk_scores, self._chunk_starts, axis=axis)
+
     def _cache_path(self, corpus: Mapping[str, Mapping[str, str]]) -> Path | None:
         if self.cache_dir is None:
             return None
         model_slug = self.model_name.replace("/", "__")
         length = self.max_seq_length if self.max_seq_length is not None else "default"
-        return self.cache_dir / f"{model_slug}__len{length}__{corpus_digest(corpus)}.npz"
+        chunking = (
+            "nochunk"
+            if self.chunk_words is None
+            else f"chunk{self.chunk_words}o{self.chunk_overlap}"
+        )
+        return (
+            self.cache_dir / f"{model_slug}__len{length}__{chunking}__{corpus_digest(corpus)}.npz"
+        )
 
     def index(
         self,
@@ -188,6 +266,15 @@ class DenseRetriever:
             for d in self.doc_ids
         ]
 
+        # One contiguous run of chunks per document, so scores collapse by reduceat.
+        chunks: list[str] = []
+        starts: list[int] = []
+        for text in texts:
+            starts.append(len(chunks))
+            chunks.extend(self.split_into_chunks(text))
+        self._chunk_starts = np.array(starts, dtype=np.int64)
+        self.num_chunks = len(chunks)
+
         cache_path = self._cache_path(corpus)
         if cache_path is not None and cache_path.exists():
             with np.load(cache_path, allow_pickle=False) as cached:
@@ -195,19 +282,21 @@ class DenseRetriever:
                 stored = cached["truncation_rate"]
                 self.truncation_rate = float(stored[0]) if stored.size else None
                 self.effective_max_seq_length = int(cached["max_seq_length"].item())
-            logger.info("Loaded %d cached embeddings from %s", len(self.doc_ids), cache_path)
-            if self.embeddings.shape[0] != len(self.doc_ids):
+            logger.info("Loaded %d cached rows from %s", self.embeddings.shape[0], cache_path)
+            if self.embeddings.shape[0] != self.num_chunks:
                 raise ValueError(
-                    f"cached embeddings have {self.embeddings.shape[0]} rows for a corpus of "
-                    f"{len(self.doc_ids)}; delete {cache_path} and re-index"
+                    f"cached embeddings have {self.embeddings.shape[0]} rows but this corpus "
+                    f"produces {self.num_chunks}; delete {cache_path} and re-index"
                 )
             return
 
         if measure_truncation:
-            self.truncation_rate = self.measure_truncation(texts)
-            logger.info("Truncation rate: %.1f%% of documents", 100 * self.truncation_rate)
+            # Measured on the text as it will actually be encoded: with chunking on, the
+            # question is whether a *chunk* overflows, not whether the document would.
+            self.truncation_rate = self.measure_truncation(chunks)
+            logger.info("Truncation rate: %.1f%% of encoded units", 100 * self.truncation_rate)
 
-        self.embeddings = self._encode(texts, show_progress=show_progress)
+        self.embeddings = self._encode(chunks, show_progress=show_progress)
         self.effective_max_seq_length = int(self.model.max_seq_length)
 
         if cache_path is not None:
@@ -220,7 +309,7 @@ class DenseRetriever:
                 ),
                 max_seq_length=np.array(self.effective_max_seq_length),
             )
-            logger.info("Cached embeddings to %s", cache_path)
+            logger.info("Cached %d embeddings to %s", self.num_chunks, cache_path)
 
     def search(self, query: str, top_k: int = 100) -> list[tuple[str, float]]:
         """Return the ``top_k`` nearest documents to ``query`` by cosine similarity.
@@ -242,7 +331,7 @@ class DenseRetriever:
             raise ValueError("top_k must be positive")
 
         vector = self._encode([query], show_progress=False)[0]
-        scores = self.embeddings @ vector
+        scores = self._document_scores(self.embeddings @ vector)
 
         k = min(top_k, scores.shape[0])
         candidates = np.argpartition(-scores, k - 1)[:k]
@@ -271,7 +360,7 @@ class DenseRetriever:
 
         query_ids = list(queries)
         vectors = self._encode([queries[q] for q in query_ids], show_progress=show_progress)
-        similarities = vectors @ self.embeddings.T
+        similarities = self._document_scores(vectors @ self.embeddings.T)
 
         k = min(top_k, len(self.doc_ids))
         run: dict[str, dict[str, float]] = {}
@@ -295,5 +384,8 @@ class DenseRetriever:
             "normalized": True,
             "max_seq_length": self.effective_max_seq_length,
             "truncation_rate": self.truncation_rate,
+            "chunk_words": self.chunk_words,
+            "chunk_overlap": self.chunk_overlap if self.chunk_words else None,
+            "num_chunks": self.num_chunks,
             "batch_size": self.batch_size,
         }

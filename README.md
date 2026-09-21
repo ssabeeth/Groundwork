@@ -7,10 +7,13 @@ the experiment: BM25, dense, hybrid and reranked retrieval are scored against th
 human relevance judgements, with a tested evaluation harness, and the results are
 reported including the ones that did not help.
 
-**Status:** BM25, RM3, dense and hybrid retrieval all measured on the same harness,
+**Status:** BM25, RM3, dense, hybrid and reranking all measured on the same harness,
 with paired significance testing throughout. The central claim — that retrieval method
-is query-dependent — is now tested rather than asserted, on a hypothesis fixed before
-the data was looked at. It holds, on two datasets, and it is invisible in the aggregate.
+is query-dependent — was tested against a hypothesis fixed before the data was looked at,
+then deliberately attacked by re-running it with a stronger encoder. It half-survived:
+consistent in direction across two encoders and two corpora, about half the originally
+claimed size, and no longer significant on one of the two datasets. That attack also
+overturned an earlier conclusion of this project's own — see "what didn't work".
 
 ---
 
@@ -112,16 +115,27 @@ nDCG@10 on test, all methods on the same harness and the same corpora:
 | Method | SciFact | NFCorpus |
 |---|---|---|
 | BM25 | 0.6802 | 0.3224 |
-| Dense (MiniLM-L6) | 0.6451 | 0.3173 |
+| Dense — MiniLM-L6, 256 ctx | 0.6451 | 0.3173 |
+| Dense — S-PubMedBert (biomedical) | — | 0.3142 |
+| Dense — mpnet, 384 ctx | — | 0.3346 |
+| Dense — bge-small, 512 ctx | 0.7200 | 0.3391 |
 | RM3 | 0.6848 | 0.3433 |
-| **Hybrid (RRF)** | **0.7146** | **0.3559** |
+| Hybrid RRF (BM25 + MiniLM) | 0.7146 | 0.3559 |
+| **Hybrid RRF (BM25 + bge-small)** | **0.7399** | **0.3659** |
 
-Fusion beats both its parents on both datasets (Holm p ≤ 0.0021 against BM25,
-≤ 0.0001 against dense) — and by more than the parents differ from each other, which
-is the signature of two systems making uncorrelated errors rather than one being better.
+Fusion produces the best number on both datasets and beats BM25 decisively (Holm
+p < 0.0001 on both). The fusion constant `k` is tuned on train — 5 and 10 here, far
+below the conventional default of 60.
 
-The fusion constant `k` was tuned on train: 1 on SciFact, 10 on NFCorpus. Both are far
-below the conventional default of 60, which would have cost 0.013 and 0.005 nDCG@10.
+**Encoder choice mattered more than anything else measured.** Swapping MiniLM-L6 for
+bge-small moves SciFact dense from 0.6451 to 0.7200 — a bigger jump than fusion,
+reranking, RM3, stemming and the entire `k1`/`b` space combined. On SciFact, bge-small
+*alone* (0.7200) matches the whole BM25 + MiniLM fusion (0.7146, p 0.70): one better
+encoder was worth more than fusing two worse systems.
+
+Two things that did **not** help, both predicted to: a biomedical encoder on a medical
+corpus was the worst of the three strong models, and chunking to eliminate truncation
+made results slightly worse. See "what didn't work".
 
 ### Is retrieval method query-dependent?
 
@@ -136,29 +150,30 @@ come out wrong. The hypothesis was written into
 One continuous predictor rather than query-type buckets, because with enough candidate
 groupings one will always show an effect.
 
-| Dataset | Spearman rho | p | Holm across datasets |
-|---|---|---|---|
-| NFCorpus | **+0.158** | 0.0046 | **0.0092** |
-| SciFact | **+0.119** | 0.0362 | **0.0362** |
+The result replicates in **direction** but not reliably in **significance**, and that
+distinction is the honest summary. Run against two different encoders:
 
-Mean BM25-minus-dense advantage, by tercile of query term rarity:
+| Dataset | encoder | Spearman rho | p | Holm |
+|---|---|---|---|---|
+| NFCorpus | MiniLM-L6 | +0.158 | 0.0046 | **0.0092** |
+| NFCorpus | bge-small | +0.092 | 0.0990 | 0.0990 |
+| SciFact | MiniLM-L6 | +0.119 | 0.0362 | **0.0362** |
+| SciFact | bge-small | +0.155 | 0.0077 | **0.0154** |
 
-| Tercile | NFCorpus | SciFact |
-|---|---|---|
-| lowest `max_idf` | **−0.0169** | **−0.0240** |
-| middle | −0.0002 | +0.0560 |
-| highest `max_idf` | **+0.0327** | **+0.0733** |
+Positive in all four. Terciles monotone in all four. But which dataset clears 0.05
+**depends on which encoder is used to measure it** — NFCorpus is the strong result with
+MiniLM and the null result with bge-small, and SciFact does the reverse.
 
-**NFCorpus is the clean demonstration.** Compare BM25 and dense the ordinary way and the
-answer is "no difference" — 0.3224 against 0.3173, p = 0.655. Split the same 323 queries
-by how rare their rarest term is and the answer becomes "it depends, systematically":
-dense ahead on the least lexically specific third, BM25 ahead on the most specific.
-The aggregate was not wrong; it was averaging two opposite effects.
+Since the underlying quantity shouldn't depend on the encoder used to estimate it, the
+effect size is not robustly pinned down, and the first version of this section overstated
+it. What survives: BM25's relative advantage does rise with query term rarity, the
+direction is consistent across two encoders and two corpora, and the effect is roughly
+half the size originally claimed. What doesn't: any confident p-value.
 
-The correlations are modest — rho of 0.12 to 0.16 explains a small share of the variance,
-and that is stated rather than rounded up. What makes it a result is that it is in the
-predicted direction on two independent datasets, survives Holm adjustment, and has
-monotone terciles on both.
+This was found by deliberately trying to break the result — re-running the identical
+analysis against a stronger encoder, on the reasoning that "BM25 wins where the query has
+rare terms" and "BM25 wins where the weak model fails" are otherwise indistinguishable.
+It half-broke. A third dataset is the way to settle the size.
 
 **RM3 pseudo-relevance feedback is the first method here to beat its baseline** — and
 only where there was room. On NFCorpus it gains +0.0208 nDCG@10 (Holm p = 0.0005) and
@@ -239,6 +254,21 @@ Full run records, including settings and timings, are written to `results/`.
 
 ## What didn't work
 
+**A biomedical encoder was worse than a general one, on a medical corpus.**
+S-PubMedBert-MS-MARCO scores 0.3142 on NFCorpus — below BM25 (0.3224) and below both
+general encoders tested (mpnet 0.3346, bge-small 0.3391). I predicted the opposite when
+proposing the experiment. Whatever it gains from biomedical pretraining it loses to
+bge-small's retrieval training, and "use a domain model for a domain corpus" is not
+supported by anything measured here.
+
+**Chunking to remove truncation made things slightly worse.** Experiment 5 flagged that
+71–79% of documents were truncated, and it sounded damning. Eliminating it by scoring
+documents on their best-matching 200-word window does not help: unchunked is ahead by
+0.0043 on bge-small (p 0.256) and 0.0120 on mpnet (p 0.026 raw, Holm 0.052). The
+discarded tails were not carrying signal, and max-pooling gives an off-topic passage a
+chance to match spuriously. The caveat was worth stating and wrong about what was
+limiting performance.
+
 **Cross-encoder reranking bought nothing, at the highest cost of anything here.**
 Rescoring the top 100 fused candidates with `ms-marco-MiniLM-L-6-v2` takes about six
 minutes of GPU time per dataset, against seconds for the fusion it reranks. SciFact
@@ -255,17 +285,22 @@ queries against web passages, and neither scientific claims nor consumer-health 
 resemble that. This bounds the claim — *this* reranker does not help here; a
 domain-matched one is untested.
 
-**Dense retrieval never beat BM25 at ranking.** On NFCorpus the two are
-indistinguishable at nDCG@10 (−0.0051, p = 0.655); on SciFact dense is worse
-(−0.0351, p = 0.064). What dense *does* do is find documents BM25 misses entirely —
-recall@100 on NFCorpus goes 0.2461 → 0.3115 (p < 0.0001) — and then fail to rank them
-above BM25's own hits. That is why fusion works.
+**A conclusion this project published and then overturned.** Experiment 5 reported that
+dense retrieval "never beats BM25 at ranking", on MiniLM-L6 with 256-token truncation.
+Experiment 9 re-ran it with bge-small and the point estimates changed sign on both
+datasets — SciFact 0.7200 against BM25's 0.6802, NFCorpus 0.3391 against 0.3224. Neither
+clears Holm across its comparison family, so the claim is not "dense beats BM25"; it is
+that **the earlier claim is no longer supportable**, and it was a statement about one
+weak configuration rather than about dense retrieval.
 
-It also carries a caveat that belongs next to every dense number here: **78.8% of
-NFCorpus documents and 71.0% of SciFact documents exceed the model's 256-token limit**
-and are silently truncated. These are not measurements of dense retrieval on scientific
-abstracts, but on the first 256 word pieces of them. The model — MiniLM-L6, small and
-general-purpose, not domain-matched — is likewise a variable, not a constant.
+The original entry stays in the log with its numbers. Measuring a method with a badly
+chosen model and reporting the result as a property of the method is an easy mistake to
+make and an easy one to leave uncorrected.
+
+One part of experiment 5 did survive: dense finds documents BM25 misses entirely. On
+NFCorpus, recall@100 goes 0.2461 → 0.3115 with MiniLM and 0.2461 → 0.3059 with bge-small
+(+0.0599, Holm p < 0.0001). That complementarity is why fusion still produces the best
+number on both datasets even now that the dense side is strong on its own.
 
 **The expensive method was not reliably better than the cheap one.** Hybrid fusion beats
 RM3 on SciFact (+0.0298, Holm p 0.0056) but not on NFCorpus (+0.0126, Holm p 0.290).
@@ -387,7 +422,7 @@ without it.
 ## Development
 
 ```bash
-pytest          # 235 tests
+pytest          # 251 tests
 ruff check .
 ruff format .
 ```
@@ -415,7 +450,7 @@ scripts/run_dense.py    bi-encoder retrieval, embeddings cached
 scripts/run_hybrid.py   RRF over BM25/dense/RM3, k tuned on train
 scripts/analyse_queries.py  the pre-specified query-type hypothesis
 docs/experiments.md     running log, including what failed
-tests/                  235 tests
+tests/                  251 tests
 ```
 
 ## Licence
