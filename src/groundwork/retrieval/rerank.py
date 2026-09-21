@@ -151,4 +151,23 @@ class CrossEncoderReranker:
             "model": self.model_name,
             "depth": self.depth,
             "max_length": self.max_length,
+            # See DenseRetriever.describe: a timing without a device is not comparable,
+            # and reranking is the most expensive thing in this repository.
+            "device": self._device_description(),
         }
+
+    def _device_description(self) -> str | None:
+        """The device the model loaded onto; None before it loads, "unknown" if it
+        will not say.
+
+        Deliberately total, for the same reason as the dense version: this runs on the
+        way to writing a results file, and a missing attribute should not cost a run.
+        ``_target_device`` is the older sentence-transformers spelling, checked second so
+        a public attribute always wins.
+        """
+        if self._model is None:
+            return None
+        device = getattr(self._model, "device", None)
+        if device is None:
+            device = getattr(self._model, "_target_device", None)
+        return "unknown" if device is None else str(device)

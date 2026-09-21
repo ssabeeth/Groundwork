@@ -388,4 +388,22 @@ class DenseRetriever:
             "chunk_overlap": self.chunk_overlap if self.chunk_words else None,
             "num_chunks": self.num_chunks,
             "batch_size": self.batch_size,
+            # Recorded because the timings beside it are meaningless without it: the same
+            # encode runs several times faster on "mps" than on "cpu", and the library
+            # chooses silently. A run that does not say which it used cannot be compared
+            # against one that does.
+            "device": self._device_description(),
         }
+
+    def _device_description(self) -> str | None:
+        """The device the model loaded onto, None before it loads, "unknown" if it
+        will not say.
+
+        Deliberately total. ``describe()`` is called on the way to writing a results
+        file, so a version of this that could raise would turn a missing attribute into
+        a lost run.
+        """
+        if self._model is None:
+            return None
+        device = getattr(self._model, "device", None)
+        return "unknown" if device is None else str(device)

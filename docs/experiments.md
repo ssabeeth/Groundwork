@@ -1390,6 +1390,109 @@ would beat fusion. That is the first version of this question with a quantified 
 
 ---
 
+## Experiment 13 (pre-registration): does an LLM beat 1990s pseudo-relevance feedback?
+
+**Written before any expansion code existed.**
+
+The obvious criticism of this project is that it stops at 2021. Every method measured so
+far — BM25, RM3, bi-encoders, a cross-encoder — predates the RAG era, and the gains over
+BM25 are modest: +0.057, +0.036 and +0.059 nDCG@10 on SciFact, NFCorpus and SciDocs, with
+almost all of it attributable to one decision, using a better encoder.
+
+The cleanest way to test that criticism is not to add a modern method and admire it. It is
+to take the modern method whose *mechanism is identical to one already measured here* and
+put them against each other on the same harness.
+
+**RM3** reads the top `k` retrieved documents and adds their most distinctive terms to the
+query. **HyDE** and **Query2Doc** ask a language model to write the document the query is
+looking for, and retrieve with that text appended. Both are query expansion. Both attack
+the same failure — the query is short and uses different words from the documents. One
+learns the expansion terms from the corpus; the other hallucinates them from parametric
+knowledge. This repository already has RM3 measured, tuned on train and scored on test, on
+both datasets. That makes it the baseline the newer method has to beat, which is the
+ordering this project insists on everywhere else.
+
+**Setup.** `flan-t5-base` generates one pseudo-document per query, locally, offline, with
+a fixed seed and greedy decoding so the run reproduces. No API key, no per-run cost, and
+the generation is committed so the retrieval can be re-scored without re-generating. The
+expanded query is `query * weight + pseudo_document`, with the repetition weight taken
+from the Query2Doc paper's formulation; the weight is swept on train and scored once on
+test, like every other parameter here.
+
+---
+
+**H1.** HyDE-style expansion beats unexpanded BM25 on NFCorpus, where RM3 already gained
++0.0188 (Holm p 0.0006) and the recall ceiling shows 74% of the achievable documents are
+still unretrieved.
+
+**H2.** It does **not** beat unexpanded BM25 on SciFact, where RM3 gained nothing
+(−0.0086, p 0.1168) and BM25 has already found 90.1% of what exists. The recall-ceiling
+argument is mechanism-level, so it should bind a generative expander exactly as it bound a
+statistical one. If HyDE wins on SciFact anyway, that argument is wrong and experiment 4b's
+explanation of the RM3 split needs rewriting.
+
+**H3, the one worth running this for.** HyDE does **not** beat RM3 by a Holm-significant
+margin on either dataset. A 250M-parameter model writing a plausible abstract is, for
+retrieval purposes, doing what relevance-model feedback does — supplying co-occurring
+domain vocabulary — and the corpus-grounded version has the advantage of using words that
+are actually in the index.
+
+**What each outcome means.** If H3 fails and HyDE wins clearly, the criticism that this
+project is dated lands, and the modern stack deserves the rest of the roadmap. If H3
+holds, then on these datasets the RAG-era trick reduces to a technique from 2001 with a
+GPU attached, and that is worth knowing before anyone builds it into a pipeline.
+
+**Known limitation, stated now rather than as an excuse later.** `flan-t5-base` is small
+and not a scientific-domain model. A negative result bounds *this* model, not LLM query
+expansion in general — the same bound experiment 7 had to accept for its reranker. The
+honest version of H3 is "a small instruction-tuned LM does not beat RM3 here", and the
+experiment is designed so that a positive result would be the interesting one.
+
+---
+
+## Experiment 14 (pre-registration): document expansion, the other side of the same gap
+
+**Written at the same time as experiment 13, before either was implemented.**
+
+Experiment 4b explained RM3's split by the recall ceiling: NFCorpus queries are short
+consumer-health phrases against clinical writing, so closing the vocabulary gap helps,
+while SciFact claims are already written in the register of the abstracts that answer
+them. Experiment 13 tests that explanation against a generative expander on the *query*
+side. This one tests it from the *document* side, which is where the asymmetry should be
+sharpest.
+
+**doc2query** runs a sequence-to-sequence model over every document to predict queries it
+would answer, and appends them to the document before indexing. Unlike query expansion it
+costs nothing at search time — the expansion is baked into the index — which is the reason
+it is worth measuring separately rather than assuming it behaves like RM3.
+
+**Setup.** `doc2query/all-t5-base-msmarco`, five generated queries per document, sampled
+with a fixed seed, appended to the `text` field before multi-field indexing. The generated
+queries are committed so the index can be rebuilt without re-running generation.
+
+---
+
+**H1.** doc2query helps NFCorpus and not SciFact, mirroring RM3's split, because it
+attacks the same vocabulary gap from the other end.
+
+**H2.** The gain on NFCorpus is larger than RM3's +0.0188, because expanding 3,633
+documents gives the model far more context per generation than expanding a query does, and
+because the expansion is available to every query rather than being re-derived per query
+from a noisy top-`k`.
+
+**H3.** doc2query and RM3 are **not** additive on NFCorpus: applying both gains less than
+the sum of their individual gains. They are two ways of closing one gap, and a gap can only
+be closed once.
+
+**The prediction I am least confident in** is H2, and the reason is worth recording: the
+model is trained on MS MARCO, which is web search queries against web passages. Every
+MS MARCO-trained model this project has tried has underperformed on scientific text —
+the cross-encoder in experiment 7, and the bi-encoders in experiments 5 and 9. If H2 fails
+while H1 holds, the consistent reading is that domain mismatch costs more than document
+context buys, which would be the fourth independent observation of the same thing.
+
+---
+
 ## Still open
 
 | Question | Settles |
