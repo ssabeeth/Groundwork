@@ -1,3 +1,7 @@
+# Core environment: numpy and tqdm, plus the test and lint tooling. Dense and hybrid
+# retrieval are NOT here on purpose - they need torch, and `pip install -e '.[dense]'`
+# installs them along with the version caps that combination requires. See
+# docs/decisions.md for why those caps exist.
 name: groundwork
 channels:
   - conda-forge

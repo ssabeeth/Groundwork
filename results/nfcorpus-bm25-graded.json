@@ -12,6 +12,7 @@
   },
   "num_queries": 323,
   "num_documents": 3633,
+  "oracle_recall_at_100": 0.9647038661258809,
   "retriever": {
     "method": "bm25",
     "variant": "lucene",
@@ -25,8 +26,8 @@
   },
   "top_k": 100,
   "timing_seconds": {
-    "index": 10.52,
-    "retrieve": 0.04
+    "index": 10.56,
+    "retrieve": 0.03
   },
   "gain": "exponential",
   "graded_qrels": true,
@@ -53,9 +54,11 @@
     }
   },
   "reference_ndcg_at_10": 0.325,
+  "reference_delta": -0.0025872076143281797,
   "within_reference_tolerance": true,
   "groundwork_version": "0.1.0",
   "python": "3.11.16",
-  "run_at": "2026-09-21T01:36:54+00:00",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T04:10:01+00:00",
   "per_query_file": "per-query/nfcorpus-bm25-graded.json"
 }

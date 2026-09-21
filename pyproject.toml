@@ -20,9 +20,18 @@ stem = ["snowballstemmer>=2.2"]
 # Dense and hybrid retrieval only. Kept out of the core install because a torch
 # dependency tree is a reason people do not run portfolio code, and everything except
 # these two methods runs on numpy and tqdm alone.
+# Upper bounds are deliberate and were arrived at the hard way. On a macOS x86_64
+# interpreter pip serves no torch newer than 2.2.2, and torch 2.2.2 predates numpy 2:
+# it fails to initialise against it, transformers then concludes torch is absent, and
+# the first symptom is a NameError from an unrelated module. An unpinned
+# "sentence-transformers>=2.7" resolves to a 6.x release expecting a much newer torch,
+# which reproduces exactly that failure. This is the combination actually verified here;
+# on a platform with current torch wheels the caps can be raised.
 dense = [
-    "sentence-transformers>=2.7",
-    "torch>=2.2",
+    "sentence-transformers>=2.7,<3",
+    "torch>=2.2,<2.3",
+    "transformers>=4.39,<5",
+    "numpy<2",
 ]
 dev = [
     "pytest>=8.0",

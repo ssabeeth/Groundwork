@@ -102,6 +102,42 @@ def recall_at_k(
     return found / len(relevant)
 
 
+def oracle_recall_at_k(qrels: Qrels, k: int) -> float:
+    """The best recall@k any system could achieve on ``qrels``.
+
+    Recall@k is not comparable across datasets, and the reason is arithmetic rather than
+    subtle. A query with one relevant document can reach recall@100 of 1.0; a query with
+    475 of them cannot exceed 100/475. Quoting a low recall@100 as a retrieval failure
+    without this number attached confuses "the system missed things" with "the metric
+    could not have gone higher".
+
+    Computed as the mean over queries of ``min(k, relevant) / relevant``, which is what a
+    system that ranked every relevant document first would score.
+
+    Args:
+        qrels: ``{query_id: {doc_id: relevance_level}}``.
+        k: Rank cutoff.
+
+    Returns:
+        The ceiling in [0, 1]. Queries with no relevant documents score 0, matching
+        :func:`recall_at_k`.
+
+    Raises:
+        ValueError: If ``k`` is not positive or ``qrels`` is empty.
+    """
+    if k <= 0:
+        raise ValueError("k must be positive")
+    if not qrels:
+        raise ValueError("qrels is empty")
+
+    total = 0.0
+    for relevance in qrels.values():
+        relevant = sum(1 for level in relevance.values() if level > 0)
+        if relevant:
+            total += min(k, relevant) / relevant
+    return total / len(qrels)
+
+
 def evaluate_run_per_query(
     run: Run,
     qrels: Qrels,

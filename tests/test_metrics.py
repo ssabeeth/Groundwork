@@ -19,6 +19,7 @@ from groundwork.eval.metrics import (
     evaluate_run,
     evaluate_run_per_query,
     ndcg_at_k,
+    oracle_recall_at_k,
     recall_at_k,
 )
 
@@ -206,3 +207,48 @@ class TestEvaluateRunPerQuery:
     def test_rejects_empty_qrels(self):
         with pytest.raises(ValueError):
             evaluate_run_per_query({}, {}, k_values=[10])
+
+
+class TestOracleRecall:
+    def test_one_relevant_document_per_query_allows_perfect_recall(self):
+        qrels = {"q1": {"d1": 1}, "q2": {"d2": 1}}
+        assert oracle_recall_at_k(qrels, k=100) == pytest.approx(1.0)
+
+    def test_more_relevant_documents_than_the_cutoff_caps_recall(self):
+        # 4 relevant documents, k=2 -> the best possible is 2/4 = 0.5.
+        qrels = {"q1": {"a": 1, "b": 1, "c": 1, "d": 1}}
+        assert oracle_recall_at_k(qrels, k=2) == pytest.approx(0.5)
+
+    def test_averages_over_queries_with_different_counts(self):
+        # q1: 1 relevant, k=2 -> min(2,1)/1 = 1.0
+        # q2: 4 relevant, k=2 -> min(2,4)/4 = 0.5
+        # mean = 0.75
+        qrels = {"q1": {"a": 1}, "q2": {"w": 1, "x": 1, "y": 1, "z": 1}}
+        assert oracle_recall_at_k(qrels, k=2) == pytest.approx(0.75)
+
+    def test_graded_levels_all_count_as_relevant(self):
+        qrels = {"q1": {"a": 2, "b": 1}}
+        assert oracle_recall_at_k(qrels, k=2) == pytest.approx(1.0)
+
+    def test_zero_level_judgements_are_not_relevant(self):
+        # Only "a" is relevant, so k=1 already reaches the ceiling.
+        qrels = {"q1": {"a": 1, "b": 0, "c": 0}}
+        assert oracle_recall_at_k(qrels, k=1) == pytest.approx(1.0)
+
+    def test_a_query_with_no_relevant_documents_scores_zero(self):
+        qrels = {"q1": {"a": 0}, "q2": {"b": 1}}
+        assert oracle_recall_at_k(qrels, k=10) == pytest.approx(0.5)
+
+    def test_is_an_upper_bound_on_any_actual_run(self):
+        qrels = {"q1": {"a": 1, "b": 1, "c": 1}, "q2": {"d": 1}}
+        run = {"q1": {"a": 3.0, "b": 2.0}, "q2": {"d": 1.0}}
+        measured = evaluate_run(run, qrels, k_values=[2])["recall@2"]
+        assert measured <= oracle_recall_at_k(qrels, k=2) + 1e-12
+
+    def test_rejects_non_positive_k(self):
+        with pytest.raises(ValueError):
+            oracle_recall_at_k({"q1": {"a": 1}}, k=0)
+
+    def test_rejects_empty_qrels(self):
+        with pytest.raises(ValueError):
+            oracle_recall_at_k({}, k=10)

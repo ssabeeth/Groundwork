@@ -8,6 +8,7 @@
     "dense"
   ],
   "rrf_k": 10.0,
+  "reranker": null,
   "metrics": {
     "ndcg@1": 0.4613003095975231,
     "recall@1": 0.061553292189729214,
@@ -18,6 +19,7 @@
   },
   "num_queries": 323,
   "num_documents": 3633,
+  "oracle_recall_at_100": 0.9647038661258809,
   "retrievers": {
     "bm25": {
       "method": "bm25",
@@ -76,11 +78,11 @@
     }
   },
   "timing_seconds": {
-    "build": 13.49
+    "build": 13.7
   },
   "per_query_file": "per-query/nfcorpus-rrf-tuned.json",
   "groundwork_version": "0.1.0",
   "python": "3.11.16",
   "numpy": "1.26.4",
-  "run_at": "2026-09-21T03:45:13+00:00"
+  "run_at": "2026-09-21T04:11:28+00:00"
 }

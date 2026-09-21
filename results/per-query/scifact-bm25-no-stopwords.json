@@ -2,6 +2,7 @@
   "dataset": "scifact",
   "split": "test",
   "tag": "no-stopwords",
+  "gain": "exponential",
   "retriever": {
     "method": "bm25",
     "variant": "lucene",

@@ -13,6 +13,7 @@
   },
   "num_queries": 323,
   "num_documents": 3633,
+  "oracle_recall_at_100": 0.9647038661258809,
   "retriever": {
     "method": "dense",
     "model": "sentence-transformers/all-MiniLM-L6-v2",
@@ -49,12 +50,12 @@
     }
   },
   "timing_seconds": {
-    "encode": 18.78,
-    "retrieve": 1.14
+    "encode": 0.04,
+    "retrieve": 3.23
   },
   "per_query_file": "per-query/nfcorpus-dense.json",
   "groundwork_version": "0.1.0",
   "python": "3.11.16",
   "numpy": "1.26.4",
-  "run_at": "2026-09-21T03:42:59+00:00"
+  "run_at": "2026-09-21T04:10:56+00:00"
 }

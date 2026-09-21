@@ -31,7 +31,7 @@ import numpy as np
 
 from groundwork import __version__
 from groundwork.data import load_beir_dataset
-from groundwork.eval import evaluate_run, evaluate_run_per_query
+from groundwork.eval import evaluate_run, evaluate_run_per_query, oracle_recall_at_k
 from groundwork.retrieval import DenseRetriever
 from groundwork.retrieval.dense import DEFAULT_MODEL
 
@@ -107,6 +107,7 @@ def main() -> int:
         "metrics": {k: v for k, v in metrics.items() if k != "num_queries"},
         "num_queries": int(metrics["num_queries"]),
         "num_documents": len(dataset.corpus),
+        "oracle_recall_at_100": oracle_recall_at_k(dataset.qrels, 100),
         "retriever": retriever.describe(),
         "top_k": args.top_k,
         "gain": args.gain,

@@ -141,3 +141,31 @@ afterwards gets the logic backwards. The distinction is the only thing that keep
 number meaningful, and query length on NFCorpus is a live example — it correlates more
 strongly than the primary predictor and was not predicted, so it is recorded as a lead
 for a pre-registered test on a third dataset rather than as a finding.
+
+
+## Documentation figures are tested against the results files
+
+The project's first rule is that every number in the README comes from a run. That was
+enforced by remembering to do it, which is the kind of invariant that rots quietly: a
+re-run shifts a figure, the results file updates, the prose does not.
+
+The first version of the check was weaker than it looked. It asked whether each headline
+number appeared *somewhere* in the README, and it passed when a value was deliberately
+corrupted — because the same figure appeared in another table and the substring still
+matched. A test that cannot fail is worse than no test, because it converts an unchecked
+invariant into one everybody believes is checked.
+
+So the question is inverted. `tests/test_documentation.py` extracts every three- and
+four-decimal figure from the README and both documents in `docs/`, and requires each to
+be traceable to a value in `results/` — as a metric, a recorded delta, or a percentage
+of one. A fabricated number has nowhere to come from and fails immediately. Figures that
+are legitimately not measurements — BEIR's published baselines, thresholds quoted in
+prose — are listed individually with a reason, because a bare allowlist is how this
+check would quietly be defanged.
+
+Running it found two real violations rather than hypothetical ones. The TREC-COVID
+query-formulation table and the recall-ceiling table were both quoted in the README but
+produced by one-off commands that were never committed. Both are now scripts
+(`diagnose_query_fields.py`, and `oracle_recall_at_k` recorded with every run), and the
+numbers reproduce exactly. The rule now holds because it is checked, not because it was
+followed carefully.

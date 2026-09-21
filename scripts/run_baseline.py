@@ -27,7 +27,7 @@ import numpy as np
 
 from groundwork import __version__
 from groundwork.data import load_beir_dataset
-from groundwork.eval import evaluate_run, evaluate_run_per_query
+from groundwork.eval import evaluate_run, evaluate_run_per_query, oracle_recall_at_k
 from groundwork.retrieval import LUCENE_ENGLISH_STOPWORDS, BM25Retriever, Tokenizer
 
 # BM25 nDCG@10 as published in the BEIR paper (Thakur et al., 2021), which used
@@ -149,6 +149,7 @@ def main() -> int:
         "metrics": {k: v for k, v in metrics.items() if k != "num_queries"},
         "num_queries": int(metrics["num_queries"]),
         "num_documents": len(dataset.corpus),
+        "oracle_recall_at_100": oracle_recall_at_k(dataset.qrels, 100),
         "retriever": retriever.describe(),
         "top_k": args.top_k,
         "timing_seconds": {
@@ -163,6 +164,7 @@ def main() -> int:
             for name, scores in metrics_by_gain.items()
         },
         "reference_ndcg_at_10": reference,
+        "reference_delta": (None if reference is None else metrics["ndcg@10"] - reference),
         "within_reference_tolerance": within_tolerance,
         "groundwork_version": __version__,
         "python": platform.python_version(),

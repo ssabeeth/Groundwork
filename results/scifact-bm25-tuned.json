@@ -12,6 +12,7 @@
   },
   "num_queries": 300,
   "num_documents": 5183,
+  "oracle_recall_at_100": 1.0,
   "retriever": {
     "method": "bm25",
     "variant": "lucene",
@@ -25,13 +26,38 @@
   },
   "top_k": 100,
   "timing_seconds": {
-    "index": 13.88,
-    "retrieve": 0.09
+    "index": 15.39,
+    "retrieve": 0.1
+  },
+  "gain": "exponential",
+  "graded_qrels": false,
+  "relevance_levels": [
+    1
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.56,
+      "recall@1": 0.5466666666666666,
+      "ndcg@10": 0.6864760113165389,
+      "recall@10": 0.8109999999999999,
+      "ndcg@100": 0.7120008619972447,
+      "recall@100": 0.9215555555555557
+    },
+    "linear": {
+      "ndcg@1": 0.56,
+      "recall@1": 0.5466666666666666,
+      "ndcg@10": 0.6864760113165389,
+      "recall@10": 0.8109999999999999,
+      "ndcg@100": 0.7120008619972447,
+      "recall@100": 0.9215555555555557
+    }
   },
   "reference_ndcg_at_10": 0.665,
+  "reference_delta": 0.021476011316538868,
   "within_reference_tolerance": true,
   "groundwork_version": "0.1.0",
   "python": "3.11.16",
-  "run_at": "2026-09-21T01:30:01+00:00",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T04:12:27+00:00",
   "per_query_file": "per-query/scifact-bm25-tuned.json"
 }
