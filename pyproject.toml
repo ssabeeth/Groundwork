@@ -23,7 +23,7 @@ dev = [
 ]
 
 [project.urls]
-Repository = "https://github.com/ssabeeth/groundwork"
+Repository = "https://github.com/ssabeeth/Groundwork"
 
 [tool.setuptools.packages.find]
 where = ["src"]

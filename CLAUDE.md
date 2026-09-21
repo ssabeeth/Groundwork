@@ -122,9 +122,11 @@ python scripts/run_baseline.py --dataset scifact --no-stem --tag no-stemming
 
 ## Where the project is
 
-Milestone 1 (tested metrics, BM25 baseline) is done. The SciFact baseline number is
-pending its first run. Next is the tokenisation ablation, then dense retrieval on the
-same harness. See the pending table in `docs/experiments.md`.
+Milestone 1 (tested metrics, BM25 baseline) is done and the SciFact baseline is
+measured: nDCG@10 0.6802, +0.0152 from BEIR's published 0.665 and inside the +/-0.03
+tolerance, so the harness reproduces a published number. Next is the tokenisation
+ablation (experiment 2), then dense retrieval on the same harness. See the pending
+table in `docs/experiments.md`.
 
 ## How to work with me on this
 
