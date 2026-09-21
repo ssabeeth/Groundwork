@@ -1724,8 +1724,15 @@ or in the scripts.
 
 **State as of writing.** Query expansion generation is on NFCorpus train (2590 queries at
 about 1.6s each). SciFact test and train follow. Document generation starts after that,
-via a script that stops the query queue first and runs doc2query with settings chosen
-from a measured throughput sample rather than a guess.
+via a script that stops the query queue first.
+
+**Document generation runs at the pre-registered five queries per document.** An earlier
+version of that script used three, to save wall clock. That was a shortcut rather than a
+measured decision, and it was the wrong one: experiment 14's H2 predicts a gain *larger*
+than RM3's, so generating less expansion text biases the test in the direction that makes
+its own hypothesis fail. All three of experiment 14's hypotheses bind on NFCorpus, so
+NFCorpus generates first as well as at full strength. Overnight is an acceptable price for
+measuring what was actually predicted.
 
 **What fires automatically.** `scratchpad/pipeline.sh` waits on file markers, not process
 names, and runs:
@@ -1749,11 +1756,15 @@ Re-run checklist:
 - [ ] Roadmap items 13 to 15 marked done rather than "running"
 - [ ] `docs/decisions.md` updated if any default changed
 
-**Two process notes, both learned the hard way tonight.** Do not poll with
+**Three process notes, all learned the hard way tonight.** Do not poll with
 `pgrep -f <name>` when the waiter's own command line contains that name: the waiters match
-each other and deadlock, which cost about twenty minutes twice. Use file markers. And
-redirect stderr when running generation in the background, or a tqdm progress bar floods
-the log.
+each other and deadlock, which cost about twenty minutes twice. Use file markers. Redirect
+stderr when running generation in the background, or a tqdm progress bar floods the log.
+And when two detached scripts both react to the same marker file — here, one queue
+finishing its queries and another starting its documents — the slower poller loses: both
+launch a language model, and two torch processes on this machine drive it into swap. The
+waiter that should win polls every two seconds and keeps stopping the other for a minute
+before starting any work of its own.
 
 **If a result file is deleted or overwritten**, regenerate it before quoting its numbers.
 `results/scidocs-judge-retrievedpool.json` had to be regenerated for exactly this reason,
