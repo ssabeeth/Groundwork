@@ -205,6 +205,14 @@ margin the most expensive thing here, and it lowered nDCG@10 in three of the fou
 configurations tried — the exception being a +0.0062 on NFCorpus that does not survive
 testing.
 
+**An uncalibrated LLM judge is not evidence.** Asked whether a retrieved document is
+relevant, `flan-t5-base` agrees with the human assessors 74.9% of the time on SciDocs —
+which sounds usable until you subtract the 70.7% two parties reach by chance on a pool
+that is mostly non-relevant. Cohen's kappa is 0.1433, and 0.1965 on TREC-COVID. Reporting
+raw agreement overstates the judge by three to four times. This is the standard way RAG
+systems are evaluated in 2026 and it is almost never calibrated, which is possible here
+only because the benchmark ships thousands of human decisions to check against.
+
 **The central claim did not survive its own test.** BM25's per-query advantage rises with
 the rarity of the query's rarest term on SciFact and NFCorpus. On SciDocs, pre-registered
 and with 1,000 queries, it does not: rho −0.0127 and +0.0019, with terciles flat and not
@@ -339,10 +347,16 @@ Numbered as in [`docs/experiments.md`](docs/experiments.md), which is the full l
 11. ~~SciDocs as a third dataset, hypotheses pre-registered~~
 12. ~~Query routing: is the central finding actionable?~~
 
-Still planned:
+13. Query expansion with an LLM, against RM3 — *pre-registered, running*
+14. Document expansion with doc2query — *pre-registered, running*
+15. A reranker that was not trained on web search — *pre-registered, running*
+16. ~~An LLM judge, calibrated against human assessors~~
+17. ~~Answer generation with citations checked against what was retrieved~~
+18. ~~MCP server, so it plugs into any assistant~~
 
-13. Answer generation with citations, LLM judge calibrated against human labels
-14. MCP server so it plugs into any assistant
+Experiments 13 to 16 exist because "this project stops at 2021" is a fair criticism. Each
+puts a method from the RAG era against the older method with the same mechanism, measured
+on the same harness — rather than adding a modern method and admiring it.
 
 ## Install
 
@@ -594,6 +608,38 @@ published figure, which would have looked like a fix and closed the investigatio
 the index corrected, the canonical field alone lands at −0.0198 and the combined forms
 *overshoot*. The right number by the wrong route would have been worse than the honest
 failure.
+
+### A.9 What an LLM judge is worth
+
+Both datasets whose qrels carry explicit non-relevant judgements, 4,000 human-labelled
+pairs each, judged by `flan-t5-base`:
+
+| | SciDocs | TREC-COVID |
+|---|---|---|
+| Human called relevant | 15.2% | 37.2% |
+| Judge called relevant | 20.3% | 17.7% |
+| Raw agreement | 0.7490 | 0.6645 |
+| Chance agreement | 0.7070 | 0.5825 |
+| **Cohen's kappa** | **0.1433** | **0.1965** |
+
+```bash
+python scripts/run_judge.py --dataset scidocs --max-pairs 4000
+```
+
+Kappa rather than raw agreement, because relevance pools are mostly non-relevant and a
+judge answering "no" to everything scores above 90% raw while discriminating nothing.
+
+The two middle rows are the result. The judge says yes on 17.7% and 20.3% of pairs while
+the true rates are 37.2% and 15.2% — a near-constant answering rate against a prevalence
+that differs by a factor of 2.4. It is not biased toward yes or no; it does not track
+prevalence at all, so which way it *appears* biased is a property of the dataset. A
+threshold cannot fix that.
+
+**Only two of the four datasets can be used**, and finding that out was part of the work.
+SciFact and NFCorpus ship no non-relevant judgements — 339 and 12,334 judged pairs, every
+one relevant. A judge could be scored there against the convention that unjudged means
+non-relevant, which is right for computing nDCG and wrong as ground truth for an assessor,
+because an unjudged document is one no human looked at. The code refuses those datasets.
 
 ## Annexe B — superseded results, and why they are still here
 
