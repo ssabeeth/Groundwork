@@ -252,3 +252,38 @@ class TestOracleRecall:
     def test_rejects_empty_qrels(self):
         with pytest.raises(ValueError):
             oracle_recall_at_k({}, k=10)
+
+
+class TestNegativeRelevanceGrades:
+    """TREC-COVID's qrels contain two pairs graded -1.
+
+    Real published qrels are not guaranteed to hold only the grades their documentation
+    describes. A negative grade run through an exponential gain would contribute
+    2**-1 - 1 = -0.5, a *negative* gain that quietly lowers DCG for a document the system
+    was right to retrieve. These tests pin the behaviour that avoids it, because the data
+    that would expose the alternative is a 171k-document download away from CI.
+    """
+
+    def test_a_negative_grade_counts_as_non_relevant_in_ndcg(self):
+        ranked = ["a", "b"]
+        # Grade -1 must contribute nothing, exactly as grade 0 does.
+        negative = ndcg_at_k(ranked, {"a": -1, "b": 1}, 2, gain="exponential")
+        zero = ndcg_at_k(ranked, {"a": 0, "b": 1}, 2, gain="exponential")
+        assert negative == pytest.approx(zero)
+
+    def test_a_negative_grade_never_lowers_the_score_below_ignoring_it(self):
+        """The failure mode: 2**-1 - 1 is -0.5, so an unguarded exponential gain would
+        make retrieving a -1 document worse than retrieving nothing."""
+        ranked = ["a", "b"]
+        with_negative = ndcg_at_k(ranked, {"a": -1, "b": 1}, 2, gain="exponential")
+        assert with_negative >= 0.0
+
+    def test_a_negative_grade_is_not_counted_as_a_relevant_document_for_recall(self):
+        """Counting it as relevant would inflate the denominator and understate recall."""
+        assert recall_at_k(["b"], {"a": -1, "b": 1}, 1) == pytest.approx(1.0)
+
+    def test_a_negative_grade_does_not_enter_the_ideal_ranking(self):
+        """If -1 reached the IDCG it would change the normaliser and move every score on
+        that query."""
+        ranked = ["b"]
+        assert ndcg_at_k(ranked, {"a": -1, "b": 1}, 1, gain="exponential") == pytest.approx(1.0)

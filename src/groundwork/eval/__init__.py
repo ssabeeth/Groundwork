@@ -1,5 +1,10 @@
 """Evaluation metrics and harness."""
 
+from groundwork.eval.agreement import (
+    AgreementResult,
+    cohens_kappa,
+    confusion_matrix,
+)
 from groundwork.eval.metrics import (
     evaluate_run,
     evaluate_run_per_query,
@@ -18,8 +23,11 @@ from groundwork.eval.significance import (
 )
 
 __all__ = [
+    "AgreementResult",
     "CorrelationResult",
     "SignificanceResult",
+    "cohens_kappa",
+    "confusion_matrix",
     "correlation_permutation_test",
     "evaluate_run",
     "evaluate_run_per_query",

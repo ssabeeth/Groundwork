@@ -1493,6 +1493,50 @@ context buys, which would be the fourth independent observation of the same thin
 
 ---
 
+## Experiment 15 (pre-registration): a reranker that was not trained on web search
+
+**Written before the model was downloaded.**
+
+Experiment 7 concluded that cross-encoder reranking bought nothing at the highest cost of
+anything measured here, and the migration re-run left that standing on nDCG@10 while
+turning up one real gain at rank 1 (+0.0588 on NFCorpus, Holm p 0.0296). Both entries
+bound the claim to one model, `ms-marco-MiniLM-L-6-v2`, and say so.
+
+That bound is not a formality. This project has now watched MS MARCO training hurt three
+times: the cross-encoder in experiment 7, and the bi-encoders in experiments 5 and 9. MS
+MARCO is web-search queries against web passages. Scientific claims and consumer-health
+phrases are neither. Leaving "reranking does not work here" attached to the one model most
+likely to be mismatched is the same error as experiment 5's — measuring a method with a
+badly chosen model and reporting the result as a property of the method.
+
+**Setup.** `BAAI/bge-reranker-base`, reranking the top 100 of the best fused run on each
+dataset, against the same fused run unreranked. Same depth, same candidates, same metrics,
+same paired test. The only variable is the reranker.
+
+---
+
+**H1.** `bge-reranker-base` beats `ms-marco-MiniLM-L-6-v2` on nDCG@10 on both datasets.
+This is the weakest of the three predictions and the one I hold most confidently: it is a
+larger, more recent, more broadly trained model.
+
+**H2.** It improves on the *unreranked* fusion on nDCG@10 by a Holm-significant margin on
+at least one dataset. Experiment 7's headline conclusion — reranking buys nothing — should
+fail once the reranker is not domain-mismatched. If H2 fails, the conclusion generalises
+beyond the one model and becomes much stronger than it currently is.
+
+**H3.** The gain, if any, is larger at rank 1 than at rank 10. Reranking reorders a fixed
+candidate set, so it cannot add documents; its leverage is concentrated where order matters
+most. This is the shape experiment 7 saw on NFCorpus and could not establish, and that the
+migration later did establish for the weak model.
+
+**What this cannot settle.** Cost. A reranker roughly twelve times the size of the old one,
+over the same candidate depth, is not going to be cheaper, and the interesting comparison
+for anyone deploying this is gain per unit of latency rather than gain alone. The timing is
+recorded with the result so the trade can be read off, but no claim about it is
+pre-registered here.
+
+---
+
 ## Still open
 
 | Question | Settles |
