@@ -42,7 +42,10 @@ logger = logging.getLogger(__name__)
 DEFAULT_QUERY_WEIGHT = 5
 
 DEFAULT_QUERY_EXPANDER = "google/flan-t5-base"
-DEFAULT_DOCUMENT_EXPANDER = "doc2query/all-t5-base-msmarco"
+# The original docTTTTTquery release by the method's authors. An earlier value here,
+# "doc2query/all-t5-base-msmarco", was not a real model: it blended the names of two
+# that do exist, and nothing caught it until a run tried to download it.
+DEFAULT_DOCUMENT_EXPANDER = "castorini/doc2query-t5-base-msmarco"
 
 HYDE_PROMPT = (
     "Write a short scientific abstract that would answer this question.\n\n"

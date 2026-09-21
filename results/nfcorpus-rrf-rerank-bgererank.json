@@ -1,5 +1,5 @@
 {
-  "dataset": "scifact",
+  "dataset": "nfcorpus",
   "split": "test",
   "tag": "bgererank",
   "method": "rrf",
@@ -7,7 +7,7 @@
     "bm25",
     "dense"
   ],
-  "rrf_k": 1.0,
+  "rrf_k": 5.0,
   "reranker": {
     "method": "cross-encoder-rerank",
     "model": "BAAI/bge-reranker-base",
@@ -16,16 +16,16 @@
     "device": "mps"
   },
   "metrics": {
-    "ndcg@1": 0.59,
-    "recall@1": 0.5652777777777778,
-    "ndcg@10": 0.7094658908100328,
-    "recall@10": 0.8354444444444445,
-    "ndcg@100": 0.736811529049233,
-    "recall@100": 0.9566666666666667
+    "ndcg@1": 0.4313725490196078,
+    "recall@1": 0.05301714916647556,
+    "ndcg@10": 0.3154952171669796,
+    "recall@10": 0.14646763910975766,
+    "ndcg@100": 0.3080903248192535,
+    "recall@100": 0.3148784448251164
   },
-  "num_queries": 300,
-  "num_documents": 5183,
-  "oracle_recall_at_100": 1.0,
+  "num_queries": 323,
+  "num_documents": 3633,
+  "oracle_recall_at_100": 0.9647038661258809,
   "retrievers": {
     "bm25": {
       "method": "bm25",
@@ -53,10 +53,10 @@
       "pooling": "mean",
       "normalized": true,
       "max_seq_length": 512,
-      "truncation_rate": 0.08778699594829249,
+      "truncation_rate": 0.09083402146985962,
       "chunk_words": null,
       "chunk_overlap": null,
-      "num_chunks": 5183,
+      "num_chunks": 3633,
       "batch_size": 64,
       "device": "mps:0"
     }
@@ -67,46 +67,47 @@
       "bm25",
       "dense"
     ],
-    "k": 1.0,
+    "k": 5.0,
     "tokenizer": {}
   },
   "top_k": 100,
   "gain": "exponential",
-  "graded_qrels": false,
+  "graded_qrels": true,
   "relevance_levels": [
-    1
+    1,
+    2
   ],
   "metrics_by_gain": {
     "exponential": {
-      "ndcg@1": 0.59,
-      "recall@1": 0.5652777777777778,
-      "ndcg@10": 0.7094658908100328,
-      "recall@10": 0.8354444444444445,
-      "ndcg@100": 0.736811529049233,
-      "recall@100": 0.9566666666666667
+      "ndcg@1": 0.4313725490196078,
+      "recall@1": 0.05301714916647556,
+      "ndcg@10": 0.3154952171669796,
+      "recall@10": 0.14646763910975766,
+      "ndcg@100": 0.3080903248192535,
+      "recall@100": 0.3148784448251164
     },
     "linear": {
-      "ndcg@1": 0.59,
-      "recall@1": 0.5652777777777778,
-      "ndcg@10": 0.7094658908100328,
-      "recall@10": 0.8354444444444445,
-      "ndcg@100": 0.736811529049233,
-      "recall@100": 0.9566666666666667
+      "ndcg@1": 0.43498452012383904,
+      "recall@1": 0.05301714916647556,
+      "ndcg@10": 0.3141122095520811,
+      "recall@10": 0.14646763910975766,
+      "ndcg@100": 0.3025024031810458,
+      "recall@100": 0.3148784448251164
     }
   },
   "timing_seconds": {
-    "build": 18.98,
-    "rerank": 1220.1
+    "build": 14.45,
+    "rerank": 1292.4
   },
   "before_rerank": {
-    "ndcg@10": 0.7206955782667641,
-    "recall@10": 0.8545555555555556,
-    "ndcg@100": 0.7443364466731036,
-    "recall@100": 0.9566666666666667
+    "ndcg@10": 0.36100775197323176,
+    "recall@10": 0.17327855171006962,
+    "ndcg@100": 0.33360407217615645,
+    "recall@100": 0.3148784448251164
   },
-  "per_query_file": "per-query/scifact-rrf-rerank-bgererank.json",
+  "per_query_file": "per-query/nfcorpus-rrf-rerank-bgererank.json",
   "groundwork_version": "0.1.0",
   "python": "3.11.16",
   "numpy": "1.26.4",
-  "run_at": "2026-09-21T19:45:29+00:00"
+  "run_at": "2026-09-21T20:07:17+00:00"
 }

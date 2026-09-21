@@ -1470,6 +1470,21 @@ it is worth measuring separately rather than assuming it behaves like RM3.
 with a fixed seed, appended to the `text` field before multi-field indexing. The generated
 queries are committed so the index can be rebuilt without re-running generation.
 
+> **Correction, made before any result was scored.** The model named above does not exist.
+> `doc2query/all-t5-base-msmarco` blends the names of two real models — `doc2query/all-t5-base-v1`
+> and `doc2query/msmarco-t5-base-v1` — and I wrote it from memory rather than checking. The
+> failure surfaced only when generation tried to download it, because the runner discarded
+> stderr; the experiment log's own rule about fabricated figures should have covered model
+> identifiers too, and now does.
+>
+> The substitution is **`castorini/doc2query-t5-base-msmarco`**, the original docTTTTTquery
+> release by the method's authors: T5-base, MS MARCO-trained, so H2's reasoning about domain
+> mismatch carries over unchanged. Everything else in this pre-registration stands.
+>
+> This was chosen before any doc2query run had been scored, which git shows: the
+> pre-registration and this correction both precede the first `*-document-expansion-*`
+> results file. It could not have been picked to favour an outcome.
+
 ---
 
 **H1.** doc2query helps NFCorpus and not SciFact, mirroring RM3's split, because it
@@ -1875,6 +1890,22 @@ accepting a failure line as well as a success line so a crash cannot strand the 
 and giving up after ninety minutes so a hang cannot either. The general lesson is that a
 marker file says one thing finished, not that the machine is free — a waiter needs to know
 what else that marker started.
+
+**A filter that only matches success turns a crash into silence.** Document generation
+failed three times before anyone noticed, and the failure was never quiet at the source:
+`generate_expansions.py` exited non-zero with a traceback saying the model repository did
+not exist. The runner sent stderr to `/dev/null` and grepped stdout for `inputs|generated
+in|Wrote`, so a hard failure printed the first of those and stopped — indistinguishable
+from a run still in progress, and then from a run that finished. Nothing checked the exit
+code. Runners now keep stderr in a file, check the status, print its tail on failure, stop
+rather than continuing to the next dataset, and verify the output file exists before
+reporting success. The same applies to watch filters: a pattern that matches only good news
+cannot tell a crash from a quiet stretch.
+
+**A model identifier is a figure.** `doc2query/all-t5-base-msmarco` was written from memory
+into a library default and a pre-registration. It is not a real model — it blends the names
+of two that are. The repository's rule against fabricated figures was read as being about
+numbers; it covers any claim that can be checked and was not. Checking cost one API call.
 
 **If a result file is deleted or overwritten**, regenerate it before quoting its numbers.
 `results/scidocs-judge-retrievedpool.json` had to be regenerated for exactly this reason,
