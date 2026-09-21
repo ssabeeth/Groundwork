@@ -24,6 +24,7 @@
   },
   "num_queries": 300,
   "num_documents": 5183,
+  "oracle_recall_at_100": 1.0,
   "retrievers": {
     "bm25": {
       "method": "bm25",
@@ -81,11 +82,11 @@
     }
   },
   "timing_seconds": {
-    "build": 17.66
+    "build": 17.31
   },
   "per_query_file": "per-query/scifact-rrf-rerank-reranked.json",
   "groundwork_version": "0.1.0",
   "python": "3.11.16",
   "numpy": "1.26.4",
-  "run_at": "2026-09-21T04:05:57+00:00"
+  "run_at": "2026-09-21T04:22:40+00:00"
 }
