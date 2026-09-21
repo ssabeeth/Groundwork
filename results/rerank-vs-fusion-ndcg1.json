@@ -1,0 +1,52 @@
+{
+  "metric": "ndcg@1",
+  "seed": 0,
+  "resamples": 100000,
+  "holm_adjusted": true,
+  "comparisons": [
+    {
+      "a": {
+        "file": "results/scifact-rrf-rerank-reranked.json",
+        "label": "reranked [rrf] (bm25+dense, k=1.0)"
+      },
+      "b": {
+        "file": "results/scifact-rrf-tuned.json",
+        "label": "tuned [rrf] (bm25+dense, k=1.0)"
+      },
+      "metric": "ndcg@1",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": -0.006666666666666667,
+      "p_value": 0.8817111828881711,
+      "num_queries": 300,
+      "num_ties": 256,
+      "effective_queries": 44,
+      "method": "monte-carlo",
+      "num_assignments": 100000,
+      "seed": 0,
+      "p_value_holm": 0.8817111828881711
+    },
+    {
+      "a": {
+        "file": "results/nfcorpus-rrf-rerank-reranked.json",
+        "label": "reranked [rrf] (bm25+dense, k=10.0)"
+      },
+      "b": {
+        "file": "results/nfcorpus-rrf-tuned.json",
+        "label": "tuned [rrf] (bm25+dense, k=10.0)"
+      },
+      "metric": "ndcg@1",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.02579979360165119,
+      "p_value": 0.20774792252077479,
+      "num_queries": 323,
+      "num_ties": 276,
+      "effective_queries": 47,
+      "method": "monte-carlo",
+      "num_assignments": 100000,
+      "seed": 0,
+      "p_value_holm": 0.41549584504154957
+    }
+  ]
+}

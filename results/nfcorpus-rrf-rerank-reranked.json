@@ -1,0 +1,92 @@
+{
+  "dataset": "nfcorpus",
+  "split": "test",
+  "tag": "reranked",
+  "method": "rrf",
+  "systems": [
+    "bm25",
+    "dense"
+  ],
+  "rrf_k": 10.0,
+  "reranker": {
+    "method": "cross-encoder-rerank",
+    "model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+    "depth": 100,
+    "max_length": null
+  },
+  "metrics": {
+    "ndcg@1": 0.48710010319917424,
+    "recall@1": 0.06762809671289025,
+    "ndcg@10": 0.3553604978086847,
+    "recall@10": 0.16497331849304003,
+    "ndcg@100": 0.33482925220852683,
+    "recall@100": 0.32170895837362784
+  },
+  "num_queries": 323,
+  "num_documents": 3633,
+  "retrievers": {
+    "bm25": {
+      "method": "bm25",
+      "variant": "lucene",
+      "k1": 0.9,
+      "b": 0.4,
+      "tokenizer": {
+        "stopwords": "lucene_english",
+        "stem": "porter",
+        "min_length": 1
+      }
+    },
+    "dense": {
+      "method": "dense",
+      "model": "sentence-transformers/all-MiniLM-L6-v2",
+      "similarity": "cosine",
+      "pooling": "mean",
+      "normalized": true,
+      "max_seq_length": 256,
+      "truncation_rate": 0.7883292045141757,
+      "batch_size": 64
+    }
+  },
+  "retriever": {
+    "method": "rrf",
+    "systems": [
+      "bm25",
+      "dense"
+    ],
+    "k": 10.0,
+    "tokenizer": {}
+  },
+  "top_k": 100,
+  "gain": "exponential",
+  "graded_qrels": true,
+  "relevance_levels": [
+    1,
+    2
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.48710010319917424,
+      "recall@1": 0.06762809671289025,
+      "ndcg@10": 0.3553604978086847,
+      "recall@10": 0.16497331849304003,
+      "ndcg@100": 0.33482925220852683,
+      "recall@100": 0.32170895837362784
+    },
+    "linear": {
+      "ndcg@1": 0.49226006191950467,
+      "recall@1": 0.06762809671289025,
+      "ndcg@10": 0.352974560233863,
+      "recall@10": 0.16497331849304003,
+      "ndcg@100": 0.32801590774553263,
+      "recall@100": 0.32170895837362784
+    }
+  },
+  "timing_seconds": {
+    "build": 13.16
+  },
+  "per_query_file": "per-query/nfcorpus-rrf-rerank-reranked.json",
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T04:00:41+00:00"
+}

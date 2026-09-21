@@ -35,12 +35,14 @@ from groundwork.eval import evaluate_run, evaluate_run_per_query
 from groundwork.retrieval import (
     LUCENE_ENGLISH_STOPWORDS,
     BM25Retriever,
+    CrossEncoderReranker,
     DenseRetriever,
     RM3Retriever,
     Tokenizer,
     reciprocal_rank_fusion,
 )
 from groundwork.retrieval.dense import DEFAULT_MODEL
+from groundwork.retrieval.rerank import DEFAULT_CROSS_ENCODER
 
 SWEEP_K = (0.0, 1.0, 5.0, 10.0, 20.0, 40.0, 60.0, 100.0, 200.0)
 
@@ -66,6 +68,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--top-k", type=int, default=100)
     parser.add_argument("--gain", default="exponential", choices=["exponential", "linear"])
+    parser.add_argument(
+        "--rerank",
+        action="store_true",
+        help="Rescore the fused candidates with a cross-encoder",
+    )
+    parser.add_argument("--rerank-model", default=DEFAULT_CROSS_ENCODER)
+    parser.add_argument("--rerank-depth", type=int, default=100)
     parser.add_argument("--tag", default="")
     parser.add_argument("--output", default=None)
     return parser.parse_args()
@@ -165,6 +174,26 @@ def main() -> int:
         return 0
 
     fused = reciprocal_rank_fusion(list(runs.values()), k=args.k, top_k=args.top_k)
+
+    reranker_described = None
+    if args.rerank:
+        # Reranking reorders the candidate set; it cannot add to it. The fused run's
+        # recall@100 is therefore a hard ceiling on what this can recover, which is why
+        # it is applied after fusion rather than to BM25 alone.
+        before = evaluate_run(fused, dataset.qrels, k_values=(10, 100), gain=args.gain)
+        reranker = CrossEncoderReranker(model_name=args.rerank_model, depth=args.rerank_depth)
+        start = time.perf_counter()
+        fused = reranker.rerank(fused, dataset.queries, dataset.corpus)
+        rerank_seconds = time.perf_counter() - start
+        reranker_described = reranker.describe()
+        after = evaluate_run(fused, dataset.qrels, k_values=(10, 100), gain=args.gain)
+        print(
+            f"  reranked {len(dataset.queries)} x {args.rerank_depth} pairs "
+            f"in {rerank_seconds:.0f}s"
+        )
+        print(f"  ndcg@10   {before['ndcg@10']:.4f} -> {after['ndcg@10']:.4f}")
+        print(f"  recall@100 {before['recall@100']:.4f} -> {after['recall@100']:.4f} (ceiling)")
+
     metrics_by_gain = {
         name: evaluate_run(fused, dataset.qrels, k_values=(1, 10, 100), gain=name)
         for name in ("exponential", "linear")
@@ -180,7 +209,8 @@ def main() -> int:
             print(f"  {name:<14} {metrics[name]:.4f}")
 
     suffix = f"-{args.tag}" if args.tag else ""
-    default_output = Path("results") / f"{args.dataset}-rrf{suffix}.json"
+    stem = "rrf-rerank" if args.rerank else "rrf"
+    default_output = Path("results") / f"{args.dataset}-{stem}{suffix}.json"
     output = Path(args.output) if args.output else default_output
     per_query_path = output.parent / "per-query" / output.name
 
@@ -191,6 +221,7 @@ def main() -> int:
         "method": "rrf",
         "systems": list(runs),
         "rrf_k": args.k,
+        "reranker": reranker_described,
         "metrics": {a: b for a, b in metrics.items() if a != "num_queries"},
         "num_queries": int(metrics["num_queries"]),
         "num_documents": len(dataset.corpus),

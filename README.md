@@ -239,6 +239,22 @@ Full run records, including settings and timings, are written to `results/`.
 
 ## What didn't work
 
+**Cross-encoder reranking bought nothing, at the highest cost of anything here.**
+Rescoring the top 100 fused candidates with `ms-marco-MiniLM-L-6-v2` takes about six
+minutes of GPU time per dataset, against seconds for the fusion it reranks. SciFact
+0.7146 → 0.6865 (raw p 0.047, Holm 0.094); NFCorpus 0.3559 → 0.3554 (p 0.936). No
+evidence of benefit, and a suggestion of harm on SciFact worth checking elsewhere.
+
+nDCG@1 on NFCorpus appeared to rise (0.4613 → 0.4871), which is the expected "helps the
+very top" story — but it does not survive a paired test (p 0.208, Holm 0.416), and 276
+of 323 queries are unchanged. Testing it was the difference between a finding and an
+anecdote.
+
+The likely reason is the same one behind the bi-encoder's result: MS MARCO is web search
+queries against web passages, and neither scientific claims nor consumer-health phrases
+resemble that. This bounds the claim — *this* reranker does not help here; a
+domain-matched one is untested.
+
 **Dense retrieval never beat BM25 at ranking.** On NFCorpus the two are
 indistinguishable at nDCG@10 (−0.0051, p = 0.655); on SciFact dense is worse
 (−0.0351, p = 0.064). What dense *does* do is find documents BM25 misses entirely —
@@ -357,7 +373,7 @@ without it.
 ## Development
 
 ```bash
-pytest          # 195 tests
+pytest          # 206 tests
 ruff check .
 ruff format .
 ```
@@ -376,6 +392,7 @@ src/groundwork/
   eval/metrics.py       nDCG@k, recall@k, per-query scoring
   eval/significance.py  paired randomisation test, Spearman, Holm-Bonferroni
   retrieval/fusion.py   reciprocal rank fusion
+  retrieval/rerank.py   cross-encoder reranking
 scripts/run_baseline.py the one command behind the results table
 scripts/compare_runs.py paired significance test between two runs
 scripts/run_sweep.py    k1/b grid over one shared index
@@ -384,7 +401,7 @@ scripts/run_dense.py    bi-encoder retrieval, embeddings cached
 scripts/run_hybrid.py   RRF over BM25/dense/RM3, k tuned on train
 scripts/analyse_queries.py  the pre-specified query-type hypothesis
 docs/experiments.md     running log, including what failed
-tests/                  195 tests
+tests/                  206 tests
 ```
 
 ## Licence

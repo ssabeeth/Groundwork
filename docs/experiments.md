@@ -639,6 +639,62 @@ recall@100 now measured at 0.3217 on NFCorpus and 0.9550 on SciFact.
 
 ---
 
+## 2026-09-21 — Cross-encoder reranking over the fused candidates
+
+**Question:** Does rescoring the fused shortlist with a cross-encoder earn its cost?
+
+**Setup:** `cross-encoder/ms-marco-MiniLM-L-6-v2` over the top 100 fused candidates,
+applied to the tuned RRF runs from experiment 6. A cross-encoder concatenates query and
+document and runs the model over both together, so nothing can be precomputed and the
+cost scales with candidates times queries. Paired randomisation test against the
+un-reranked fused run, Holm across the two datasets.
+
+**Result:**
+
+| Dataset | fused | reranked | delta | p | Holm |
+|---|---|---|---|---|---|
+| SciFact | 0.7146 | 0.6865 | **−0.0281** | 0.047 | 0.094 |
+| NFCorpus | 0.3559 | 0.3554 | −0.0005 | 0.936 | 0.936 |
+
+Cost: 288s for 30,000 pairs on SciFact, 344s for 32,300 on NFCorpus, on MPS. Fusion
+itself takes seconds.
+
+recall@100 is unchanged on both, necessarily: reranking reorders a candidate set and
+cannot add to it. The ceilings measured in experiment 6 — 0.9550 and 0.3217 — are
+untouched and untouchable by this stage.
+
+**Read:** **The most expensive method in the project buys nothing, and on SciFact the
+point estimate is negative.** The SciFact drop has a raw p of 0.047 and does not survive
+Holm across the two datasets, so the honest statement is "no evidence of benefit, and a
+suggestion of harm worth checking on a third dataset" rather than "reranking hurts".
+What can be said without hedging is that six minutes of GPU time per dataset produced no
+measurable improvement over a fusion that took seconds.
+
+A result I nearly reported and should not have: nDCG@1 on NFCorpus rises from 0.4613 to
+0.4871 after reranking, which looks like the expected "helps the very top of the
+ranking" story. It does not survive a paired test (+0.0258, p 0.208, Holm 0.416). The
+aggregate moved because a handful of queries did, and 276 of 323 are unchanged. Testing
+it was the difference between a finding and an anecdote.
+
+**Why this is the expected direction on reflection.** `ms-marco-MiniLM-L-6-v2` is trained
+on MS MARCO — real web search queries against web passages. SciFact queries are
+scientific claims and NFCorpus queries are consumer-health phrases against medical
+writing. Neither resembles the training distribution, and a cross-encoder's whole
+advantage is that it reads the pair jointly, which is exactly the part that transfers
+worst when the pair looks unfamiliar. The bi-encoder in experiment 5 had the same
+problem and it showed up the same way.
+
+**What this does not establish.** That reranking is useless — only that *this*
+reranker, at depth 100, on these two datasets, is. A cross-encoder trained on scientific
+or biomedical text is the obvious next thing to try, and it is a cheap experiment now
+that the harness and the ceilings exist. The claim here is bounded by what was measured,
+as with the bi-encoder.
+
+**Next:** The remaining pending entries are a domain-matched encoder for experiments 5
+and 7, and TREC-COVID's query-formulation question from experiment 4.
+
+---
+
 ## Pending
 
 Planned runs, in order. Each is a separate entry when it happens.
@@ -652,8 +708,18 @@ Planned runs, in order. Each is a separate entry when it happens.
 | 4b | ~~RM3 pseudo-relevance feedback~~ | **Done** — +0.0208 nDCG@10 on NFCorpus (Holm p 0.0005); nothing on SciFact |
 | 5 | ~~Dense retrieval~~ | **Done** — never beats BM25 at ranking; +0.065 recall@100 on NFCorpus; 71-79% truncated |
 | 6 | ~~Hybrid via reciprocal rank fusion~~ | **Done** — beats both parents on both datasets; ties RM3 on NFCorpus |
-| 7 | Cross-encoder reranking over hybrid | Cost/benefit at depth 100 |
+| 7 | ~~Cross-encoder reranking over hybrid~~ | **Done** — no measurable gain; 6 min GPU for nothing |
 | 8 | ~~Breakdown by query type~~ | **Done** — lexical advantage rises with query term rarity, both datasets |
+
+## Still open
+
+| Experiment | Settles |
+|---|---|
+| Domain-matched encoder (bi- and cross-) | Whether experiments 5 and 7 measured dense retrieval or just a model trained on the wrong text |
+| Chunking instead of truncation | 71-79% of documents are currently cut at 256 tokens; whether the tail matters |
+| TREC-COVID query formulation | Which formulation BEIR's published 0.656 used; currently recorded as not reproduced |
+| Query-length effect, pre-registered | Found by looking on NFCorpus (rho -0.22); needs a fresh dataset to count |
+| Paired tests on TREC-COVID | Only 50 queries, so almost nothing will be detectable; worth confirming that explicitly |
 
 ## Notes to self
 
