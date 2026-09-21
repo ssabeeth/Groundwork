@@ -1,0 +1,140 @@
+{
+  "dataset": "nfcorpus",
+  "split": "train",
+  "method": "rrf",
+  "systems": [
+    "bm25",
+    "dense"
+  ],
+  "gain": "exponential",
+  "select_on": "ndcg@10",
+  "grid": [
+    0.0,
+    1.0,
+    5.0,
+    10.0,
+    20.0,
+    40.0,
+    60.0,
+    100.0,
+    200.0
+  ],
+  "best": {
+    "k": 10.0,
+    "metrics": {
+      "ndcg@10": 0.35091131479892385,
+      "recall@10": 0.16133427449650417,
+      "ndcg@100": 0.30915516750309585,
+      "recall@100": 0.3267814079684571
+    }
+  },
+  "cells": [
+    {
+      "k": 0.0,
+      "metrics": {
+        "ndcg@10": 0.34579792151867256,
+        "recall@10": 0.15964298716030967,
+        "ndcg@100": 0.3077481677424469,
+        "recall@100": 0.3267814079684571
+      }
+    },
+    {
+      "k": 1.0,
+      "metrics": {
+        "ndcg@10": 0.34709624336863776,
+        "recall@10": 0.15953140498905216,
+        "ndcg@100": 0.3083635983979915,
+        "recall@100": 0.3267814079684571
+      }
+    },
+    {
+      "k": 5.0,
+      "metrics": {
+        "ndcg@10": 0.3498958662259071,
+        "recall@10": 0.16060449047798783,
+        "ndcg@100": 0.30915211398611286,
+        "recall@100": 0.3267814079684571
+      }
+    },
+    {
+      "k": 10.0,
+      "metrics": {
+        "ndcg@10": 0.35091131479892385,
+        "recall@10": 0.16133427449650417,
+        "ndcg@100": 0.30915516750309585,
+        "recall@100": 0.3267814079684571
+      }
+    },
+    {
+      "k": 20.0,
+      "metrics": {
+        "ndcg@10": 0.3488241536939533,
+        "recall@10": 0.15921863161899147,
+        "ndcg@100": 0.30823007418826504,
+        "recall@100": 0.3267814079684571
+      }
+    },
+    {
+      "k": 40.0,
+      "metrics": {
+        "ndcg@10": 0.34703889500441554,
+        "recall@10": 0.15857645051621716,
+        "ndcg@100": 0.3074046826874155,
+        "recall@100": 0.3267814079684571
+      }
+    },
+    {
+      "k": 60.0,
+      "metrics": {
+        "ndcg@10": 0.3455992836353835,
+        "recall@10": 0.1573957310277156,
+        "ndcg@100": 0.3069327938921923,
+        "recall@100": 0.3267814079684571
+      }
+    },
+    {
+      "k": 100.0,
+      "metrics": {
+        "ndcg@10": 0.3444343279798727,
+        "recall@10": 0.15657928642626318,
+        "ndcg@100": 0.30639452232556874,
+        "recall@100": 0.3267814079684571
+      }
+    },
+    {
+      "k": 200.0,
+      "metrics": {
+        "ndcg@10": 0.34418798774575393,
+        "recall@10": 0.15629932810135702,
+        "ndcg@100": 0.3062388062598624,
+        "recall@100": 0.3267814079684571
+      }
+    }
+  ],
+  "retrievers": {
+    "bm25": {
+      "method": "bm25",
+      "variant": "lucene",
+      "k1": 0.9,
+      "b": 0.4,
+      "tokenizer": {
+        "stopwords": "lucene_english",
+        "stem": "porter",
+        "min_length": 1
+      }
+    },
+    "dense": {
+      "method": "dense",
+      "model": "sentence-transformers/all-MiniLM-L6-v2",
+      "similarity": "cosine",
+      "pooling": "mean",
+      "normalized": true,
+      "max_seq_length": 256,
+      "truncation_rate": 0.7883292045141757,
+      "batch_size": 64
+    }
+  },
+  "groundwork_version": "0.1.0",
+  "run_at": "2026-09-21T03:44:52+00:00",
+  "note": "Pre-migration run: BM25 scored title+text concatenated as one field. Preserved because the experiment log entries written before experiment 10 quote these numbers, and those entries describe real runs. See docs/decisions.md."
+}

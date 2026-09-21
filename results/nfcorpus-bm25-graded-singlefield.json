@@ -1,0 +1,65 @@
+{
+  "dataset": "nfcorpus",
+  "split": "test",
+  "tag": "graded",
+  "metrics": {
+    "ndcg@1": 0.41795665634674906,
+    "recall@1": 0.05756310976990029,
+    "ndcg@10": 0.32241279238567183,
+    "recall@10": 0.15239288471648776,
+    "ndcg@100": 0.279935307045087,
+    "recall@100": 0.24607845764144692
+  },
+  "num_queries": 323,
+  "num_documents": 3633,
+  "oracle_recall_at_100": 0.9647038661258809,
+  "retriever": {
+    "method": "bm25",
+    "variant": "lucene",
+    "k1": 0.9,
+    "b": 0.4,
+    "tokenizer": {
+      "stopwords": "lucene_english",
+      "stem": "porter",
+      "min_length": 1
+    }
+  },
+  "top_k": 100,
+  "timing_seconds": {
+    "index": 10.56,
+    "retrieve": 0.03
+  },
+  "gain": "exponential",
+  "graded_qrels": true,
+  "relevance_levels": [
+    1,
+    2
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.41795665634674906,
+      "recall@1": 0.05756310976990029,
+      "ndcg@10": 0.32241279238567183,
+      "recall@10": 0.15239288471648776,
+      "ndcg@100": 0.279935307045087,
+      "recall@100": 0.24607845764144692
+    },
+    "linear": {
+      "ndcg@1": 0.42260061919504643,
+      "recall@1": 0.05756310976990029,
+      "ndcg@10": 0.3210199922220756,
+      "recall@10": 0.15239288471648776,
+      "ndcg@100": 0.2739748146639629,
+      "recall@100": 0.24607845764144692
+    }
+  },
+  "reference_ndcg_at_10": 0.325,
+  "reference_delta": -0.0025872076143281797,
+  "within_reference_tolerance": true,
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T04:10:01+00:00",
+  "per_query_file": "per-query/nfcorpus-bm25-graded-singlefield.json",
+  "note": "Pre-migration run: BM25 scored title+text concatenated as one field. Preserved because the experiment log entries written before experiment 10 quote these numbers, and those entries describe real runs. See docs/decisions.md."
+}

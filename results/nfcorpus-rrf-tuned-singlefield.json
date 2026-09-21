@@ -1,0 +1,89 @@
+{
+  "dataset": "nfcorpus",
+  "split": "test",
+  "tag": "tuned",
+  "method": "rrf",
+  "systems": [
+    "bm25",
+    "dense"
+  ],
+  "rrf_k": 10.0,
+  "reranker": null,
+  "metrics": {
+    "ndcg@1": 0.4613003095975231,
+    "recall@1": 0.061553292189729214,
+    "ndcg@10": 0.35585280079892523,
+    "recall@10": 0.1736875438293709,
+    "ndcg@100": 0.33331164598808094,
+    "recall@100": 0.32170895837362784
+  },
+  "num_queries": 323,
+  "num_documents": 3633,
+  "oracle_recall_at_100": 0.9647038661258809,
+  "retrievers": {
+    "bm25": {
+      "method": "bm25",
+      "variant": "lucene",
+      "k1": 0.9,
+      "b": 0.4,
+      "tokenizer": {
+        "stopwords": "lucene_english",
+        "stem": "porter",
+        "min_length": 1
+      }
+    },
+    "dense": {
+      "method": "dense",
+      "model": "sentence-transformers/all-MiniLM-L6-v2",
+      "similarity": "cosine",
+      "pooling": "mean",
+      "normalized": true,
+      "max_seq_length": 256,
+      "truncation_rate": 0.7883292045141757,
+      "batch_size": 64
+    }
+  },
+  "retriever": {
+    "method": "rrf",
+    "systems": [
+      "bm25",
+      "dense"
+    ],
+    "k": 10.0,
+    "tokenizer": {}
+  },
+  "top_k": 100,
+  "gain": "exponential",
+  "graded_qrels": true,
+  "relevance_levels": [
+    1,
+    2
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.4613003095975231,
+      "recall@1": 0.061553292189729214,
+      "ndcg@10": 0.35585280079892523,
+      "recall@10": 0.1736875438293709,
+      "ndcg@100": 0.33331164598808094,
+      "recall@100": 0.32170895837362784
+    },
+    "linear": {
+      "ndcg@1": 0.4674922600619195,
+      "recall@1": 0.061553292189729214,
+      "ndcg@10": 0.35470606405128013,
+      "recall@10": 0.1736875438293709,
+      "ndcg@100": 0.3268460092823178,
+      "recall@100": 0.32170895837362784
+    }
+  },
+  "timing_seconds": {
+    "build": 13.7
+  },
+  "per_query_file": "per-query/nfcorpus-rrf-tuned-singlefield.json",
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T04:11:28+00:00",
+  "note": "Pre-migration run: BM25 scored title+text concatenated as one field. Preserved because the experiment log entries written before experiment 10 quote these numbers, and those entries describe real runs. See docs/decisions.md."
+}

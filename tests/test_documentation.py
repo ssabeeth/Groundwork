@@ -33,10 +33,15 @@ README = ROOT / "README.md"
 
 # (results file, dotted path into the JSON, format spec)
 CLAIMS = [
+    # The prose describing experiments 1-9 reports runs made before the multi-field
+    # migration, so it is checked against the preserved single-field results. These
+    # move to the multi-field files as each entry is re-run and rewritten.
+    ("scifact-bm25-singlefield.json", "metrics.ndcg@10", ".4f"),
+    ("scifact-bm25-singlefield.json", "metrics.recall@100", ".4f"),
+    ("nfcorpus-bm25-graded-singlefield.json", "metrics.ndcg@10", ".4f"),
+    ("nfcorpus-bm25-graded-singlefield.json", "metrics.recall@100", ".4f"),
     ("scifact-bm25.json", "metrics.ndcg@10", ".4f"),
-    ("scifact-bm25.json", "metrics.recall@100", ".4f"),
     ("nfcorpus-bm25-graded.json", "metrics.ndcg@10", ".4f"),
-    ("nfcorpus-bm25-graded.json", "metrics.recall@100", ".4f"),
     ("trec-covid-bm25-graded.json", "metrics.ndcg@10", ".4f"),
     ("scifact-bm25-multifield.json", "metrics.ndcg@10", ".4f"),
     ("nfcorpus-bm25-multifield.json", "metrics.ndcg@10", ".4f"),

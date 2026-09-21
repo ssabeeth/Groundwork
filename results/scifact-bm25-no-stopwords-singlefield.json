@@ -1,0 +1,64 @@
+{
+  "dataset": "scifact",
+  "split": "test",
+  "tag": "no-stopwords",
+  "metrics": {
+    "ndcg@1": 0.5633333333333334,
+    "recall@1": 0.5475,
+    "ndcg@10": 0.6814346570138844,
+    "recall@10": 0.7973333333333333,
+    "ndcg@100": 0.7093501097578881,
+    "recall@100": 0.9196666666666666
+  },
+  "num_queries": 300,
+  "num_documents": 5183,
+  "oracle_recall_at_100": 1.0,
+  "retriever": {
+    "method": "bm25",
+    "variant": "lucene",
+    "k1": 0.9,
+    "b": 0.4,
+    "tokenizer": {
+      "stopwords": "none",
+      "stem": "porter",
+      "min_length": 1
+    }
+  },
+  "top_k": 100,
+  "timing_seconds": {
+    "index": 18.29,
+    "retrieve": 0.13
+  },
+  "gain": "exponential",
+  "graded_qrels": false,
+  "relevance_levels": [
+    1
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.5633333333333334,
+      "recall@1": 0.5475,
+      "ndcg@10": 0.6814346570138844,
+      "recall@10": 0.7973333333333333,
+      "ndcg@100": 0.7093501097578881,
+      "recall@100": 0.9196666666666666
+    },
+    "linear": {
+      "ndcg@1": 0.5633333333333334,
+      "recall@1": 0.5475,
+      "ndcg@10": 0.6814346570138844,
+      "recall@10": 0.7973333333333333,
+      "ndcg@100": 0.7093501097578881,
+      "recall@100": 0.9196666666666666
+    }
+  },
+  "reference_ndcg_at_10": 0.665,
+  "reference_delta": 0.016434657013884357,
+  "within_reference_tolerance": true,
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T04:12:05+00:00",
+  "per_query_file": "per-query/scifact-bm25-no-stopwords-singlefield.json",
+  "note": "Pre-migration run: BM25 scored title+text concatenated as one field. Preserved because the experiment log entries written before experiment 10 quote these numbers, and those entries describe real runs. See docs/decisions.md."
+}

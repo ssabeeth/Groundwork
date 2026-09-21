@@ -1,0 +1,92 @@
+{
+  "dataset": "scifact",
+  "split": "test",
+  "tag": "reranked",
+  "method": "rrf",
+  "systems": [
+    "bm25",
+    "dense"
+  ],
+  "rrf_k": 1.0,
+  "reranker": {
+    "method": "cross-encoder-rerank",
+    "model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+    "depth": 100,
+    "max_length": null
+  },
+  "metrics": {
+    "ndcg@1": 0.5766666666666667,
+    "recall@1": 0.5519444444444443,
+    "ndcg@10": 0.6865263500165779,
+    "recall@10": 0.8055555555555556,
+    "ndcg@100": 0.7206495354388418,
+    "recall@100": 0.955
+  },
+  "num_queries": 300,
+  "num_documents": 5183,
+  "retrievers": {
+    "bm25": {
+      "method": "bm25",
+      "variant": "lucene",
+      "k1": 0.9,
+      "b": 0.4,
+      "tokenizer": {
+        "stopwords": "lucene_english",
+        "stem": "porter",
+        "min_length": 1
+      }
+    },
+    "dense": {
+      "method": "dense",
+      "model": "sentence-transformers/all-MiniLM-L6-v2",
+      "similarity": "cosine",
+      "pooling": "mean",
+      "normalized": true,
+      "max_seq_length": 256,
+      "truncation_rate": 0.710206444144318,
+      "batch_size": 64
+    }
+  },
+  "retriever": {
+    "method": "rrf",
+    "systems": [
+      "bm25",
+      "dense"
+    ],
+    "k": 1.0,
+    "tokenizer": {}
+  },
+  "top_k": 100,
+  "gain": "exponential",
+  "graded_qrels": false,
+  "relevance_levels": [
+    1
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.5766666666666667,
+      "recall@1": 0.5519444444444443,
+      "ndcg@10": 0.6865263500165779,
+      "recall@10": 0.8055555555555556,
+      "ndcg@100": 0.7206495354388418,
+      "recall@100": 0.955
+    },
+    "linear": {
+      "ndcg@1": 0.5766666666666667,
+      "recall@1": 0.5519444444444443,
+      "ndcg@10": 0.6865263500165779,
+      "recall@10": 0.8055555555555556,
+      "ndcg@100": 0.7206495354388418,
+      "recall@100": 0.955
+    }
+  },
+  "timing_seconds": {
+    "build": 17.66
+  },
+  "per_query_file": "per-query/scifact-rrf-rerank-reranked-singlefield.json",
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T04:05:57+00:00",
+  "note": "Pre-migration run: BM25 scored title+text concatenated as one field. Preserved because the experiment log entries written before experiment 10 quote these numbers, and those entries describe real runs. See docs/decisions.md."
+}
