@@ -1,0 +1,66 @@
+{
+  "dataset": "scifact",
+  "split": "test",
+  "tag": "",
+  "method": "colbert",
+  "metrics": {
+    "ndcg@1": 0.5433333333333333,
+    "recall@1": 0.5237222222222222,
+    "ndcg@10": 0.6464095536491111,
+    "recall@10": 0.7573888888888889,
+    "ndcg@100": 0.6758384513237748,
+    "recall@100": 0.8942222222222221
+  },
+  "num_queries": 300,
+  "num_documents": 5183,
+  "oracle_recall_at_100": 1.0,
+  "retriever": {
+    "method": "colbert",
+    "model": "colbert-ir/colbertv2.0",
+    "similarity": "maxsim-cosine",
+    "dim": 128,
+    "query_length": 32,
+    "doc_length": 180,
+    "mask_punctuation": true,
+    "truncation_rate": 0.9125988809569747,
+    "mean_tokens_per_document": 157.3667759984565,
+    "batch_size": 8,
+    "exhaustive": true,
+    "device": "mps"
+  },
+  "published_ndcg_at_10": 0.693,
+  "delta_vs_published_ndcg_at_10": -0.0466,
+  "top_k": 100,
+  "gain": "exponential",
+  "graded_qrels": false,
+  "relevance_levels": [
+    1
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.5433333333333333,
+      "recall@1": 0.5237222222222222,
+      "ndcg@10": 0.6464095536491111,
+      "recall@10": 0.7573888888888889,
+      "ndcg@100": 0.6758384513237748,
+      "recall@100": 0.8942222222222221
+    },
+    "linear": {
+      "ndcg@1": 0.5433333333333333,
+      "recall@1": 0.5237222222222222,
+      "ndcg@10": 0.6464095536491111,
+      "recall@10": 0.7573888888888889,
+      "ndcg@100": 0.6758384513237748,
+      "recall@100": 0.8942222222222221
+    }
+  },
+  "timing_seconds": {
+    "index": 74.94,
+    "retrieve": 16.62
+  },
+  "per_query_file": "per-query/scifact-colbert.json",
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T23:18:40+00:00"
+}

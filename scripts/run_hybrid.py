@@ -35,10 +35,12 @@ from groundwork.eval import evaluate_run, evaluate_run_per_query, oracle_recall_
 from groundwork.retrieval import (
     LUCENE_ENGLISH_STOPWORDS,
     BM25Retriever,
+    ColbertRetriever,
     CrossEncoderReranker,
     DenseRetriever,
     MultiFieldBM25Retriever,
     RM3Retriever,
+    SpladeRetriever,
     Tokenizer,
     reciprocal_rank_fusion,
 )
@@ -56,7 +58,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--systems",
         default="bm25,dense",
-        help="Comma-separated systems to fuse: bm25, dense, rm3",
+        help="Comma-separated systems to fuse: bm25, dense, rm3, splade, colbert",
+    )
+    parser.add_argument("--splade-length", type=int, default=512, help="SPLADE document token cap")
+    parser.add_argument(
+        "--colbert-doc-length", type=int, default=512, help="ColBERT document token cap"
+    )
+    parser.add_argument(
+        "--neural-batch-size", type=int, default=8, help="Batch size for splade and colbert"
     )
     parser.add_argument("--k", type=float, default=60.0, help="RRF rank decay constant")
     parser.add_argument("--sweep", action="store_true", help="Sweep k on this split")
@@ -135,6 +144,23 @@ def build_runs(args: argparse.Namespace, dataset) -> tuple[dict, dict]:  # noqa:
         dense.index(dataset.corpus)
         runs["dense"] = dense.retrieve(dataset.queries, top_k=args.top_k)
         described["dense"] = dense.describe()
+
+    # Experiments 19 and 20. Both are added here rather than given their own fusion
+    # script because the project's repeated finding is that fusion beats choosing, and
+    # that claim is only testable if every retriever can enter the same fusion.
+    if "splade" in names:
+        splade = SpladeRetriever(max_length=args.splade_length, batch_size=args.neural_batch_size)
+        splade.index(dataset.corpus)
+        runs["splade"] = splade.retrieve(dataset.queries, top_k=args.top_k)
+        described["splade"] = splade.describe()
+
+    if "colbert" in names:
+        colbert = ColbertRetriever(
+            doc_length=args.colbert_doc_length, batch_size=args.neural_batch_size
+        )
+        colbert.index(dataset.corpus)
+        runs["colbert"] = colbert.retrieve(dataset.queries, top_k=args.top_k)
+        described["colbert"] = colbert.describe()
 
     missing = set(names) - set(runs)
     if missing:
