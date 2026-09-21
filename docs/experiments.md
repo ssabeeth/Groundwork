@@ -1760,11 +1760,22 @@ Re-run checklist:
 `pgrep -f <name>` when the waiter's own command line contains that name: the waiters match
 each other and deadlock, which cost about twenty minutes twice. Use file markers. Redirect
 stderr when running generation in the background, or a tqdm progress bar floods the log.
-And when two detached scripts both react to the same marker file — here, one queue
-finishing its queries and another starting its documents — the slower poller loses: both
-launch a language model, and two torch processes on this machine drive it into swap. The
-waiter that should win polls every two seconds and keeps stopping the other for a minute
-before starting any work of its own.
+And the same failure — two torch processes on a 16GB machine, which drives it into swap —
+turned up in three separate places once generation was detached, all of them variations on
+*what else wakes up when this marker file appears*:
+
+1. The query queue starts its own document stage the instant the last query file lands.
+2. A second script waiting on that same file starts document generation too; the slower
+   poller loses the race.
+3. The experiment pipeline wakes on that file as well, and two experiments later loads a
+   bi-encoder and a cross-encoder while document generation is still running.
+
+The first two are fixed by polling every two seconds and holding the other process down
+for a minute; the third by waiting on the *pipeline's* progress rather than on the marker,
+accepting a failure line as well as a success line so a crash cannot strand the waiter,
+and giving up after ninety minutes so a hang cannot either. The general lesson is that a
+marker file says one thing finished, not that the machine is free — a waiter needs to know
+what else that marker started.
 
 **If a result file is deleted or overwritten**, regenerate it before quoting its numbers.
 `results/scidocs-judge-retrievedpool.json` had to be regenerated for exactly this reason,
