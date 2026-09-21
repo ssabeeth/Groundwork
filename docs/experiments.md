@@ -1716,6 +1716,51 @@ command.
 
 ---
 
+## In progress: experiments 13, 14 and 15
+
+All three are pre-registered above. Generation is the long pole and runs detached, so
+this section exists to survive a context reset — everything needed to finish them is here
+or in the scripts.
+
+**State as of writing.** Query expansion generation is on NFCorpus train (2590 queries at
+about 1.6s each). SciFact test and train follow. Document generation starts after that,
+via a script that stops the query queue first and runs doc2query with settings chosen
+from a measured throughput sample rather than a guess.
+
+**What fires automatically.** `scratchpad/pipeline.sh` waits on file markers, not process
+names, and runs:
+
+- experiment 13 when `data/expansions/scifact-query-train.json` appears — sweeps the
+  query weight on train for both datasets, scores on test, then compares HyDE against
+  BM25 *and* against RM3;
+- experiment 15 immediately after, since it needs no generation;
+- experiment 14 when `data/expansions/scifact-document-test.json` appears.
+
+Results land in `results/` as `*-query-expansion-hyde.json`,
+`*-document-expansion-doc2query.json`, `*-rrf-rerank-bgererank.json` and the paired
+comparisons beside them.
+
+Re-run checklist:
+
+- [ ] Experiment 13 entry written, against H1, H2 and H3 as pre-registered
+- [ ] Experiment 14 entry written, including H3 (doc2query and RM3 should not stack)
+- [ ] Experiment 15 entry written, and experiment 7's bounded conclusion revisited
+- [ ] README narrative and Annexe A updated with whichever of these produced a result
+- [ ] Roadmap items 13 to 15 marked done rather than "running"
+- [ ] `docs/decisions.md` updated if any default changed
+
+**Two process notes, both learned the hard way tonight.** Do not poll with
+`pgrep -f <name>` when the waiter's own command line contains that name: the waiters match
+each other and deadlock, which cost about twenty minutes twice. Use file markers. And
+redirect stderr when running generation in the background, or a tqdm progress bar floods
+the log.
+
+**If a result file is deleted or overwritten**, regenerate it before quoting its numbers.
+`results/scidocs-judge-retrievedpool.json` had to be regenerated for exactly this reason,
+and the documentation test is what caught it.
+
+---
+
 ## Still open
 
 | Question | Settles |
