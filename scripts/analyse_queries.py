@@ -48,6 +48,11 @@ from groundwork.data import load_beir_dataset
 from groundwork.eval import correlation_permutation_test, holm_bonferroni
 from groundwork.retrieval import LUCENE_ENGLISH_STOPWORDS, BM25Retriever, Tokenizer
 
+# query_statistics needs one IDF per term, so the predictor is computed from a
+# single concatenated index even when retrieval used separate fields. Term rarity
+# in the corpus is the quantity of interest, and it does not depend on which field
+# a term happened to appear in.
+
 PRIMARY_PREDICTOR = "max_idf"
 SECONDARY_PREDICTORS = ("mean_idf", "out_of_vocabulary_rate", "num_terms")
 

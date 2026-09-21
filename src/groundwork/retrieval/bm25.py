@@ -458,6 +458,35 @@ class MultiFieldBM25Retriever:
         iterator = tqdm(items, desc="Retrieving", unit="query") if show_progress else items
         return {qid: dict(self.search(text, top_k=top_k)) for qid, text in iterator}
 
+    def score_weighted_terms(self, term_weights: Mapping[str, float]) -> np.ndarray:
+        """Score weighted terms against every field and sum, as :meth:`search` does.
+
+        Query expansion needs this: RM3 builds a weighted term distribution and hands it
+        back to the retriever, which must score it the same way it scores an ordinary
+        query or the expansion is evaluated under a different model than the first pass.
+
+        Args:
+            term_weights: ``{term: weight}``, already tokenised.
+
+        Returns:
+            One score per document, in :attr:`doc_ids` order.
+
+        Raises:
+            RuntimeError: If the index has not been built.
+        """
+        if not self._indexes:
+            raise RuntimeError("index() must be called before score_weighted_terms()")
+
+        total = None
+        for field, weight in zip(self.fields, self.weights, strict=True):
+            scores = self._indexes[field].score_weighted_terms(term_weights) * weight
+            total = scores if total is None else total + scores
+        return total
+
+    def rank_scores(self, scores: np.ndarray, top_k: int) -> list[tuple[str, float]]:
+        """Turn a score vector into a ranking, delegating to the first field's index."""
+        return self._indexes[self.fields[0]].rank_scores(scores, top_k)
+
     def describe(self) -> dict[str, object]:
         """Settings, for recording alongside results."""
         return {

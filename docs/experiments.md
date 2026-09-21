@@ -924,6 +924,38 @@ quietly. The options, with the trade-off stated:
 
 ---
 
+## In progress: migration to multi-field BM25
+
+Experiment 10 established that BEIR indexes title and passage as separate fields and
+that doing the same reproduces all three published baselines. The decision was taken to
+migrate rather than keep two baselines in one repository.
+
+**Status: the default is already flipped.** `run_baseline.py`, `run_rm3.py` and
+`run_hybrid.py` now use `MultiFieldBM25Retriever`; `--single-field` restores the old
+concatenated behaviour for comparison. `RM3Retriever` takes `multi_field=`.
+
+Every BM25-derived number in this log predates the migration and is being re-run. Dense
+results are unaffected, because they never touch BM25.
+
+Re-run checklist:
+
+- [x] BM25 baselines (SciFact 0.6636, NFCorpus 0.3253, TREC-COVID 0.6362)
+- [x] Tokenisation ablation, all four cells
+- [x] `k1`/`b` sweep on train
+- [x] RM3 parameter sweeps on train
+- [ ] RM3 scored on test, both datasets
+- [ ] Fusion: `k` swept on train, scored on test, both datasets
+- [ ] Cross-encoder reranking over the new fused runs
+- [ ] Query-dependence analysis, both datasets and both encoders
+- [ ] Every entry above updated with the new numbers, noting any conclusion that moved
+
+Then: restructure the README so the corrections read as a note near the top and the
+result tables move to an annexe; then add a third dataset, which is the only way to
+settle whether the query-dependence effect is the size SciFact suggests or the size
+NFCorpus suggests.
+
+---
+
 ## Still open
 
 | Experiment | Settles |

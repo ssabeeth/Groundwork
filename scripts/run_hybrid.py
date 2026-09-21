@@ -37,6 +37,7 @@ from groundwork.retrieval import (
     BM25Retriever,
     CrossEncoderReranker,
     DenseRetriever,
+    MultiFieldBM25Retriever,
     RM3Retriever,
     Tokenizer,
     reciprocal_rank_fusion,
@@ -76,6 +77,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--top-k", type=int, default=100)
     parser.add_argument("--gain", default="exponential", choices=["exponential", "linear"])
     parser.add_argument(
+        "--single-field",
+        action="store_true",
+        help="Concatenate title and text (the pre-experiment-10 default)",
+    )
+    parser.add_argument(
         "--rerank",
         action="store_true",
         help="Rescore the fused candidates with a cross-encoder",
@@ -96,7 +102,11 @@ def build_runs(args: argparse.Namespace, dataset) -> tuple[dict, dict]:  # noqa:
     described: dict[str, dict] = {}
 
     if "bm25" in names or "rm3" in names:
-        bm25 = BM25Retriever(k1=args.k1, b=args.b, tokenizer=tokenizer)
+        bm25 = (
+            BM25Retriever(k1=args.k1, b=args.b, tokenizer=tokenizer)
+            if args.single_field
+            else MultiFieldBM25Retriever(k1=args.k1, b=args.b, tokenizer=tokenizer)
+        )
         bm25.index(dataset.corpus)
         if "bm25" in names:
             runs["bm25"] = bm25.retrieve(dataset.queries, top_k=args.top_k)
@@ -109,6 +119,7 @@ def build_runs(args: argparse.Namespace, dataset) -> tuple[dict, dict]:  # noqa:
                 k1=args.k1,
                 b=args.b,
                 tokenizer=tokenizer,
+                multi_field=not args.single_field,
             )
             rm3.bm25 = bm25
             rm3._corpus = dataset.corpus

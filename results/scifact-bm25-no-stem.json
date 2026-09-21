@@ -3,19 +3,27 @@
   "split": "test",
   "tag": "no-stem",
   "metrics": {
-    "ndcg@1": 0.5433333333333333,
-    "recall@1": 0.5275,
-    "ndcg@10": 0.66270819855621,
-    "recall@10": 0.7801111111111111,
-    "ndcg@100": 0.6871504522691645,
-    "recall@100": 0.8858888888888888
+    "ndcg@1": 0.5133333333333333,
+    "recall@1": 0.4952777777777777,
+    "ndcg@10": 0.6326709657749426,
+    "recall@10": 0.7623333333333333,
+    "ndcg@100": 0.6616029620969885,
+    "recall@100": 0.8925555555555555
   },
   "num_queries": 300,
   "num_documents": 5183,
   "oracle_recall_at_100": 1.0,
   "retriever": {
     "method": "bm25",
-    "variant": "lucene",
+    "variant": "lucene-multifield",
+    "fields": [
+      "title",
+      "text"
+    ],
+    "field_weights": [
+      1.0,
+      1.0
+    ],
     "k1": 0.9,
     "b": 0.4,
     "tokenizer": {
@@ -26,8 +34,8 @@
   },
   "top_k": 100,
   "timing_seconds": {
-    "index": 0.41,
-    "retrieve": 0.04
+    "index": 0.4,
+    "retrieve": 0.05
   },
   "gain": "exponential",
   "graded_qrels": false,
@@ -36,28 +44,28 @@
   ],
   "metrics_by_gain": {
     "exponential": {
-      "ndcg@1": 0.5433333333333333,
-      "recall@1": 0.5275,
-      "ndcg@10": 0.66270819855621,
-      "recall@10": 0.7801111111111111,
-      "ndcg@100": 0.6871504522691645,
-      "recall@100": 0.8858888888888888
+      "ndcg@1": 0.5133333333333333,
+      "recall@1": 0.4952777777777777,
+      "ndcg@10": 0.6326709657749426,
+      "recall@10": 0.7623333333333333,
+      "ndcg@100": 0.6616029620969885,
+      "recall@100": 0.8925555555555555
     },
     "linear": {
-      "ndcg@1": 0.5433333333333333,
-      "recall@1": 0.5275,
-      "ndcg@10": 0.66270819855621,
-      "recall@10": 0.7801111111111111,
-      "ndcg@100": 0.6871504522691645,
-      "recall@100": 0.8858888888888888
+      "ndcg@1": 0.5133333333333333,
+      "recall@1": 0.4952777777777777,
+      "ndcg@10": 0.6326709657749426,
+      "recall@10": 0.7623333333333333,
+      "ndcg@100": 0.6616029620969885,
+      "recall@100": 0.8925555555555555
     }
   },
   "reference_ndcg_at_10": 0.665,
-  "reference_delta": -0.0022918014437900425,
-  "within_reference_tolerance": true,
+  "reference_delta": -0.032329034225057396,
+  "within_reference_tolerance": false,
   "groundwork_version": "0.1.0",
   "python": "3.11.16",
   "numpy": "1.26.4",
-  "run_at": "2026-09-21T04:11:46+00:00",
+  "run_at": "2026-09-21T11:52:57+00:00",
   "per_query_file": "per-query/scifact-bm25-no-stem.json"
 }

@@ -46,6 +46,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--no-stem", action="store_true")
     parser.add_argument("--no-stopwords", action="store_true")
     parser.add_argument("--gain", default="exponential", choices=["exponential", "linear"])
+    parser.add_argument(
+        "--single-field",
+        action="store_true",
+        help="Concatenate title and text (the pre-experiment-10 default)",
+    )
     parser.add_argument("--sweep", action="store_true", help="Grid over the three parameters")
     parser.add_argument("--select-on", default="ndcg@10", help="Metric the sweep maximises")
     parser.add_argument("--tag", default="", help="Short label for this run")
@@ -76,6 +81,7 @@ def main() -> int:
         k1=args.k1,
         b=args.b,
         tokenizer=tokenizer,
+        multi_field=not args.single_field,
     )
 
     start = time.perf_counter()

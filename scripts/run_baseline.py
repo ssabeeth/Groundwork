@@ -73,9 +73,9 @@ def parse_args() -> argparse.Namespace:
         help="nDCG gain function; identical on binary qrels, not on graded ones",
     )
     parser.add_argument(
-        "--multi-field",
+        "--single-field",
         action="store_true",
-        help="Score title and text as separate fields, as Anserini indexes them",
+        help="Concatenate title and text into one field (the pre-experiment-10 default)",
     )
     parser.add_argument("--tag", default="", help="Short label for this run")
     return parser.parse_args()
@@ -105,9 +105,9 @@ def main() -> int:
         stem=not args.no_stem,
     )
     retriever = (
-        MultiFieldBM25Retriever(k1=args.k1, b=args.b, tokenizer=tokenizer)
-        if args.multi_field
-        else BM25Retriever(k1=args.k1, b=args.b, tokenizer=tokenizer)
+        BM25Retriever(k1=args.k1, b=args.b, tokenizer=tokenizer)
+        if args.single_field
+        else MultiFieldBM25Retriever(k1=args.k1, b=args.b, tokenizer=tokenizer)
     )
 
     start = time.perf_counter()

@@ -14,7 +14,7 @@ copied from what the code produced.
 
 import pytest
 
-from groundwork.retrieval.bm25 import BM25Retriever
+from groundwork.retrieval.bm25 import BM25Retriever, MultiFieldBM25Retriever
 from groundwork.retrieval.rm3 import RM3Retriever
 from groundwork.retrieval.tokenize import Tokenizer
 
@@ -226,3 +226,58 @@ class TestFeedbackTokenCache:
         rm3.search("quick fox", top_k=10)
         clone = rm3.with_parameters(alpha=0.2)
         assert clone._token_cache is rm3._token_cache
+
+
+class TestMultiFieldRM3:
+    """RM3 over a multi-field index must score the expansion the same way the first pass was."""
+
+    FIELDED = {
+        "d1": {"title": "quick fox", "text": "lazy dog sleeps through the afternoon"},
+        "d2": {"title": "lazy dog", "text": ""},
+        "d3": {"title": "", "text": "quick brown fox jumps far"},
+    }
+
+    def test_alpha_zero_reproduces_plain_multi_field_bm25(self):
+        # The same identity that anchors the single-field case: with no weight on the
+        # relevance model, RM3 must be its own underlying retriever.
+        rm3 = RM3Retriever(tokenizer=PLAIN, alpha=0.0, fb_docs=5, fb_terms=5, multi_field=True)
+        rm3.index(self.FIELDED, show_progress=False)
+
+        multi = MultiFieldBM25Retriever(k1=0.9, b=0.4, tokenizer=PLAIN)
+        multi.index(self.FIELDED, show_progress=False)
+
+        expected = multi.search("quick fox", top_k=10)
+        actual = rm3.search("quick fox", top_k=10)
+        assert [doc for doc, _ in actual] == [doc for doc, _ in expected]
+        scale = len(PLAIN("quick fox"))
+        assert [score * scale for _, score in actual] == pytest.approx(
+            [score for _, score in expected], rel=1e-5
+        )
+
+    def test_it_differs_from_single_field_rm3(self):
+        # If these agreed the migration would be a no-op.
+        single = RM3Retriever(tokenizer=PLAIN, alpha=0.5, fb_docs=2, fb_terms=5)
+        single.index(self.FIELDED, show_progress=False)
+        multi = RM3Retriever(tokenizer=PLAIN, alpha=0.5, fb_docs=2, fb_terms=5, multi_field=True)
+        multi.index(self.FIELDED, show_progress=False)
+        assert dict(single.search("quick fox", top_k=10)) != pytest.approx(
+            dict(multi.search("quick fox", top_k=10))
+        )
+
+    def test_feedback_terms_come_from_the_whole_document(self):
+        # The relevance model is about vocabulary, not field structure, so a term in the
+        # body must be available to expand with even under a multi-field index.
+        rm3 = RM3Retriever(tokenizer=PLAIN, alpha=1.0, fb_docs=1, fb_terms=10, multi_field=True)
+        rm3.index(self.FIELDED, show_progress=False)
+        model = rm3.relevance_model([("d1", 1.0)])
+        assert "sleeps" in model
+
+    def test_with_parameters_keeps_the_field_setting(self):
+        rm3 = RM3Retriever(tokenizer=PLAIN, alpha=0.5, fb_docs=2, fb_terms=5, multi_field=True)
+        rm3.index(self.FIELDED, show_progress=False)
+        assert rm3.with_parameters(alpha=0.2).multi_field is True
+
+    def test_describe_reports_the_multi_field_variant(self):
+        rm3 = RM3Retriever(tokenizer=PLAIN, multi_field=True)
+        rm3.index(self.FIELDED, show_progress=False)
+        assert rm3.describe()["base"]["variant"] == "lucene-multifield"

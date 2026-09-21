@@ -44,7 +44,7 @@ from collections.abc import Mapping
 
 from tqdm import tqdm
 
-from groundwork.retrieval.bm25 import BM25Retriever
+from groundwork.retrieval.bm25 import BM25Retriever, MultiFieldBM25Retriever
 from groundwork.retrieval.tokenize import Tokenizer
 
 
@@ -59,6 +59,10 @@ class RM3Retriever:
         k1: BM25 term frequency saturation.
         b: BM25 length normalisation.
         tokenizer: Tokeniser; defaults to Lucene stopwords with Porter stemming.
+        multi_field: Score title and body as separate fields, matching how BEIR indexes
+            documents. Feedback terms are still harvested from the whole document — the
+            relevance model is a statement about vocabulary, not about field structure —
+            but the expanded query is scored under the same model as the first pass.
     """
 
     def __init__(
@@ -69,6 +73,7 @@ class RM3Retriever:
         k1: float = 0.9,
         b: float = 0.4,
         tokenizer: Tokenizer | None = None,
+        multi_field: bool = False,
     ) -> None:
         if fb_docs < 0:
             raise ValueError("fb_docs must be non-negative")
@@ -80,7 +85,12 @@ class RM3Retriever:
         self.fb_docs = fb_docs
         self.fb_terms = fb_terms
         self.alpha = alpha
-        self.bm25 = BM25Retriever(k1=k1, b=b, tokenizer=tokenizer)
+        self.multi_field = multi_field
+        self.bm25: BM25Retriever | MultiFieldBM25Retriever = (
+            MultiFieldBM25Retriever(k1=k1, b=b, tokenizer=tokenizer)
+            if multi_field
+            else BM25Retriever(k1=k1, b=b, tokenizer=tokenizer)
+        )
         self._corpus: Mapping[str, Mapping[str, str]] | None = None
         # Feedback documents are re-tokenised on demand, and a sweep asks for the same
         # ones over and over. The cache holds at most fb_docs x |queries| entries -
@@ -257,6 +267,7 @@ class RM3Retriever:
             k1=self.bm25.k1,
             b=self.bm25.b,
             tokenizer=self.bm25.tokenizer,
+            multi_field=self.multi_field,
         )
         clone.bm25 = self.bm25
         clone._corpus = self._corpus
