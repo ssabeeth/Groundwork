@@ -1,0 +1,13 @@
+name: groundwork
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy>=1.26
+  - tqdm>=4.66
+  - pytest>=8.0
+  - ruff>=0.6
+  - pip
+  - pip:
+      - snowballstemmer>=2.2
+      - -e .

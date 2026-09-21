@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+.ipynb_checkpoints/
+.DS_Store
+
+# Datasets are downloaded, never committed
+data/
+!data/.gitkeep
+
+# Run files are large; only committed metrics summaries are tracked
+results/runs/

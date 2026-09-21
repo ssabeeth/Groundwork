@@ -1,0 +1,172 @@
+"""BM25 tests.
+
+The main correctness check scores a tiny corpus with a second, deliberately naive
+implementation written straight from the Lucene formula, and requires the two to agree.
+A test that reuses the optimised code path would only prove it is consistent with
+itself, which is not the question.
+"""
+
+import math
+
+import pytest
+
+from groundwork.retrieval.bm25 import BM25Retriever
+from groundwork.retrieval.tokenize import Tokenizer
+
+CORPUS = {
+    "d1": {"title": "", "text": "the quick brown fox"},
+    "d2": {"title": "", "text": "the quick brown fox jumps over the lazy dog"},
+    "d3": {"title": "", "text": "lazy dog"},
+}
+
+# Plain tokenisation so the arithmetic below can be followed by hand.
+PLAIN = Tokenizer(stopwords=None, stem=False)
+
+
+def naive_bm25(query: str, corpus: dict, k1: float, b: float, tokenizer) -> dict[str, float]:
+    """Reference scorer: Lucene BM25 transcribed directly, no optimisation."""
+    docs = {
+        doc_id: tokenizer(f"{f.get('title', '')} {f.get('text', '')}".strip())
+        for doc_id, f in corpus.items()
+    }
+    num_docs = len(docs)
+    avgdl = sum(len(tokens) for tokens in docs.values()) / num_docs
+
+    scores = {}
+    for doc_id, tokens in docs.items():
+        total = 0.0
+        for term in tokenizer(query):
+            tf = tokens.count(term)
+            if tf == 0:
+                continue
+            df = sum(1 for other in docs.values() if term in other)
+            idf = math.log(1.0 + (num_docs - df + 0.5) / (df + 0.5))
+            norm = k1 * (1.0 - b + b * len(tokens) / avgdl)
+            total += idf * (tf * (k1 + 1.0)) / (tf + norm)
+        scores[doc_id] = total
+    return scores
+
+
+class TestBM25Scoring:
+    @pytest.mark.parametrize(
+        ("k1", "b"),
+        [(0.9, 0.4), (1.2, 0.75), (1.5, 0.0), (0.0, 0.4)],
+    )
+    @pytest.mark.parametrize(
+        "query",
+        ["quick fox", "lazy dog", "the", "quick quick brown", "missing"],
+    )
+    def test_matches_an_independent_implementation(self, k1, b, query):
+        retriever = BM25Retriever(k1=k1, b=b, tokenizer=PLAIN)
+        retriever.index(CORPUS, show_progress=False)
+
+        expected = naive_bm25(query, CORPUS, k1=k1, b=b, tokenizer=PLAIN)
+        actual = dict(retriever.search(query, top_k=10))
+
+        for doc_id, score in expected.items():
+            if score > 0:
+                assert actual[doc_id] == pytest.approx(score, rel=1e-5)
+            else:
+                assert doc_id not in actual
+
+    def test_corpus_statistics(self):
+        # Lengths 4, 9 and 2 tokens -> avgdl = 5.0
+        retriever = BM25Retriever(tokenizer=PLAIN)
+        retriever.index(CORPUS, show_progress=False)
+        assert retriever.avg_doc_length == pytest.approx(5.0)
+        assert list(retriever.doc_lengths) == pytest.approx([4.0, 9.0, 2.0])
+
+    def test_idf_is_never_negative_for_common_terms(self):
+        # "the" appears in 2 of 3 documents. The Robertson IDF would go negative here;
+        # the Lucene form used must not.
+        retriever = BM25Retriever(tokenizer=PLAIN)
+        retriever.index(CORPUS, show_progress=False)
+        assert retriever._idf["the"] > 0.0
+
+    def test_idf_value(self):
+        # df=2, N=3 -> ln(1 + (3 - 2 + 0.5) / 2.5) = ln(1.6) = 0.47000362924573563
+        retriever = BM25Retriever(tokenizer=PLAIN)
+        retriever.index(CORPUS, show_progress=False)
+        assert retriever._idf["quick"] == pytest.approx(0.47000362924573563)
+
+    def test_shorter_document_wins_when_term_counts_match(self):
+        # d1 and d2 both contain "quick fox" once; d1 is shorter, so length
+        # normalisation must rank it first.
+        retriever = BM25Retriever(k1=0.9, b=0.4, tokenizer=PLAIN)
+        retriever.index(CORPUS, show_progress=False)
+        ranking = retriever.search("quick fox", top_k=10)
+        assert [doc_id for doc_id, _ in ranking] == ["d1", "d2"]
+
+    def test_b_zero_disables_length_normalisation(self):
+        # With b=0 the two documents contain the query terms equally often and differ
+        # only in length, so they must tie exactly.
+        retriever = BM25Retriever(k1=0.9, b=0.0, tokenizer=PLAIN)
+        retriever.index(CORPUS, show_progress=False)
+        scores = dict(retriever.search("quick fox", top_k=10))
+        assert scores["d1"] == pytest.approx(scores["d2"])
+
+    def test_documents_without_query_terms_are_omitted(self):
+        retriever = BM25Retriever(tokenizer=PLAIN)
+        retriever.index(CORPUS, show_progress=False)
+        assert dict(retriever.search("quick", top_k=10)).keys() == {"d1", "d2"}
+
+    def test_query_with_no_indexed_terms_returns_nothing(self):
+        retriever = BM25Retriever(tokenizer=PLAIN)
+        retriever.index(CORPUS, show_progress=False)
+        assert retriever.search("aardvark", top_k=10) == []
+
+    def test_top_k_is_respected(self):
+        retriever = BM25Retriever(tokenizer=PLAIN)
+        retriever.index(CORPUS, show_progress=False)
+        assert len(retriever.search("quick lazy dog fox", top_k=2)) == 2
+
+    def test_ranking_is_sorted_by_descending_score(self):
+        retriever = BM25Retriever(tokenizer=PLAIN)
+        retriever.index(CORPUS, show_progress=False)
+        scores = [score for _, score in retriever.search("quick lazy dog fox", top_k=10)]
+        assert scores == sorted(scores, reverse=True)
+
+
+class TestBM25Indexing:
+    def test_title_is_indexed_with_the_body(self):
+        corpus = {"d1": {"title": "photosynthesis", "text": "unrelated body"}}
+        retriever = BM25Retriever(tokenizer=PLAIN)
+        retriever.index(corpus, show_progress=False)
+        assert retriever.search("photosynthesis", top_k=5)
+
+    def test_search_before_index_raises(self):
+        with pytest.raises(RuntimeError):
+            BM25Retriever().search("anything")
+
+    def test_empty_corpus_raises(self):
+        with pytest.raises(ValueError):
+            BM25Retriever().index({}, show_progress=False)
+
+    @pytest.mark.parametrize(("k1", "b"), [(-1.0, 0.4), (0.9, 1.5), (0.9, -0.1)])
+    def test_invalid_parameters_raise(self, k1, b):
+        with pytest.raises(ValueError):
+            BM25Retriever(k1=k1, b=b)
+
+
+class TestRetrieveInterface:
+    def test_returns_a_run_keyed_by_query_id(self):
+        retriever = BM25Retriever(tokenizer=PLAIN)
+        retriever.index(CORPUS, show_progress=False)
+        run = retriever.retrieve(
+            {"q1": "quick fox", "q2": "lazy dog"}, top_k=2, show_progress=False
+        )
+        assert set(run) == {"q1", "q2"}
+        assert all(isinstance(scores, dict) for scores in run.values())
+        assert run["q1"]["d1"] > 0.0
+
+
+class TestTokenizer:
+    def test_lowercases_and_splits_on_non_alphanumeric(self):
+        assert PLAIN("SARS-CoV-2 (Omicron)") == ["sars", "cov", "2", "omicron"]
+
+    def test_stopwords_are_dropped(self):
+        assert "the" not in Tokenizer(stem=False)("the quick fox")
+
+    def test_stemming_collapses_inflections(self):
+        tokenizer = Tokenizer(stem=True)
+        assert tokenizer("replicating") == tokenizer("replicate")
