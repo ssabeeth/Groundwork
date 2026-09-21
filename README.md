@@ -278,10 +278,22 @@ is a finding. It holds in one of four cells, so it is a lead rather than a concl
 the honest summary is that reranking buys you rank 1 on one dataset and nothing else
 anywhere.
 
-The likely reason for the rest is the same one behind the bi-encoder results: MS MARCO is
-web-search queries against web passages, and neither scientific claims nor consumer-health
-phrases resemble that. This bounds the claim — *this* reranker does not help here; a
-domain-matched one is untested.
+That bound is now gone, and the conclusion is stronger for it. **A better reranker
+reranks worse.** `BAAI/bge-reranker-base` — larger, more recent, not trained on MS MARCO —
+was pre-registered with the prediction that it would beat both MiniLM and the unreranked
+fusion. It does neither. On NFCorpus it takes the best fused run from 0.3610 down to
+0.3155 (Holm 0.0004), below plain BM25 at 0.3253, and it is Holm-significantly *worse*
+than the small MS MARCO model it was supposed to beat (−0.0402). On SciFact it is also
+below the unreranked fusion, 0.7095 against 0.7207.
+
+So the explanation is not domain mismatch. Two cross-encoders with different training
+corpora and an order of magnitude between them both make a good fusion worse on this data.
+That is also the opposite of what happened with bi-encoders, where general model quality
+did transfer — whatever makes a good bi-encoder here does not make a good reranker here.
+
+The cost is recorded with the result: **1220 and 1292 seconds** to rescore 300 and 323
+queries × 100 candidates, against roughly fifteen seconds to build the fusion being
+degraded. Twenty minutes, per dataset, to lose accuracy.
 
 **A biomedical encoder was worse than a general one, on a medical corpus.**
 S-PubMedBert-MS-MARCO scores 0.3142 on NFCorpus — below BM25 (0.3253) and below both
@@ -385,7 +397,7 @@ Numbered as in [`docs/experiments.md`](docs/experiments.md), which is the full l
 
 13. ~~Query expansion with an LLM, against RM3~~ — *pre-registered; H1 failed*
 14. Document expansion with doc2query — *pre-registered, running*
-15. A reranker that was not trained on web search — *pre-registered, running*
+15. ~~A reranker that was not trained on web search~~ — *pre-registered; all three predictions failed*
 16. ~~An LLM judge, calibrated against human assessors~~
 17. ~~Answer generation with citations checked against what was retrieved~~
 18. ~~MCP server, so it plugs into any assistant~~
@@ -727,6 +739,49 @@ Two tuning details recorded with the sweeps. NFCorpus peaked at the edge of its 
 (`best_at_grid_edge`, curve `increasing`, span 0.0795), which for this parameter means the
 tuner asking for less expansion rather than a located optimum; SciFact's surface is flat
 (span 0.0183) and peaks in the interior.
+
+### A.11 Two rerankers over the same candidates
+
+`BAAI/bge-reranker-base` against experiment 7's `ms-marco-MiniLM-L-6-v2`, both rescoring
+the top 100 of the best fused run on each dataset. Only the reranker changes.
+
+| SciFact (RRF k=1.0) | fusion | MiniLM | bge-reranker |
+|---|---|---|---|
+| nDCG@1 | 0.5900 | 0.5800 | 0.5900 |
+| nDCG@10 | **0.7207** | 0.6881 | 0.7095 |
+| nDCG@100 | 0.7443 | 0.7216 | 0.7368 |
+| Recall@100 | 0.9567 | 0.9567 | 0.9567 |
+
+| NFCorpus (RRF k=5.0) | fusion | MiniLM | bge-reranker |
+|---|---|---|---|
+| nDCG@1 | 0.4572 | **0.4840** | 0.4314 |
+| nDCG@10 | **0.3610** | 0.3557 | 0.3155 |
+| nDCG@100 | 0.3336 | 0.3325 | 0.3081 |
+| Recall@100 | 0.3149 | 0.3149 | 0.3149 |
+
+Paired randomisation, Holm-corrected across the family of four:
+
+| Comparison | nDCG@10 | Holm | nDCG@1 | Holm |
+|---|---|---|---|---|
+| SciFact bge-reranker − fusion | −0.0112 | 0.4111 | +0.0000 | 1.0000 |
+| NFCorpus bge-reranker − fusion | **−0.0455** | **0.0004** | −0.0258 | 0.8768 |
+| SciFact bge-reranker − MiniLM | +0.0214 | 0.2682 | +0.0100 | 1.0000 |
+| NFCorpus bge-reranker − MiniLM | **−0.0402** | **0.0004** | **−0.0526** | **0.0448** |
+
+```bash
+python scripts/run_hybrid.py --dataset nfcorpus --k 5.0 --model BAAI/bge-small-en-v1.5 \
+    --rerank --rerank-model BAAI/bge-reranker-base --tag bgererank
+```
+
+Recall@100 is identical down every column because reranking reorders a fixed candidate set
+and cannot add to it. That row is the control.
+
+Cost, recorded with each run:
+
+| | pairs rescored | rerank seconds | fusion build seconds |
+|---|---|---|---|
+| SciFact | 300 × 100 | 1220.1 | 18.98 |
+| NFCorpus | 323 × 100 | 1292.4 | 14.45 |
 
 ## Annexe B — superseded results, and why they are still here
 

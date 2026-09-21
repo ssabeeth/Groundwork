@@ -1830,6 +1830,101 @@ but that the new one was not checked for whether it was doing anything at all.
 
 ---
 
+## 2026-09-21 — Experiment 15 (result): a better reranker, reranking worse
+
+Pre-registered above. `BAAI/bge-reranker-base` rescores the top 100 of the best fused run
+on each dataset, against the same fusion unreranked and against experiment 7's
+`ms-marco-MiniLM-L-6-v2` over the same candidates. Same depth, same metrics, same paired
+test. The only variable is the reranker.
+
+**All three predictions failed, including the one the pre-registration called "the weakest
+of the three predictions and the one I hold most confidently".**
+
+| Prediction | Measured | Verdict |
+|---|---|---|
+| **H1** beats MiniLM on nDCG@10 on both | +0.0214 SciFact (Holm 0.2682); **−0.0402 NFCorpus (Holm 0.0004)** | **failed** |
+| **H2** beats the unreranked fusion somewhere | −0.0112 (Holm 0.4111) and **−0.0455 (Holm 0.0004)** | **failed** |
+| **H3** any gain is larger at rank 1 than rank 10 | no gain anywhere to measure it on | **not evaluable** |
+
+### The numbers
+
+| SciFact (RRF k=1.0) | fusion | MiniLM | bge-reranker |
+|---|---|---|---|
+| nDCG@1 | 0.5900 | 0.5800 | 0.5900 |
+| nDCG@10 | **0.7207** | 0.6881 | 0.7095 |
+| nDCG@100 | 0.7443 | 0.7216 | 0.7368 |
+| Recall@100 | 0.9567 | 0.9567 | 0.9567 |
+
+| NFCorpus (RRF k=5.0) | fusion | MiniLM | bge-reranker |
+|---|---|---|---|
+| nDCG@1 | 0.4572 | **0.4840** | 0.4314 |
+| nDCG@10 | **0.3610** | 0.3557 | 0.3155 |
+| nDCG@100 | 0.3336 | 0.3325 | 0.3081 |
+| Recall@100 | 0.3149 | 0.3149 | 0.3149 |
+
+Recall@100 is identical down every column, as it must be: reranking reorders a fixed
+candidate set and cannot add to it. That row is the experiment's own control, and it
+passing is the reason to believe the rest of the table.
+
+### The failure makes the older conclusion stronger, which was stated in advance
+
+Experiment 7 concluded that cross-encoder reranking bought nothing at the highest cost of
+anything measured here, and bounded that to one model most likely to be domain-mismatched.
+This experiment existed to remove the bound. The pre-registration said what a failure would
+mean before the run: *"If H2 fails, the conclusion generalises beyond the one model and
+becomes much stronger than it currently is."*
+
+H2 failed. A larger, more recent, non-MS-MARCO reranker does not merely fail to help — on
+NFCorpus it destroys 0.0455 nDCG@10 (Holm 0.0004), dropping the best fused run to 0.3155,
+below plain BM25 on the same data at 0.3253. So "MS MARCO training is the problem" is no
+longer the explanation. Two rerankers with different training corpora, an order of
+magnitude apart in size, both make a good fusion worse here.
+
+H1 failing is the sharper half. Its reasoning was only that a bigger, better, more broadly
+trained model should beat a small one, and on NFCorpus it is Holm-significantly worse. That
+is the **opposite** of experiment 9, where general model quality beat domain matching for
+bi-encoders. Whatever makes a good bi-encoder on this data does not make a good reranker on
+it, and neither result predicts the other.
+
+### The cost, which is the practical finding
+
+| | pairs rescored | rerank seconds |
+|---|---|---|
+| SciFact | 300 × 100 | 1220.1 |
+| NFCorpus | 323 × 100 | 1292.4 |
+
+Twenty minutes per dataset against roughly fifteen seconds to build the fusion it degrades.
+Reranking remains the most expensive operation in this project and the only one that
+reliably makes results worse.
+
+`run_hybrid.py` printed that timing and stored neither it nor the pre-rerank scores, so
+experiment 15 was run twice: the second pass exists to put the cost in a results file. It
+reproduced every metric exactly — 0.7095 and 0.3155 — which makes it a reproducibility
+check as well as a bookkeeping fix. Only the wall-clock differed, as it should.
+
+### What this does not re-test, stated so it is not read as more than it is
+
+Experiment 7's one surviving gain was **+0.0588 nDCG@1 on NFCorpus, Holm 0.0296** — MiniLM
+reranking over the *MiniLM* fusion. This experiment reranked the *bge* fusion, because that
+is the best fused run, so it does not re-test that cell. In the cell it did test, MiniLM
+over the bge fusion gains +0.0268 at rank 1 and does not survive correction (Holm 0.5564),
+while bge-reranker loses 0.0258 there and is 0.0526 worse than MiniLM (Holm 0.0448).
+
+So the honest summary across experiments 7 and 15 is: one gain, at rank 1, on one dataset,
+with one model, over one fusion — and it does not survive changing any of those. Everywhere
+else reranking costs twenty minutes and takes accuracy away.
+
+### H3 was unanswerable, and the reason is worth keeping
+
+H3 predicted a gain would be larger at rank 1 than at rank 10. There were no gains, so it
+cannot be scored. The shape that did appear runs against its reasoning: the damage is
+*smaller* at rank 1 than at rank 10 (+0.0000 and −0.0258, against −0.0112 and −0.0455).
+A hypothesis conditioned on an effect existing is only testable if the effect exists.
+Writing it that way was a drafting error rather than a bad prediction, and the fix for next
+time is to state the direction and let the magnitude be whatever it is.
+
+---
+
 ## In progress: experiments 13, 14 and 15
 
 All three are pre-registered above. Generation is the long pole and runs detached, so
@@ -1865,7 +1960,7 @@ Re-run checklist:
 
 - [x] Experiment 13 entry written, against H1, H2 and H3 as pre-registered (H1 failed, H2 and H3 held)
 - [ ] Experiment 14 entry written, including H3 (doc2query and RM3 should not stack)
-- [ ] Experiment 15 entry written, and experiment 7's bounded conclusion revisited
+- [x] Experiment 15 entry written, and experiment 7's bounded conclusion revisited (all three predictions failed; the bound is gone and the conclusion is stronger)
 - [ ] README narrative and Annexe A updated with whichever of these produced a result
 - [ ] Roadmap items 13 to 15 marked done rather than "running"
 - [ ] `docs/decisions.md` updated if any default changed
