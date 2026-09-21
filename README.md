@@ -231,6 +231,38 @@ truncating far less of the input. "Use the better encoder" is sound; "bge-small 
 better encoder" is a statement about two corpora, not about the model.
 ## What didn't work
 
+**LLM query expansion loses to a technique from 2001 — and mostly never ran.** HyDE and
+Query2Doc ask a language model to write the document a query is looking for and retrieve
+with that text appended. RM3, already measured here, closes the same vocabulary gap by
+reading the corpus instead. Put against each other on the same harness, with the
+expansion weight tuned on train and scored once on test, **RM3 wins on NFCorpus by 0.0234
+nDCG@10, Holm p 0.0004.** Against plain BM25 the expansion is −0.0046 on NFCorpus and
++0.0007 on SciFact, neither detectable.
+
+The interesting part is why, and it was measured before the scoring rather than argued
+afterwards. `scripts/analyse_expansions.py` counts the *new indexable terms* an expansion
+adds — terms absent from the query after stemming and stopword removal, since only those
+change which documents can match. On SciFact **249 of 300 expansions add none at all**,
+and 0.0349 of the generated vocabulary is new: `flan-t5-base`, asked to write an abstract
+answering a claim, restates the claim. RM3 adds 50 terms. The paired test agrees from the
+other direction, for free — its tie count says the expansion changed nDCG@10 for **7
+SciFact queries out of 300**, and recall@100 for 1.
+
+So this is not evidence that HyDE does not work. It bounds one small model, and the
+vocabulary count says that model largely did not perform the technique; a larger one would
+add more terms and might well win. What transfers is the check rather than the verdict:
+**before believing a generative expansion helped, count the new terms it added.** That
+number is free, available before any retrieval runs, and on SciFact it predicts the null
+result without scoring a single ranking.
+
+One more thing worth flagging about tuning. The NFCorpus sweep chose weight 20, the
+largest on its grid, with nDCG@10 rising monotonically across all eight cells. The weight
+is how many times the *original* query is repeated, so a larger weight dilutes the
+generated text: the tuner was asking for less expansion, and the limit of that direction
+is not a better setting of the method but unexpanded BM25. "Best weight 20" reads like a
+tuned parameter and is not one, so the sweep now records `best_at_grid_edge` and
+`monotone` alongside the peak.
+
 **Cross-encoder reranking costs the most and earns almost nothing — but not quite
 nothing, and that changed.** Rescoring the top 100 fused candidates with
 `ms-marco-MiniLM-L-6-v2` takes minutes of compute per dataset against seconds for the
@@ -351,7 +383,7 @@ Numbered as in [`docs/experiments.md`](docs/experiments.md), which is the full l
 11. ~~SciDocs as a third dataset, hypotheses pre-registered~~
 12. ~~Query routing: is the central finding actionable?~~
 
-13. Query expansion with an LLM, against RM3 — *pre-registered, running*
+13. ~~Query expansion with an LLM, against RM3~~ — *pre-registered; H1 failed*
 14. Document expansion with doc2query — *pre-registered, running*
 15. A reranker that was not trained on web search — *pre-registered, running*
 16. ~~An LLM judge, calibrated against human assessors~~
@@ -644,6 +676,57 @@ SciFact and NFCorpus ship no non-relevant judgements — 339 and 12,334 judged p
 one relevant. A judge could be scored there against the convention that unjudged means
 non-relevant, which is right for computing nDCG and wrong as ground truth for an assessor,
 because an unjudged document is one no human looked at. The code refuses those datasets.
+
+### A.10 LLM query expansion against RM3
+
+`flan-t5-base` writes one pseudo-document per query; the expanded query is the original
+repeated `weight` times followed by that passage. Weight swept on train, scored once on
+test. Tuned weights: 20 on NFCorpus, 8 on SciFact.
+
+| | NFCorpus BM25 | NFCorpus RM3 | NFCorpus HyDE | SciFact BM25 | SciFact RM3 | SciFact HyDE |
+|---|---|---|---|---|---|---|
+| nDCG@10 | 0.3253 | **0.3440** | 0.3207 | **0.6636** | 0.6550 | 0.6643 |
+| Recall@100 | 0.2494 | **0.3121** | 0.2560 | 0.9009 | **0.9053** | 0.9020 |
+
+Paired randomisation, Holm-corrected across the family of four:
+
+| Comparison | nDCG@10 | Holm | Recall@100 | Holm |
+|---|---|---|---|---|
+| NFCorpus HyDE − BM25 | −0.0046 | 0.2553 | +0.0066 | 0.0165 |
+| NFCorpus HyDE − RM3 | **−0.0234** | **0.0004** | **−0.0561** | **0.0004** |
+| SciFact HyDE − BM25 | +0.0007 | 0.5426 | +0.0011 | 1.0000 |
+| SciFact HyDE − RM3 | +0.0093 | 0.2553 | −0.0033 | 1.0000 |
+
+```bash
+python scripts/generate_expansions.py --dataset nfcorpus --kind query --split train
+python scripts/run_expanded.py --dataset nfcorpus --kind query --split train --sweep
+python scripts/run_expanded.py --dataset nfcorpus --kind query --weight 20 --tag hyde
+```
+
+**What the expansions contain**, measured before any of the above was scored. New
+indexable terms are those absent from the original query after stemming and stopword
+removal — the only ones that can change which documents match:
+
+| | NFCorpus (test) | SciFact (test) |
+|---|---|---|
+| Queries | 323 | 300 |
+| Expansions adding no new term | 99 | **249** |
+| Median new terms per query | 2 | **0** |
+| New fraction of generated vocabulary | 0.4498 | **0.0349** |
+| Terms RM3 adds, for comparison | 50 | 50 |
+
+```bash
+python scripts/analyse_expansions.py --dataset scifact --kind query --split test
+```
+
+The paired test reaches the same conclusion independently, through the queries on which
+the two runs score identically: against BM25 on SciFact the expansion moved nDCG@10 for
+7 queries and recall@100 for 1.
+
+Two tuning details recorded with the sweeps. NFCorpus peaked at the edge of its grid
+(`best_at_grid_edge`, curve `increasing`, span 0.0795), which for this parameter means the
+tuner asking for less expansion rather than a located optimum; SciFact's surface is flat
+(span 0.0183) and peaks in the interior.
 
 ## Annexe B — superseded results, and why they are still here
 
