@@ -1925,88 +1925,148 @@ time is to state the direction and let the magnitude be whatever it is.
 
 ---
 
-## In progress: experiments 13, 14 and 15
+## 2026-09-21 — Experiment 14 (result): doc2query expands, and nothing moves
 
-All three are pre-registered above. Generation is the long pole and runs detached, so
-this section exists to survive a context reset — everything needed to finish them is here
-or in the scripts.
+Pre-registered above, with the model identifier corrected before any run. `castorini/doc2query-t5-base-msmarco`
+generates five queries per document, sampled with a fixed seed, appended to the `text`
+field before multi-field indexing. 3,633 and 5,183 documents expanded; both corpora
+generated in full.
 
-**State as of writing.** Query expansion generation is on NFCorpus train (2590 queries at
-about 1.6s each). SciFact test and train follow. Document generation starts after that,
-via a script that stops the query queue first.
+**All three predictions failed.**
 
-**Document generation runs at the pre-registered five queries per document.** An earlier
-version of that script used three, to save wall clock. That was a shortcut rather than a
-measured decision, and it was the wrong one: experiment 14's H2 predicts a gain *larger*
-than RM3's, so generating less expansion text biases the test in the direction that makes
-its own hypothesis fail. All three of experiment 14's hypotheses bind on NFCorpus, so
-NFCorpus generates first as well as at full strength. Overnight is an acceptable price for
-measuring what was actually predicted.
+| Prediction | Measured | Verdict |
+|---|---|---|
+| **H1** helps NFCorpus and not SciFact, mirroring RM3's split | +0.0008 (Holm 1.0000) and +0.0059 (Holm 0.6047) | **failed** |
+| **H2** the NFCorpus gain exceeds RM3's +0.0188 | +0.0008; against RM3 directly **−0.0180, Holm 0.0050** | **failed** |
+| **H3** doc2query and RM3 are not additive | RM3 adds **+0.0247 (Holm 0.0006)** on top of doc2query | **failed, in the opposite direction** |
 
-**What fires automatically.** `scratchpad/pipeline.sh` waits on file markers, not process
-names, and runs:
+### This time the treatment was actually applied
 
-- experiment 13 when `data/expansions/scifact-query-train.json` appears — sweeps the
-  query weight on train for both datasets, scores on test, then compares HyDE against
-  BM25 *and* against RM3;
-- experiment 15 immediately after, since it needs no generation;
-- experiment 14 when `data/expansions/scifact-document-test.json` appears.
+Experiment 13's null result came with the discovery that the expander mostly restated the
+query. That cannot explain this one. The same vocabulary analysis, run on the document
+expansions:
 
-Results land in `results/` as `*-query-expansion-hyde.json`,
-`*-document-expansion-doc2query.json`, `*-rrf-rerank-bgererank.json` and the paired
-comparisons beside them.
+| | documents | adding **no** new term | median new terms | new fraction of generated vocabulary |
+|---|---|---|---|---|
+| NFCorpus | 3633 | **9** | 6 | 0.4133 |
+| SciFact | 5183 | **11** | 5 | 0.3697 |
 
-Re-run checklist:
+Nine documents out of 3,633 gained nothing. The median document gained six new indexable
+terms — three times what HyDE added to the median NFCorpus query, and infinitely more than
+it added to the median SciFact one. doc2query did the thing it claims to do, to an entire
+corpus, and retrieval did not move.
 
-- [x] Experiment 13 entry written, against H1, H2 and H3 as pre-registered (H1 failed, H2 and H3 held)
-- [ ] Experiment 14 entry written, including H3 (doc2query and RM3 should not stack)
-- [x] Experiment 15 entry written, and experiment 7's bounded conclusion revisited (all three predictions failed; the bound is gone and the conclusion is stronger)
-- [ ] README narrative and Annexe A updated with whichever of these produced a result
-- [ ] Roadmap items 13 to 15 marked done rather than "running"
-- [ ] `docs/decisions.md` updated if any default changed
+### nDCG@10 and recall@100 on test
 
-**Three process notes, all learned the hard way tonight.** Do not poll with
-`pgrep -f <name>` when the waiter's own command line contains that name: the waiters match
-each other and deadlock, which cost about twenty minutes twice. Use file markers. Redirect
-stderr when running generation in the background, or a tqdm progress bar floods the log.
-And the same failure — two torch processes on a 16GB machine, which drives it into swap —
-turned up in three separate places once generation was detached, all of them variations on
-*what else wakes up when this marker file appears*:
+| NFCorpus | BM25 | doc2query | RM3 | RM3 over expanded |
+|---|---|---|---|---|
+| nDCG@10 | 0.3253 | 0.3260 | 0.3440 | **0.3507** |
+| Recall@100 | 0.2494 | 0.2515 | 0.3121 | **0.3170** |
 
-1. The query queue starts its own document stage the instant the last query file lands.
-2. A second script waiting on that same file starts document generation too; the slower
-   poller loses the race.
-3. The experiment pipeline wakes on that file as well, and two experiments later loads a
-   bi-encoder and a cross-encoder while document generation is still running.
+| SciFact | BM25 | doc2query | RM3 | RM3 over expanded |
+|---|---|---|---|---|
+| nDCG@10 | 0.6636 | **0.6695** | 0.6550 | **0.6695** |
+| Recall@100 | 0.9009 | 0.9020 | 0.9053 | **0.9087** |
 
-The first two are fixed by polling every two seconds and holding the other process down
-for a minute; the third by waiting on the *pipeline's* progress rather than on the marker,
-accepting a failure line as well as a success line so a crash cannot strand the waiter,
-and giving up after ninety minutes so a hang cannot either. The general lesson is that a
-marker file says one thing finished, not that the machine is free — a waiter needs to know
-what else that marker started.
+Paired randomisation, Holm-corrected across the family of six:
 
-**A filter that only matches success turns a crash into silence.** Document generation
-failed three times before anyone noticed, and the failure was never quiet at the source:
-`generate_expansions.py` exited non-zero with a traceback saying the model repository did
-not exist. The runner sent stderr to `/dev/null` and grepped stdout for `inputs|generated
-in|Wrote`, so a hard failure printed the first of those and stopped — indistinguishable
-from a run still in progress, and then from a run that finished. Nothing checked the exit
-code. Runners now keep stderr in a file, check the status, print its tail on failure, stop
-rather than continuing to the next dataset, and verify the output file exists before
-reporting success. The same applies to watch filters: a pattern that matches only good news
-cannot tell a crash from a quiet stretch.
+| Comparison | nDCG@10 | Holm | Recall@100 | Holm |
+|---|---|---|---|---|
+| NFCorpus doc2query − BM25 | +0.0008 | 1.0000 | +0.0021 | 0.9103 |
+| NFCorpus doc2query − RM3 | **−0.0180** | **0.0050** | **−0.0606** | **0.0006** |
+| NFCorpus (RM3 over expanded) − doc2query | **+0.0247** | **0.0006** | **+0.0655** | **0.0006** |
+| SciFact doc2query − BM25 | +0.0059 | 0.6047 | +0.0011 | 1.0000 |
+| SciFact doc2query − RM3 | +0.0145 | 0.1068 | −0.0033 | 1.0000 |
+| SciFact (RM3 over expanded) − doc2query | +0.0000 | 1.0000 | +0.0067 | 1.0000 |
 
-**A model identifier is a figure.** `doc2query/all-t5-base-msmarco` was written from memory
-into a library default and a pre-registration. It is not a real model — it blends the names
-of two that are. The repository's rule against fabricated figures was read as being about
-numbers; it covers any claim that can be checked and was not. Checking cost one API call.
+### H1 failed, and took experiment 4b's explanation with it
 
-**If a result file is deleted or overwritten**, regenerate it before quoting its numbers.
-`results/scidocs-judge-retrievedpool.json` had to be regenerated for exactly this reason,
-and the documentation test is what caught it.
+H1 predicted doc2query would mirror RM3's split. It did not mirror it; if anything it
+inverts it. RM3 gains +0.0188 on NFCorpus and loses 0.0086 on SciFact. doc2query's point
+estimates run the other way — +0.0008 on NFCorpus, +0.0059 on SciFact — though neither
+survives correction, so the inversion is a direction rather than a result.
+
+What this does settle is that experiment 4b's recall-ceiling story does not generalise to
+the document side. That story said SciFact queries are already written in the register of
+the abstracts answering them, so closing the vocabulary gap cannot help there. The gap was
+closed, from the document side, for every document in the corpus — and SciFact is the
+dataset where the point estimate is larger. The mechanism-level claim in experiment 13's
+pre-registration, that the ceiling argument "should bind a generative expander exactly as
+it bound a statistical one", is not supported.
+
+### H3 failed in the opposite direction, which is the useful part
+
+H3 said the two techniques close one gap and a gap can only be closed once. If that were
+right, RM3 over an already-expanded corpus should gain less than RM3 over a raw one.
+It gains **more**: +0.0247 on top of doc2query against +0.0188 on top of plain BM25, both
+Holm 0.0006. On recall the same shape, +0.0655 against +0.0627.
+
+The plausible mechanism — and this is a post-hoc story, labelled as one — is that doc2query
+does not help retrieval directly but improves the documents RM3 *reads*. RM3 takes its
+feedback terms from the top-`k` retrieved documents; if those documents now carry generated
+query-like text, the terms RM3 extracts are more query-like. Document expansion would then
+be a way of improving pseudo-relevance feedback rather than a retrieval method in its own
+right. Nothing here tests that, and it should not be repeated as though it had been.
+
+### The one place doc2query pays, found after the fact
+
+The pre-registered family did not include the cell a practitioner would care about: whether
+doc2query adds anything *on top of* RM3. Run afterwards and **labelled post-hoc, not
+pre-registered**, with Holm correction within its own family of two:
+
+| | nDCG@10 | Holm | Recall@100 | Holm |
+|---|---|---|---|---|
+| NFCorpus RM3+doc2query − RM3 | +0.0067 | 0.0692 | +0.0049 | 0.1610 |
+| SciFact RM3+doc2query − RM3 | **+0.0145** | **0.0170** | +0.0033 | 1.0000 |
+
+On SciFact that is the difference between RM3 hurting (−0.0086 against BM25) and not. The
+honest reading is that doc2query's measurable value here is in making RM3 less
+dataset-dependent, not in retrieving better. It is also one post-hoc comparison on 300
+queries and should be treated as a lead.
+
+### The pre-registered interpretation is not available, and I am not going to use it anyway
+
+The pre-registration named H2 as the prediction it was least confident in and said why:
+*"If H2 fails while H1 holds, the consistent reading is that domain mismatch costs more
+than document context buys, which would be the fourth independent observation of the same
+thing."*
+
+H2 failed. **H1 also failed**, so that conditional never fires and the fourth observation
+cannot be claimed from this run. Domain mismatch may still be the reason — the model is
+MS MARCO-trained and this is the fourth MS MARCO model to disappoint here — but the
+experiment was set up to license that conclusion only under a condition that did not hold,
+and writing it down in advance is what makes it visible that it did not.
 
 ---
+
+## Experiments 13, 14 and 15: what they cost to run
+
+All three are finished and written up above. What is kept here is the operational part,
+because it was most of the work and none of it is visible in the results.
+
+**Generation, not retrieval, was the long pole.** Query expansions: 506s and 4391s for
+NFCorpus test and train, 39s and 57s for SciFact. Document expansions: 765s and 1256s.
+Every expansion is committed under `data/expansions/`, so any of these runs can be
+re-scored without re-generating, which is the whole reason generation is a separate script.
+
+**Four process failures, all of the same shape: something that was not measured.**
+
+1. *A fabricated model identifier.* `doc2query/all-t5-base-msmarco` is not a real model. It
+   went into a library default and a pre-registration, and cost three generation runs. The
+   rule against fabricated figures covers anything checkable, not just numbers.
+2. *Failures that looked like success.* Those three runs each exited non-zero with a clear
+   traceback, and each printed three lines that looked exactly like a completed run,
+   because the runner sent stderr to `/dev/null`, grepped stdout for success patterns only,
+   and never checked the exit code.
+3. *Batching into swap.* Document generation ran at over 12s per document, heading for
+   thirty hours, with CPU and GPU both idle. See `docs/decisions.md` — the batch did not
+   fit in unified memory, and MPS allocations are invisible to `ps`.
+4. *Three detached scripts waking on one marker file.* Two of them loaded a language model,
+   which is the same swap problem arriving from a different direction. A marker file says
+   one thing finished, not that the machine is free.
+
+The common thread is that a check which only recognises success cannot tell a crash from a
+quiet stretch — true of a `grep` filter, a monitor, and an exit code nobody reads.
 
 ## Still open
 

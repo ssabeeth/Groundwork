@@ -1,0 +1,55 @@
+{
+  "dataset": "scifact",
+  "split": "test",
+  "kind": "document",
+  "method": "expansion-vocabulary-analysis",
+  "expansion": {
+    "dataset": "scifact",
+    "split": "test",
+    "kind": "document",
+    "model": "castorini/doc2query-t5-base-msmarco",
+    "prompt": null,
+    "generations_per_input": 5,
+    "sampling": true,
+    "max_new_tokens": 64,
+    "seed": 0,
+    "batch_size": 8,
+    "num_inputs": 5183,
+    "num_empty": 0,
+    "seconds": 1255.9,
+    "groundwork_version": "0.1.0",
+    "python": "3.11.16",
+    "run_at": "2026-09-21T22:28:25+00:00"
+  },
+  "tokenizer": {
+    "stopwords": "lucene_english",
+    "stem": "porter",
+    "min_length": 1
+  },
+  "statistics": {
+    "num_inputs": 5183,
+    "num_empty": 0,
+    "num_adding_nothing": 11,
+    "generated_words": {
+      "median": 33.0,
+      "mean": 33.8644,
+      "p25": 29.0,
+      "p75": 38.0,
+      "min": 13.0,
+      "max": 75.0
+    },
+    "added_terms": {
+      "median": 5.0,
+      "mean": 5.6315,
+      "p25": 4.0,
+      "p75": 7.0,
+      "min": 0.0,
+      "max": 17.0
+    },
+    "added_term_fraction": 0.3697
+  },
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T22:29:12+00:00"
+}

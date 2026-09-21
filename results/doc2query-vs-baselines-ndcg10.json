@@ -1,0 +1,140 @@
+{
+  "metric": "ndcg@10",
+  "seed": 0,
+  "resamples": 10000,
+  "holm_adjusted": true,
+  "comparisons": [
+    {
+      "a": {
+        "file": "results/nfcorpus-document-expansion-doc2query.json",
+        "label": "doc2query [document-expansion] (stem=porter, stopwords=lucene_english)"
+      },
+      "b": {
+        "file": "results/nfcorpus-bm25-graded.json",
+        "label": "graded [bm25] (stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.000753916229516409,
+      "p_value": 0.7746225377462254,
+      "num_queries": 323,
+      "num_ties": 203,
+      "effective_queries": 120,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 1.0
+    },
+    {
+      "a": {
+        "file": "results/nfcorpus-document-expansion-doc2query.json",
+        "label": "doc2query [document-expansion] (stem=porter, stopwords=lucene_english)"
+      },
+      "b": {
+        "file": "results/nfcorpus-rm3-tuned.json",
+        "label": "tuned [rm3] (fb=5, terms=50, alpha=0.8, stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": -0.018012635540569144,
+      "p_value": 0.000999900009999,
+      "num_queries": 323,
+      "num_ties": 146,
+      "effective_queries": 177,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.004999500049995
+    },
+    {
+      "a": {
+        "file": "results/nfcorpus-rm3-doc2query-rm3.json",
+        "label": "doc2query-rm3 [rm3] (fb=5, terms=50, alpha=0.8, stem=porter, stopwords=lucene_english)"
+      },
+      "b": {
+        "file": "results/nfcorpus-document-expansion-doc2query.json",
+        "label": "doc2query [document-expansion] (stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.024710025225489304,
+      "p_value": 9.999000099990002e-05,
+      "num_queries": 323,
+      "num_ties": 146,
+      "effective_queries": 177,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.0005999400059994001
+    },
+    {
+      "a": {
+        "file": "results/scifact-document-expansion-doc2query.json",
+        "label": "doc2query [document-expansion] (stem=porter, stopwords=lucene_english)"
+      },
+      "b": {
+        "file": "results/scifact-bm25.json",
+        "label": "bm25 [bm25] (stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.005860490583538347,
+      "p_value": 0.20157984201579843,
+      "num_queries": 300,
+      "num_ties": 255,
+      "effective_queries": 45,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.6047395260473953
+    },
+    {
+      "a": {
+        "file": "results/scifact-document-expansion-doc2query.json",
+        "label": "doc2query [document-expansion] (stem=porter, stopwords=lucene_english)"
+      },
+      "b": {
+        "file": "results/scifact-rm3-tuned.json",
+        "label": "tuned [rm3] (fb=20, terms=50, alpha=0.3, stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.01445227201336838,
+      "p_value": 0.026697330266973303,
+      "num_queries": 300,
+      "num_ties": 232,
+      "effective_queries": 68,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.10678932106789321
+    },
+    {
+      "a": {
+        "file": "results/scifact-rm3-doc2query-rm3.json",
+        "label": "doc2query-rm3 [rm3] (fb=20, terms=50, alpha=0.3, stem=porter, stopwords=lucene_english)"
+      },
+      "b": {
+        "file": "results/scifact-document-expansion-doc2query.json",
+        "label": "doc2query [document-expansion] (stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 2.0376807766214014e-05,
+      "p_value": 0.9972002799720028,
+      "num_queries": 300,
+      "num_ties": 239,
+      "effective_queries": 61,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 1.0
+    }
+  ]
+}

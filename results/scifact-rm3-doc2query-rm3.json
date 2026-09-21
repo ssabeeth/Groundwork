@@ -1,0 +1,100 @@
+{
+  "dataset": "scifact",
+  "split": "test",
+  "tag": "doc2query-rm3",
+  "method": "rm3",
+  "metrics": {
+    "ndcg@1": 0.55,
+    "recall@1": 0.5308333333333334,
+    "ndcg@10": 0.669498093711947,
+    "recall@10": 0.7945000000000001,
+    "ndcg@100": 0.6962710452526228,
+    "recall@100": 0.9086666666666667
+  },
+  "num_queries": 300,
+  "num_documents": 5183,
+  "oracle_recall_at_100": 1.0,
+  "retriever": {
+    "method": "rm3",
+    "base": {
+      "method": "bm25",
+      "variant": "lucene-multifield",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "field_weights": [
+        1.0,
+        1.0
+      ],
+      "k1": 0.9,
+      "b": 0.4,
+      "tokenizer": {
+        "stopwords": "lucene_english",
+        "stem": "porter",
+        "min_length": 1
+      }
+    },
+    "fb_docs": 20,
+    "fb_terms": 50,
+    "alpha": 0.3,
+    "k1": 0.9,
+    "b": 0.4,
+    "tokenizer": {
+      "stopwords": "lucene_english",
+      "stem": "porter",
+      "min_length": 1
+    }
+  },
+  "document_expansion": {
+    "dataset": "scifact",
+    "split": "test",
+    "kind": "document",
+    "model": "castorini/doc2query-t5-base-msmarco",
+    "prompt": null,
+    "generations_per_input": 5,
+    "sampling": true,
+    "max_new_tokens": 64,
+    "seed": 0,
+    "batch_size": 8,
+    "num_inputs": 5183,
+    "num_empty": 0,
+    "seconds": 1255.9,
+    "groundwork_version": "0.1.0",
+    "python": "3.11.16",
+    "run_at": "2026-09-21T22:28:25+00:00"
+  },
+  "top_k": 100,
+  "gain": "exponential",
+  "graded_qrels": false,
+  "relevance_levels": [
+    1
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.55,
+      "recall@1": 0.5308333333333334,
+      "ndcg@10": 0.669498093711947,
+      "recall@10": 0.7945000000000001,
+      "ndcg@100": 0.6962710452526228,
+      "recall@100": 0.9086666666666667
+    },
+    "linear": {
+      "ndcg@1": 0.55,
+      "recall@1": 0.5308333333333334,
+      "ndcg@10": 0.669498093711947,
+      "recall@10": 0.7945000000000001,
+      "ndcg@100": 0.6962710452526228,
+      "recall@100": 0.9086666666666667
+    }
+  },
+  "timing_seconds": {
+    "index": 16.16,
+    "retrieve": 10.58
+  },
+  "per_query_file": "per-query/scifact-rm3-doc2query-rm3.json",
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T22:30:04+00:00"
+}

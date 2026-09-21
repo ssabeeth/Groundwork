@@ -241,3 +241,24 @@ and that understatement is the correct direction for a number nothing held out.
 The primary use of SciDocs does not touch this at all: the query-dependence analysis has
 no free parameters, which is part of why a dataset without a train split can still
 settle the question it was added to settle.
+
+## Generation batch size is a recorded setting, not a tuning knob
+
+`generate_expansions.py` samples when it produces more than one expansion per input, and
+the seed is set once before the batching loop. So which batch a document lands in decides
+which random draws it receives: the same corpus, model and seed produce *different* text at
+a different batch size. The run reproduces at the batch size it recorded and not across
+others, which is why `batch_size` sits in the record beside `seed`.
+
+It is also the main lever on memory, and on unified-memory hardware that lever is sharper
+than it looks. The working set is roughly `batch_size × num_return_sequences` sequences of
+encoder states. Measured on a 16GB machine with `castorini/doc2query-t5-base-msmarco` and
+five generations per document: 6.15GB of GPU allocation at batch 8, 9.18GB at batch 16.
+Batch 48 did not fit, and the failure was not graceful — throughput fell from 0.23s per
+document to over 12s as the machine swapped, with both CPU and GPU near idle waiting on
+paged memory. Nothing in `ps` showed it, because MPS allocations do not appear in a
+process's resident size.
+
+The practical rule: pick the batch size from measured memory, not from a round number, and
+re-record it when it changes. The largest batch that fits is not the fastest; on this
+hardware the smallest tested batch was both.

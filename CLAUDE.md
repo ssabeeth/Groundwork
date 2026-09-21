@@ -164,9 +164,22 @@ prediction turns out wrong it stays on the page; that is what pre-registration i
   did not, and so kept sweeping a concatenated index through the whole migration without
   anything noticing.
 
-**Next:** roadmap items 13 (answer generation with citations, LLM judge calibrated
-against human labels) and 14 (MCP server). Both are in the README roadmap and neither is
-started.
+**All eighteen roadmap items are done.** Experiments 13, 14 and 15 put an LLM query
+expander, doc2query and a modern reranker against the older methods with the same mechanism.
+Eight of their nine pre-registered predictions failed or could not be scored, and the
+failures are the content: a 2001 technique beats HyDE, a better reranker reranks worse, and
+doc2query expands every document in a corpus without moving retrieval.
+
+**Two things to know before adding an experiment here.** Pre-register the hypotheses in
+`docs/experiments.md` and commit before touching data — three experiments have now had
+predictions fail, and that is only worth anything because the prediction was on the page
+first. And write hypotheses that are scoreable whatever happens: experiment 15's H3 was
+conditioned on a gain existing, there were no gains, and it could not be scored at all.
+
+**Before believing an expansion or generation step did anything**, run
+`scripts/analyse_expansions.py`. It counts the new indexable terms a generated expansion
+adds, costs nothing, and needs no retrieval. On SciFact it predicted experiment 13's null
+result in advance: 249 of 300 expansions added no term the query did not already have.
 
 ## How to work with me on this
 

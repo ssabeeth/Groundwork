@@ -1,0 +1,101 @@
+{
+  "dataset": "nfcorpus",
+  "split": "test",
+  "tag": "doc2query-rm3",
+  "method": "rm3",
+  "metrics": {
+    "ndcg@1": 0.41692466460268307,
+    "recall@1": 0.056252934276922316,
+    "ndcg@10": 0.3507225120250473,
+    "recall@10": 0.18340757993589188,
+    "ndcg@100": 0.3228425851698635,
+    "recall@100": 0.31700630720438633
+  },
+  "num_queries": 323,
+  "num_documents": 3633,
+  "oracle_recall_at_100": 0.9647038661258809,
+  "retriever": {
+    "method": "rm3",
+    "base": {
+      "method": "bm25",
+      "variant": "lucene-multifield",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "field_weights": [
+        1.0,
+        1.0
+      ],
+      "k1": 0.9,
+      "b": 0.4,
+      "tokenizer": {
+        "stopwords": "lucene_english",
+        "stem": "porter",
+        "min_length": 1
+      }
+    },
+    "fb_docs": 5,
+    "fb_terms": 50,
+    "alpha": 0.8,
+    "k1": 0.9,
+    "b": 0.4,
+    "tokenizer": {
+      "stopwords": "lucene_english",
+      "stem": "porter",
+      "min_length": 1
+    }
+  },
+  "document_expansion": {
+    "dataset": "nfcorpus",
+    "split": "test",
+    "kind": "document",
+    "model": "castorini/doc2query-t5-base-msmarco",
+    "prompt": null,
+    "generations_per_input": 5,
+    "sampling": true,
+    "max_new_tokens": 64,
+    "seed": 0,
+    "batch_size": 8,
+    "num_inputs": 3633,
+    "num_empty": 0,
+    "seconds": 764.9,
+    "groundwork_version": "0.1.0",
+    "python": "3.11.16",
+    "run_at": "2026-09-21T22:07:27+00:00"
+  },
+  "top_k": 100,
+  "gain": "exponential",
+  "graded_qrels": true,
+  "relevance_levels": [
+    1,
+    2
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.41692466460268307,
+      "recall@1": 0.056252934276922316,
+      "ndcg@10": 0.3507225120250473,
+      "recall@10": 0.18340757993589188,
+      "ndcg@100": 0.3228425851698635,
+      "recall@100": 0.31700630720438633
+    },
+    "linear": {
+      "ndcg@1": 0.42260061919504643,
+      "recall@1": 0.056252934276922316,
+      "ndcg@10": 0.3503458404939579,
+      "recall@10": 0.18340757993589188,
+      "ndcg@100": 0.3175167408153924,
+      "recall@100": 0.31700630720438633
+    }
+  },
+  "timing_seconds": {
+    "index": 11.92,
+    "retrieve": 3.83
+  },
+  "per_query_file": "per-query/nfcorpus-rm3-doc2query-rm3.json",
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T22:29:21+00:00"
+}

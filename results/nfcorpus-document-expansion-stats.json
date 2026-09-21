@@ -1,0 +1,55 @@
+{
+  "dataset": "nfcorpus",
+  "split": "test",
+  "kind": "document",
+  "method": "expansion-vocabulary-analysis",
+  "expansion": {
+    "dataset": "nfcorpus",
+    "split": "test",
+    "kind": "document",
+    "model": "castorini/doc2query-t5-base-msmarco",
+    "prompt": null,
+    "generations_per_input": 5,
+    "sampling": true,
+    "max_new_tokens": 64,
+    "seed": 0,
+    "batch_size": 8,
+    "num_inputs": 3633,
+    "num_empty": 0,
+    "seconds": 764.9,
+    "groundwork_version": "0.1.0",
+    "python": "3.11.16",
+    "run_at": "2026-09-21T22:07:27+00:00"
+  },
+  "tokenizer": {
+    "stopwords": "lucene_english",
+    "stem": "porter",
+    "min_length": 1
+  },
+  "statistics": {
+    "num_inputs": 3633,
+    "num_empty": 0,
+    "num_adding_nothing": 9,
+    "generated_words": {
+      "median": 32.0,
+      "mean": 32.5191,
+      "p25": 28.0,
+      "p75": 37.0,
+      "min": 14.0,
+      "max": 60.0
+    },
+    "added_terms": {
+      "median": 6.0,
+      "mean": 6.035,
+      "p25": 4.0,
+      "p75": 8.0,
+      "min": 0.0,
+      "max": 17.0
+    },
+    "added_term_fraction": 0.4133
+  },
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T22:28:54+00:00"
+}

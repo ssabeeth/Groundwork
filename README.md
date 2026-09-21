@@ -255,6 +255,27 @@ add more terms and might well win. What transfers is the check rather than the v
 number is free, available before any retrieval runs, and on SciFact it predicts the null
 result without scoring a single ranking.
 
+**Document expansion expanded, and nothing moved.** doc2query generates five queries per
+document and appends them before indexing — 3,633 and 5,183 documents, all of them. Unlike
+the query expander above, it genuinely did the job: **9 of 3,633 NFCorpus documents gained
+no new indexable term**, and the median document gained six. Retrieval barely noticed.
+Against BM25 it is +0.0008 on NFCorpus (Holm 1.0000) and +0.0059 on SciFact (Holm 0.6047),
+and against RM3 on NFCorpus it is **worse by 0.0180, Holm 0.0050**.
+
+The pre-registered prediction that it would mirror RM3's dataset split failed, and took an
+earlier explanation with it. Experiment 4b attributed RM3's split to a recall ceiling —
+SciFact claims already read like the abstracts that answer them, so closing the vocabulary
+gap cannot help there. The gap was closed from the document side for every document, and
+SciFact is where the point estimate is larger. That explanation does not generalise.
+
+The prediction that doc2query and RM3 would not stack also failed, in the opposite
+direction: RM3 gains **more** over an already-expanded corpus (+0.0247, Holm 0.0006) than
+over a raw one (+0.0188). Best guess, offered as the post-hoc story it is: doc2query does
+not help retrieval directly, it improves the documents RM3 reads its feedback terms from.
+The one cell where it measurably pays was found after the fact and is flagged as post-hoc
+in the log — adding it to RM3 on SciFact is +0.0145 (Holm 0.0170), which is the difference
+between RM3 hurting that dataset and not.
+
 One more thing worth flagging about tuning. The NFCorpus sweep chose weight 20, the
 largest on its grid, with nDCG@10 rising monotonically across all eight cells. The weight
 is how many times the *original* query is repeated, so a larger weight dilutes the
@@ -396,7 +417,7 @@ Numbered as in [`docs/experiments.md`](docs/experiments.md), which is the full l
 12. ~~Query routing: is the central finding actionable?~~
 
 13. ~~Query expansion with an LLM, against RM3~~ — *pre-registered; H1 failed*
-14. Document expansion with doc2query — *pre-registered, running*
+14. ~~Document expansion with doc2query~~ — *pre-registered; all three predictions failed*
 15. ~~A reranker that was not trained on web search~~ — *pre-registered; all three predictions failed*
 16. ~~An LLM judge, calibrated against human assessors~~
 17. ~~Answer generation with citations checked against what was retrieved~~
@@ -782,6 +803,54 @@ Cost, recorded with each run:
 |---|---|---|---|
 | SciFact | 300 × 100 | 1220.1 | 18.98 |
 | NFCorpus | 323 × 100 | 1292.4 | 14.45 |
+
+### A.12 Document expansion with doc2query
+
+`castorini/doc2query-t5-base-msmarco`, five sampled queries per document, appended to the
+`text` field before multi-field indexing.
+
+| NFCorpus | BM25 | doc2query | RM3 | RM3 over expanded |
+|---|---|---|---|---|
+| nDCG@10 | 0.3253 | 0.3260 | 0.3440 | **0.3507** |
+| Recall@100 | 0.2494 | 0.2515 | 0.3121 | **0.3170** |
+
+| SciFact | BM25 | doc2query | RM3 | RM3 over expanded |
+|---|---|---|---|---|
+| nDCG@10 | 0.6636 | **0.6695** | 0.6550 | **0.6695** |
+| Recall@100 | 0.9009 | 0.9020 | 0.9053 | **0.9087** |
+
+Paired randomisation, Holm-corrected across the pre-registered family of six:
+
+| Comparison | nDCG@10 | Holm | Recall@100 | Holm |
+|---|---|---|---|---|
+| NFCorpus doc2query − BM25 | +0.0008 | 1.0000 | +0.0021 | 0.9103 |
+| NFCorpus doc2query − RM3 | **−0.0180** | **0.0050** | **−0.0606** | **0.0006** |
+| NFCorpus (RM3 over expanded) − doc2query | **+0.0247** | **0.0006** | **+0.0655** | **0.0006** |
+| SciFact doc2query − BM25 | +0.0059 | 0.6047 | +0.0011 | 1.0000 |
+| SciFact doc2query − RM3 | +0.0145 | 0.1068 | −0.0033 | 1.0000 |
+| SciFact (RM3 over expanded) − doc2query | +0.0000 | 1.0000 | +0.0067 | 1.0000 |
+
+```bash
+python scripts/generate_expansions.py --dataset nfcorpus --kind document --batch-size 8
+python scripts/run_expanded.py --dataset nfcorpus --kind document --tag doc2query
+python scripts/run_rm3.py --dataset nfcorpus --fb-docs 5 --fb-terms 50 --alpha 0.8 \
+    --document-expansions data/expansions/nfcorpus-document-test.json --tag doc2query-rm3
+```
+
+**What the expansions contain.** Unlike the query expander in A.10, this one did the job:
+
+| | documents | adding no new term | median new terms | new fraction of generated vocabulary |
+|---|---|---|---|---|
+| NFCorpus | 3633 | 9 | 6 | 0.4133 |
+| SciFact | 5183 | 11 | 5 | 0.3697 |
+
+**Post-hoc, not pre-registered** — whether doc2query adds anything on top of RM3, Holm
+corrected within its own family of two:
+
+| | nDCG@10 | Holm | Recall@100 | Holm |
+|---|---|---|---|---|
+| NFCorpus RM3+doc2query − RM3 | +0.0067 | 0.0692 | +0.0049 | 0.1610 |
+| SciFact RM3+doc2query − RM3 | **+0.0145** | **0.0170** | +0.0033 | 1.0000 |
 
 ## Annexe B — superseded results, and why they are still here
 

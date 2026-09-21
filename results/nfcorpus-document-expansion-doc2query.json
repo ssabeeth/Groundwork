@@ -1,0 +1,89 @@
+{
+  "dataset": "nfcorpus",
+  "split": "test",
+  "tag": "doc2query",
+  "method": "document-expansion",
+  "query_weight": null,
+  "metrics": {
+    "ndcg@1": 0.4189886480908152,
+    "recall@1": 0.0562244107250048,
+    "ndcg@10": 0.3260124867995578,
+    "recall@10": 0.15668584068544383,
+    "ndcg@100": 0.2805641936832207,
+    "recall@100": 0.25153560211384224
+  },
+  "num_queries": 323,
+  "num_documents": 3633,
+  "oracle_recall_at_100": 0.9647038661258809,
+  "expansion": {
+    "dataset": "nfcorpus",
+    "split": "test",
+    "kind": "document",
+    "model": "castorini/doc2query-t5-base-msmarco",
+    "prompt": null,
+    "generations_per_input": 5,
+    "sampling": true,
+    "max_new_tokens": 64,
+    "seed": 0,
+    "batch_size": 8,
+    "num_inputs": 3633,
+    "num_empty": 0,
+    "seconds": 764.9,
+    "groundwork_version": "0.1.0",
+    "python": "3.11.16",
+    "run_at": "2026-09-21T22:07:27+00:00"
+  },
+  "retriever": {
+    "method": "bm25",
+    "variant": "lucene-multifield",
+    "fields": [
+      "title",
+      "text"
+    ],
+    "field_weights": [
+      1.0,
+      1.0
+    ],
+    "k1": 0.9,
+    "b": 0.4,
+    "tokenizer": {
+      "stopwords": "lucene_english",
+      "stem": "porter",
+      "min_length": 1
+    }
+  },
+  "top_k": 100,
+  "gain": "exponential",
+  "graded_qrels": true,
+  "relevance_levels": [
+    1,
+    2
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.4189886480908152,
+      "recall@1": 0.0562244107250048,
+      "ndcg@10": 0.3260124867995578,
+      "recall@10": 0.15668584068544383,
+      "ndcg@100": 0.2805641936832207,
+      "recall@100": 0.25153560211384224
+    },
+    "linear": {
+      "ndcg@1": 0.4241486068111455,
+      "recall@1": 0.0562244107250048,
+      "ndcg@10": 0.3248804961655068,
+      "recall@10": 0.15668584068544383,
+      "ndcg@100": 0.27509623975415093,
+      "recall@100": 0.25153560211384224
+    }
+  },
+  "gain_difference_ndcg_at_10": 0.0011319906340510055,
+  "timing_seconds": {
+    "build": 12.04
+  },
+  "per_query_file": "per-query/nfcorpus-document-expansion-doc2query.json",
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T22:29:05+00:00"
+}
