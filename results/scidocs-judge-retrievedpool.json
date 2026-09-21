@@ -1,0 +1,71 @@
+{
+  "dataset": "scidocs",
+  "split": "test",
+  "tag": "retrievedpool",
+  "method": "llm-judge-calibration",
+  "pool_source": "retrieved",
+  "min_per_class": 1,
+  "pool_retriever": {
+    "method": "bm25",
+    "variant": "lucene-multifield",
+    "fields": [
+      "title",
+      "text"
+    ],
+    "field_weights": [
+      1.0,
+      1.0
+    ],
+    "k1": 0.9,
+    "b": 0.4,
+    "tokenizer": {
+      "stopwords": "lucene_english",
+      "stem": "porter",
+      "min_length": 1
+    }
+  },
+  "depth": 10,
+  "num_pairs": 819,
+  "num_human_relevant": 814,
+  "num_judge_yes": 473,
+  "num_unparseable": 0,
+  "agreement": {
+    "test": "cohens_kappa",
+    "num_items": 819,
+    "raw_agreement": 0.5811965811965812,
+    "chance_agreement": 0.5765868916052066,
+    "cohens_kappa": 0.01088697893376635,
+    "labels": [
+      0,
+      1
+    ],
+    "confusion": [
+      [
+        4,
+        1
+      ],
+      [
+        342,
+        472
+      ]
+    ]
+  },
+  "false_positive": 1,
+  "false_negative": 342,
+  "judge": {
+    "method": "llm-relevance-judge",
+    "model": "google/flan-t5-base",
+    "prompt": "Is the document relevant to the query? Answer yes or no.\n\nQuery: {query}\n\nDocument: {document}\n\nAnswer:",
+    "max_document_chars": 1200,
+    "batch_size": 16,
+    "seed": 0,
+    "device": "mps"
+  },
+  "timing_seconds": {
+    "judge": 52.4
+  },
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T17:43:49+00:00"
+}

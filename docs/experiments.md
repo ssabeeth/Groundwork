@@ -1609,6 +1609,113 @@ time the bound is stated before the run rather than after.
 
 ---
 
+## 2026-09-21 — Experiment 16 (result): what an uncalibrated LLM judge is worth
+
+**The headline is the gap between two numbers that describe the same run.**
+
+On SciDocs, over 4,000 human-labelled pairs, `flan-t5-base` agrees with the human
+assessors on **74.9%** of them. Reported alone, that reads as a serviceable judge. Chance
+agreement, given how often each side says "relevant", is **70.7%**. Cohen's kappa is
+therefore **0.1433** — slight agreement, and nearly all of the raw figure is the two
+parties independently saying "no" to a pool that is mostly non-relevant.
+
+TREC-COVID is the same story with different arithmetic: 66.5% raw, 58.3% chance, kappa
+0.1965. Anyone reporting the raw figure has overstated their judge by roughly a factor of
+four on one dataset and three on the other.
+
+| | SciDocs | TREC-COVID |
+|---|---|---|
+| Pairs | 4,000 | 4,000 |
+| Human called relevant | 606 (15.2%) | 1,489 (37.2%) |
+| Judge called relevant | 812 (20.3%) | 709 (17.7%) |
+| Unparseable verdicts | 0 | 0 |
+| Raw agreement | 0.7490 | 0.6645 |
+| Chance agreement | 0.7070 | 0.5825 |
+| **Cohen's kappa** | **0.1433** | **0.1965** |
+| Called relevant, human did not | 605 | 281 |
+| Missed a relevant one | 399 | 1,061 |
+
+**H1 held on both.** Predicted kappa below 0.4; measured 0.1433 and 0.1965.
+
+**H3 held.** Predicted kappa higher on TREC-COVID than SciDocs, because topical relevance
+is something an instruction-tuned model can assess and citation relevance is not something
+either document's text reveals. 0.1965 against 0.1433.
+
+**H2 failed, and the failure is worth more than the prediction was.** I predicted the
+judge would lean toward yes, on the reasoning that every pair it sees is topically
+plausible. That holds on SciDocs — 20.3% against the humans' 15.2% — and inverts on
+TREC-COVID, where it calls 17.7% relevant against a human rate of 37.2% and misses 1,061
+relevant documents.
+
+Putting the two rows together explains both. **The judge says yes on 17.7% and 20.3% of
+pairs, on datasets whose true relevance rates are 37.2% and 15.2%.** Its positive rate is
+near-constant while the underlying prevalence differs by a factor of 2.4. It is not biased
+toward yes or toward no; it has a fixed answering rate that does not track the data at all,
+and which direction it *appears* biased in is a property of the dataset rather than of the
+judge.
+
+That is a more useful characterisation than H2's, and it is also more damaging. A judge
+with a fixed positive rate cannot be corrected by moving a threshold, because the thing it
+is failing to do is respond to prevalence. And an evaluator comparing two systems on a
+corpus where relevance is dense will be told, by this judge, that both retrieve far less
+than they do.
+
+### The confusion matrix matters more than kappa
+
+On SciDocs the judge found 207 of 606 relevant documents, and 605 of the 812 it called
+relevant were not. On TREC-COVID it found 428 of 1,489. Neither is a conservative judge or
+an eager one; both are weakly correlated judges, wrong in both directions at once. Kappa
+compresses that into one number, which is why the counts are recorded beside it.
+
+### The methodological failure that came first, and is the more useful lesson
+
+The first run of this experiment returned kappa 0.0109 and it meant nothing at all.
+
+The pool was sampled from the top 10 of a BM25 run, on the reasoning that those are the
+documents a RAG system would actually put in front of a model. On SciDocs that produced
+819 labelled pairs of which **814 were relevant**. The corpus is large, the judged pool is
+small relative to it, and the non-relevant judgements are hard negatives that a lexical
+matcher does not surface — so the "realistic" pool was 99.4% one class. With a pool that
+skewed, chance agreement approaches the observed rate and kappa approaches zero regardless
+of how good the judge is.
+
+That run is preserved as `results/scidocs-judge-retrievedpool.json`, reproducible with
+`--source retrieved --min-per-class 1`, which is the only reason the balance guard is
+adjustable at all. It was deleted when the experiment was re-run and had to be
+regenerated, because this log quotes its numbers and a log entry describing a run nothing
+produced is the failure the documentation test exists to catch. It came back
+bit-identical.
+
+The guard written specifically to prevent this checked the wrong object. It verified that
+the *dataset* contained non-relevant judgements, which SciDocs does, 25,000 of them. It
+never checked that the *sample* did. The check now runs on the pool that is actually
+returned and refuses fewer than thirty of either class.
+
+That is the transferable part of this entry. A skew guard on the population is not a skew
+guard on the sample, and an agreement statistic computed over a degenerate sample fails
+quietly — it returns a plausible small number rather than an error.
+
+
+### What this means for evaluating RAG
+
+Neither kappa clears 0.2. On the conventional reading that is "slight" agreement, and it
+is the level at which a judge's verdict should be treated as a noisy signal rather than a
+label. An evaluation that substitutes this judge for a human assessor is not measuring
+retrieval quality; it is measuring a model's prior, with an error rate four times larger
+than its raw agreement suggests.
+
+That bounds `flan-t5-base` and nothing more — the same bound experiment 7 had to accept
+for its reranker, and stated in advance here rather than after the fact. A larger judge
+would very likely do better. The transferable claim is not "LLM judges do not work", it is
+that **an uncalibrated one is not evidence**, and that the cost of calibrating is one
+afternoon against a benchmark that ships human labels.
+
+**Next:** the obvious follow-up is a larger judge on the same pools, which would turn this
+from one point into a curve. The infrastructure is now in place for that to be a single
+command.
+
+---
+
 ## Still open
 
 | Question | Settles |

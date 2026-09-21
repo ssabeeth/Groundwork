@@ -67,6 +67,14 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Judge at most this many pairs, sampled deterministically",
     )
+    parser.add_argument(
+        "--min-per-class",
+        type=int,
+        default=30,
+        help="Refuse a pool with fewer than this many of either class. Lowering it "
+        "reproduces the degenerate pool that made the first run of experiment 16 "
+        "meaningless, which is the only reason it is adjustable",
+    )
     parser.add_argument("--tag", default="")
     parser.add_argument("--output", default=None)
     return parser.parse_args()
@@ -104,7 +112,13 @@ def main() -> int:
 
     # Raises when the qrels carry no non-relevant judgements, which is the case for
     # SciFact and NFCorpus and is the reason this experiment covers two datasets.
-    pairs = judgeable_pairs(dataset.qrels, run, depth=args.depth, source=args.source)
+    pairs = judgeable_pairs(
+        dataset.qrels,
+        run,
+        depth=args.depth,
+        source=args.source,
+        min_per_class=args.min_per_class,
+    )
     if args.max_pairs is not None and len(pairs) > args.max_pairs:
         # Even, deterministic thinning rather than a random sample, so the run
         # reproduces and the class balance of the pool is preserved.
@@ -160,6 +174,7 @@ def main() -> int:
         "tag": args.tag,
         "method": "llm-judge-calibration",
         "pool_source": args.source,
+        "min_per_class": args.min_per_class,
         "pool_retriever": retriever_settings,
         "depth": args.depth,
         "num_pairs": len(pairs),
