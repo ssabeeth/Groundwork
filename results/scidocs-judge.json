@@ -1,0 +1,52 @@
+{
+  "dataset": "scidocs",
+  "split": "test",
+  "tag": "",
+  "method": "llm-judge-calibration",
+  "pool_source": "qrels",
+  "pool_retriever": null,
+  "depth": 10,
+  "num_pairs": 4000,
+  "num_human_relevant": 606,
+  "num_judge_yes": 812,
+  "num_unparseable": 0,
+  "agreement": {
+    "test": "cohens_kappa",
+    "num_items": 4000,
+    "raw_agreement": 0.749,
+    "chance_agreement": 0.7070090000000001,
+    "cohens_kappa": 0.14331839544559358,
+    "labels": [
+      0,
+      1
+    ],
+    "confusion": [
+      [
+        2789,
+        605
+      ],
+      [
+        399,
+        207
+      ]
+    ]
+  },
+  "false_positive": 605,
+  "false_negative": 399,
+  "judge": {
+    "method": "llm-relevance-judge",
+    "model": "google/flan-t5-base",
+    "prompt": "Is the document relevant to the query? Answer yes or no.\n\nQuery: {query}\n\nDocument: {document}\n\nAnswer:",
+    "max_document_chars": 1200,
+    "batch_size": 16,
+    "seed": 0,
+    "device": "mps"
+  },
+  "timing_seconds": {
+    "judge": 285.8
+  },
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T17:35:26+00:00"
+}

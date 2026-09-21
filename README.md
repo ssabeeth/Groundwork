@@ -364,15 +364,22 @@ Dense and hybrid retrieval need the optional `dense` extra, which pulls in torch
 pip install -e ".[dense]"
 ```
 
-The core package stays on numpy and tqdm; everything except dense and hybrid runs without
-it. The `dense` extra is pinned rather than ranged, because the obvious unpinned
+The MCP server needs its own extra:
+
+```bash
+pip install -e ".[dense,mcp]"
+python -m groundwork.server --dataset scifact
+```
+
+The core package stays on numpy and tqdm; everything except dense retrieval, generation
+and the server runs without it. The `dense` extra is pinned rather than ranged, because the obvious unpinned
 specification resolves to a torch/numpy combination that fails at import — see
 `docs/decisions.md`.
 
 ## Development
 
 ```bash
-pytest          # 308 tests
+pytest          # 394 tests
 ruff check .
 ruff format .
 ```
@@ -383,29 +390,39 @@ CI runs lint, format check and tests on every push.
 
 ```
 src/groundwork/
-  data/beir.py          dataset download and loading
+  data/beir.py          dataset download, loading, published baselines
   retrieval/bm25.py     Lucene-variant BM25, single- and multi-field
   retrieval/rm3.py      RM3 pseudo-relevance feedback
   retrieval/dense.py    bi-encoder dense retrieval (optional extra)
   retrieval/fusion.py   reciprocal rank fusion
   retrieval/rerank.py   cross-encoder reranking
   retrieval/routing.py  per-query system selection, and its oracle ceiling
+  retrieval/expansion.py  query and document expansion (HyDE, doc2query)
   retrieval/tokenize.py tokenisation, stopwords, stemming
   eval/metrics.py       nDCG@k, recall@k, per-query scoring, oracle recall
   eval/significance.py  paired randomisation test, Spearman, Holm-Bonferroni
-scripts/run_baseline.py the one command behind the results table
-scripts/run_sweep.py    k1/b grid over one shared index
-scripts/run_rm3.py      RM3, with its own train-tuned sweep
-scripts/run_dense.py    bi-encoder retrieval, embeddings cached
-scripts/run_hybrid.py   RRF over BM25/dense/RM3, k tuned on train
-scripts/run_router.py   per-query routing against its oracle ceiling
-scripts/compare_runs.py paired significance test between two runs
-scripts/analyse_queries.py  the pre-specified query-type hypothesis
-scripts/diagnose_query_fields.py  TREC-COVID query formulation spread
+  eval/agreement.py     Cohen's kappa, for scoring a judge against a human
+  eval/judge.py         an LLM relevance judge, and what it is worth
+  generate.py           answers with citations, checked against what was retrieved
+  server.py             MCP server (optional extra)
+scripts/run_baseline.py  the one command behind the results table
+scripts/run_sweep.py     k1/b grid over one shared index
+scripts/run_rm3.py       RM3, with its own train-tuned sweep
+scripts/run_dense.py     bi-encoder retrieval, embeddings cached
+scripts/run_hybrid.py    RRF over BM25/dense/RM3, k tuned on train
+scripts/run_router.py    per-query routing against its oracle ceiling
+scripts/run_expanded.py  BM25 over expanded queries or documents
+scripts/run_judge.py     an LLM judge scored against human assessors
+scripts/generate_expansions.py     generate expansions once, and commit them
+scripts/compare_runs.py            paired significance test between two runs
+scripts/analyse_queries.py         the pre-specified query-type hypothesis
+scripts/combine_query_analyses.py  Holm correction across every test of it
+scripts/diagnose_query_fields.py   TREC-COVID query formulation spread
 docs/experiments.md     running log, including what failed
 docs/decisions.md       why the load-bearing choices are what they are
-tests/                  308 tests
+tests/                  394 tests
 ```
+
 ## Annexe A — full results
 
 Every figure below is read out of a JSON file in `results/`, written by a script in this
