@@ -1537,6 +1537,78 @@ pre-registered here.
 
 ---
 
+## Experiment 16 (pre-registration): how much does an LLM judge agree with a human?
+
+**Written before the judge was run on anything.**
+
+Roadmap item 13 asked for "answer generation with citations, and an LLM judge calibrated
+against human labels". The second half is the measurable one, and it is the half that RAG
+evaluation in 2026 almost always skips: a model is asked whether a document is relevant,
+or whether an answer is supported, and its verdict is then reported as though it were
+ground truth. It is not. It is a measurement made by a model, and nobody quotes its error
+rate.
+
+This benchmark has something most RAG evaluations do not: thousands of relevance
+judgements made by people. So the judge can be scored the same way any other system here
+is scored — against a baseline established first.
+
+**Cohen's kappa, not raw agreement.** Relevance pools are overwhelmingly non-relevant. A
+judge that answers "no" to everything scores above 90% raw agreement on a typical pool
+while discriminating nothing, and kappa reports that correctly as 0.
+
+**Only two datasets can be used, and finding that out was part of the work.**
+
+| Dataset | Judged pairs | Explicit non-relevant |
+|---|---|---|
+| SciFact | 339 | 0 |
+| NFCorpus | 12,334 | 0 |
+| SciDocs | 29,928 | 25,000 |
+| TREC-COVID | 66,336 | 41,661 |
+
+SciFact and NFCorpus ship only positive judgements. A judge could be scored there against
+the convention that unjudged means non-relevant — which is right for computing nDCG, where
+it applies equally to every system, and wrong as ground truth for an assessor, because an
+unjudged document is one no human ever looked at and the judge may be correct about it.
+`judgeable_pairs` raises rather than quietly returning a single-class pool.
+
+**Setup.** `flan-t5-base` is asked, for each judged document in the top 10 of the best
+retrieval run, whether it is relevant to the query. Verdicts are parsed to yes/no;
+anything else is counted as unparseable and dropped rather than coerced, because coercing
+to "no" on a mostly-non-relevant pool would inflate agreement.
+
+---
+
+**H1.** Kappa is **below 0.4** on both datasets — fair agreement at best by the
+conventional reading, and well short of what would justify substituting the judge for a
+human assessor. A 250M-parameter instruction-tuned model is not a trained relevance
+assessor and has no access to the assessment guidelines the humans worked from.
+
+**H2.** The judge is biased toward **yes**. Its errors are mostly non-relevant documents
+called relevant, not the reverse. The pairs it sees are the top 10 of a retrieval run, so
+every one of them is topically plausible, and the question "is this relevant" is much
+easier to answer affirmatively than the humans' actual question, which is whether the
+document addresses the specific information need.
+
+**H3.** Kappa is **higher on TREC-COVID than on SciDocs.** TREC-COVID relevance is topical
+— does this paper concern this aspect of COVID-19 — which is close to what an instruction-
+tuned model can assess. SciDocs relevance is citational: whether one paper cites another
+is not something the text of either reveals, and experiment 11 already showed that
+lexical signal predicts nothing there.
+
+**Why H3 is the interesting one.** If it holds, the reading is that LLM judges work on
+tasks where relevance is semantic and fail where it is relational — which is a constraint
+on where LLM-as-judge can be used at all, not a statement about this particular model. If
+kappa is near zero on both, the honest conclusion is stronger and simpler: an
+uncalibrated LLM judge is not evidence, and any RAG evaluation resting on one is
+reporting the model's prior rather than a measurement.
+
+**What this does not test.** Answer faithfulness, which is the other thing LLM judges are
+used for, and a larger judge. A negative result here bounds `flan-t5-base` on relevance
+assessment, exactly as experiment 7's bounded its reranker; the difference is that this
+time the bound is stated before the run rather than after.
+
+---
+
 ## Still open
 
 | Question | Settles |

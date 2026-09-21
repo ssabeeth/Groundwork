@@ -53,6 +53,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--sweep", action="store_true", help="Grid over the three parameters")
     parser.add_argument("--select-on", default="ndcg@10", help="Metric the sweep maximises")
+    parser.add_argument(
+        "--document-expansions",
+        default=None,
+        help="Index a doc2query-expanded corpus, to test whether the two stack",
+    )
     parser.add_argument("--tag", default="", help="Short label for this run")
     parser.add_argument("--output", default=None)
     return parser.parse_args()
@@ -85,7 +90,20 @@ def main() -> int:
     )
 
     start = time.perf_counter()
-    base.index(dataset.corpus)
+    corpus = dataset.corpus
+    expansion_settings = None
+    if args.document_expansions:
+        # Experiment 14 predicts doc2query and RM3 are NOT additive: both close the same
+        # vocabulary gap, and a gap can only be closed once. Testing that needs RM3 over
+        # the expanded corpus, which is the only reason this flag exists.
+        from groundwork.retrieval.expansion import expand_documents
+
+        record = json.loads(Path(args.document_expansions).read_text(encoding="utf-8"))
+        corpus = expand_documents(dataset.corpus, record["expansions"])
+        expansion_settings = {k: v for k, v in record.items() if k != "expansions"}
+        print(f"  indexing a doc2query-expanded corpus ({record['model']})")
+
+    base.index(corpus)
     index_seconds = time.perf_counter() - start
     print(f"  indexed in {index_seconds:.1f}s")
 
@@ -132,6 +150,7 @@ def main() -> int:
             "best": best,
             "cells": cells,
             "base_bm25": {"k1": args.k1, "b": args.b},
+            "document_expansion": expansion_settings,
             # A sweep record that does not say which index it swept is how a single-field
             # sweep survived the multi-field migration unnoticed.
             "retriever": base.describe(),
@@ -186,9 +205,12 @@ def main() -> int:
         "method": "rm3",
         "metrics": {k: v for k, v in metrics.items() if k != "num_queries"},
         "num_queries": int(metrics["num_queries"]),
-        "num_documents": len(dataset.corpus),
+        "num_documents": len(corpus),
         "oracle_recall_at_100": oracle_recall_at_k(dataset.qrels, 100),
         "retriever": base.describe(),
+        # None for an ordinary RM3 run. Set when RM3 is layered on a doc2query-expanded
+        # corpus, which is a different system and must not share a filename silently.
+        "document_expansion": expansion_settings,
         "top_k": args.top_k,
         "gain": args.gain,
         "graded_qrels": len(levels_present) > 1,
