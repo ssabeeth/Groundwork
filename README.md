@@ -3,16 +3,20 @@
 Retrieval over scientific literature, with the numbers measured rather than assumed.
 
 Most RAG projects pick a retrieval method and move on. This one treats the choice as the
-experiment: BM25, RM3, dense, hybrid and reranked retrieval are scored against the same
-human relevance judgements, with a tested evaluation harness, and the results are
-reported including the ones that did not help — and including the ones this project got
-wrong and had to take back.
+experiment: BM25, RM3, dense, hybrid, reranked, expanded and routed retrieval are scored
+against the same human relevance judgements, with a tested evaluation harness, and the
+results are reported including the ones that did not help — and including the ones this
+project got wrong and had to take back.
 
-**Status:** twelve experiments across four BEIR datasets. Every method is measured on one
-harness with paired significance testing throughout, every figure in this file is checked
-against a committed run by CI, and two hypotheses were pre-registered in the log before
-the data was touched. Start with the note below: three results here replaced earlier
-results of this project's own, and one pre-registered prediction failed outright.
+**Status:** sixteen experiments across four BEIR datasets, three of them still running,
+with an LLM judge and an MCP server on top. Every method is measured on one harness with
+paired significance testing throughout, and every figure in this file is checked against a
+committed run by CI.
+
+Start with the note below. Six experiments were pre-registered in the log and committed to
+git before their data was touched; **three of those predictions turned out wrong and are
+still on the page**, including the one this project's central claim rested on. Three
+further results replaced earlier results of this project's own.
 
 ---
 
