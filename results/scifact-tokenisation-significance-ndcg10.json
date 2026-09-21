@@ -1,96 +1,96 @@
 {
   "metric": "ndcg@10",
   "seed": 0,
-  "resamples": 100000,
+  "resamples": 10000,
   "holm_adjusted": true,
   "comparisons": [
     {
       "a": {
         "file": "results/scifact-bm25.json",
-        "label": "baseline (stem=porter, stopwords=lucene_english)"
+        "label": "bm25 [bm25] (stem=porter, stopwords=lucene_english)"
       },
       "b": {
         "file": "results/scifact-bm25-no-stem.json",
-        "label": "no-stem (stem=none, stopwords=lucene_english)"
+        "label": "no-stem [bm25] (stem=none, stopwords=lucene_english)"
       },
       "metric": "ndcg@10",
       "test": "paired_randomisation",
       "alternative": "two-sided",
-      "delta": 0.01750551484227733,
-      "p_value": 0.05537944620553795,
+      "delta": 0.03094626054570016,
+      "p_value": 0.0051994800519948,
       "num_queries": 300,
-      "num_ties": 235,
-      "effective_queries": 65,
+      "num_ties": 213,
+      "effective_queries": 87,
       "method": "monte-carlo",
-      "num_assignments": 100000,
+      "num_assignments": 10000,
       "seed": 0,
-      "p_value_holm": 0.16613833861661384
+      "p_value_holm": 0.0155984401559844
     },
     {
       "a": {
         "file": "results/scifact-bm25-no-stopwords.json",
-        "label": "no-stopwords (stem=porter, stopwords=none)"
+        "label": "no-stopwords [bm25] (stem=porter, stopwords=none)"
       },
       "b": {
         "file": "results/scifact-bm25-plain.json",
-        "label": "plain (stem=none, stopwords=none)"
+        "label": "plain [bm25] (stem=none, stopwords=none)"
       },
       "metric": "ndcg@10",
       "test": "paired_randomisation",
       "alternative": "two-sided",
-      "delta": 0.020365399735856608,
-      "p_value": 0.027499725002749973,
+      "delta": 0.035294996710458645,
+      "p_value": 0.0025997400259974,
       "num_queries": 300,
-      "num_ties": 234,
-      "effective_queries": 66,
+      "num_ties": 217,
+      "effective_queries": 83,
       "method": "monte-carlo",
-      "num_assignments": 100000,
+      "num_assignments": 10000,
       "seed": 0,
-      "p_value_holm": 0.10999890001099989
+      "p_value_holm": 0.0103989601039896
     },
     {
       "a": {
         "file": "results/scifact-bm25.json",
-        "label": "baseline (stem=porter, stopwords=lucene_english)"
+        "label": "bm25 [bm25] (stem=porter, stopwords=lucene_english)"
       },
       "b": {
         "file": "results/scifact-bm25-no-stopwords.json",
-        "label": "no-stopwords (stem=porter, stopwords=none)"
+        "label": "no-stopwords [bm25] (stem=porter, stopwords=none)"
       },
       "metric": "ndcg@10",
       "test": "paired_randomisation",
       "alternative": "two-sided",
-      "delta": -0.0012209436153972142,
-      "p_value": 0.6982330176698233,
+      "delta": 0.003169940156594745,
+      "p_value": 0.4607539246075392,
       "num_queries": 300,
-      "num_ties": 283,
-      "effective_queries": 17,
+      "num_ties": 256,
+      "effective_queries": 44,
       "method": "monte-carlo",
-      "num_assignments": 100000,
+      "num_assignments": 10000,
       "seed": 0,
-      "p_value_holm": 1.0
+      "p_value_holm": 0.4607539246075392
     },
     {
       "a": {
         "file": "results/scifact-bm25-no-stem.json",
-        "label": "no-stem (stem=none, stopwords=lucene_english)"
+        "label": "no-stem [bm25] (stem=none, stopwords=lucene_english)"
       },
       "b": {
         "file": "results/scifact-bm25-plain.json",
-        "label": "plain (stem=none, stopwords=none)"
+        "label": "plain [bm25] (stem=none, stopwords=none)"
       },
       "metric": "ndcg@10",
       "test": "paired_randomisation",
       "alternative": "two-sided",
-      "delta": 0.0016389412781820612,
-      "p_value": 0.5140148598514015,
+      "delta": 0.007518676321353229,
+      "p_value": 0.128987101289871,
       "num_queries": 300,
-      "num_ties": 286,
-      "effective_queries": 14,
+      "num_ties": 252,
+      "effective_queries": 48,
       "method": "monte-carlo",
-      "num_assignments": 100000,
+      "num_assignments": 10000,
       "seed": 0,
-      "p_value_holm": 1.0
+      "p_value_holm": 0.257974202579742
     }
   ]
 }

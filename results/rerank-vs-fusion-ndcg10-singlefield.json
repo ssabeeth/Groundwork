@@ -1,0 +1,53 @@
+{
+  "metric": "ndcg@10",
+  "seed": 0,
+  "resamples": 100000,
+  "holm_adjusted": true,
+  "comparisons": [
+    {
+      "a": {
+        "file": "results/scifact-rrf-rerank-reranked-singlefield.json",
+        "label": "reranked [rrf] (bm25+dense, k=1.0)"
+      },
+      "b": {
+        "file": "results/scifact-rrf-tuned-singlefield.json",
+        "label": "tuned [rrf] (bm25+dense, k=1.0)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": -0.02809329117096088,
+      "p_value": 0.047249527504724956,
+      "num_queries": 300,
+      "num_ties": 188,
+      "effective_queries": 112,
+      "method": "monte-carlo",
+      "num_assignments": 100000,
+      "seed": 0,
+      "p_value_holm": 0.09449905500944991
+    },
+    {
+      "a": {
+        "file": "results/nfcorpus-rrf-rerank-reranked-singlefield.json",
+        "label": "reranked [rrf] (bm25+dense, k=10.0)"
+      },
+      "b": {
+        "file": "results/nfcorpus-rrf-tuned-singlefield.json",
+        "label": "tuned [rrf] (bm25+dense, k=10.0)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": -0.0004923029902405588,
+      "p_value": 0.9359106408935911,
+      "num_queries": 323,
+      "num_ties": 123,
+      "effective_queries": 200,
+      "method": "monte-carlo",
+      "num_assignments": 100000,
+      "seed": 0,
+      "p_value_holm": 0.9359106408935911
+    }
+  ],
+  "note": "Pre-migration comparison: the runs compared here scored title+text concatenated as one field. Preserved because the experiment log entries written before experiment 10 quote these p-values, and those entries describe real tests. See docs/decisions.md."
+}

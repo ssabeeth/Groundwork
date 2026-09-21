@@ -1,0 +1,97 @@
+{
+  "metric": "recall@100",
+  "seed": 0,
+  "resamples": 100000,
+  "holm_adjusted": true,
+  "comparisons": [
+    {
+      "a": {
+        "file": "results/nfcorpus-rrf-tuned-singlefield.json",
+        "label": "tuned [rrf] (bm25+dense, k=10.0)"
+      },
+      "b": {
+        "file": "results/nfcorpus-bm25-graded-singlefield.json",
+        "label": "graded [bm25] (stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "recall@100",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.0756305007321808,
+      "p_value": 9.99990000099999e-06,
+      "num_queries": 323,
+      "num_ties": 142,
+      "effective_queries": 181,
+      "method": "monte-carlo",
+      "num_assignments": 100000,
+      "seed": 0,
+      "p_value_holm": 3.999960000399996e-05
+    },
+    {
+      "a": {
+        "file": "results/nfcorpus-rrf-tuned-singlefield.json",
+        "label": "tuned [rrf] (bm25+dense, k=10.0)"
+      },
+      "b": {
+        "file": "results/nfcorpus-dense.json",
+        "label": "dense [dense] (sentence-transformers/all-MiniLM-L6-v2, truncated=79%)"
+      },
+      "metric": "recall@100",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.010199034361934796,
+      "p_value": 0.06363936360636394,
+      "num_queries": 323,
+      "num_ties": 181,
+      "effective_queries": 142,
+      "method": "monte-carlo",
+      "num_assignments": 100000,
+      "seed": 0,
+      "p_value_holm": 0.12727872721272787
+    },
+    {
+      "a": {
+        "file": "results/nfcorpus-rrf-tuned-singlefield.json",
+        "label": "tuned [rrf] (bm25+dense, k=10.0)"
+      },
+      "b": {
+        "file": "results/nfcorpus-rm3-tuned-singlefield.json",
+        "label": "tuned [rm3] (fb=5, terms=50, alpha=0.8, stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "recall@100",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.011178857873195456,
+      "p_value": 0.3394466055339447,
+      "num_queries": 323,
+      "num_ties": 119,
+      "effective_queries": 204,
+      "method": "monte-carlo",
+      "num_assignments": 100000,
+      "seed": 0,
+      "p_value_holm": 0.3394466055339447
+    },
+    {
+      "a": {
+        "file": "results/nfcorpus-dense.json",
+        "label": "dense [dense] (sentence-transformers/all-MiniLM-L6-v2, truncated=79%)"
+      },
+      "b": {
+        "file": "results/nfcorpus-bm25-graded-singlefield.json",
+        "label": "graded [bm25] (stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "recall@100",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.06543146637024601,
+      "p_value": 9.99990000099999e-06,
+      "num_queries": 323,
+      "num_ties": 114,
+      "effective_queries": 209,
+      "method": "monte-carlo",
+      "num_assignments": 100000,
+      "seed": 0,
+      "p_value_holm": 3.999960000399996e-05
+    }
+  ],
+  "note": "Pre-migration comparison: the runs compared here scored title+text concatenated as one field. Preserved because the experiment log entries written before experiment 10 quote these p-values, and those entries describe real tests. See docs/decisions.md."
+}

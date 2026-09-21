@@ -132,6 +132,9 @@ def main() -> int:
             "best": best,
             "cells": cells,
             "base_bm25": {"k1": args.k1, "b": args.b},
+            # A sweep record that does not say which index it swept is how a single-field
+            # sweep survived the multi-field migration unnoticed.
+            "retriever": base.describe(),
             "tokenizer": tokenizer.describe(),
             "timing_seconds": {"index": round(index_seconds, 2), "sweep": round(sweep_seconds, 2)},
             "groundwork_version": __version__,

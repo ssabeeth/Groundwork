@@ -1,0 +1,193 @@
+{
+  "dataset": "nfcorpus",
+  "split": "test",
+  "tag": "bge",
+  "method": "router",
+  "predictor": "max_idf",
+  "metric": "ndcg@10",
+  "lexical_run": "results/nfcorpus-bm25-graded.json",
+  "semantic_run": "results/nfcorpus-dense-bge.json",
+  "num_queries": 323,
+  "single_system": {
+    "lexical": 0.32525857057004137,
+    "semantic": 0.3391030785878129
+  },
+  "oracle": {
+    "score": 0.38867158610332725,
+    "headroom_over_best_single": 0.04956850751551434,
+    "queries_routed_lexical": 207
+  },
+  "quantile_grid": [
+    0.0,
+    0.05,
+    0.1,
+    0.15,
+    0.2,
+    0.25,
+    0.3,
+    0.35,
+    0.4,
+    0.45,
+    0.5,
+    0.55,
+    0.6,
+    0.65,
+    0.7,
+    0.75,
+    0.8,
+    0.85,
+    0.9,
+    0.95,
+    1.0
+  ],
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T12:54:17+00:00",
+  "train_sweep": {
+    "split": "train",
+    "cells": [
+      {
+        "quantile": 0.0,
+        "threshold": 0.0,
+        "score": 0.31952254666826685,
+        "queries_routed_lexical": 2590
+      },
+      {
+        "quantile": 0.05,
+        "threshold": 2.004704786985551,
+        "score": 0.3222847914294728,
+        "queries_routed_lexical": 2461
+      },
+      {
+        "quantile": 0.1,
+        "threshold": 3.174897613339707,
+        "score": 0.324776039648815,
+        "queries_routed_lexical": 2331
+      },
+      {
+        "quantile": 0.15,
+        "threshold": 3.749572873013402,
+        "score": 0.3261581810800017,
+        "queries_routed_lexical": 2204
+      },
+      {
+        "quantile": 0.2,
+        "threshold": 4.112112936404532,
+        "score": 0.3280261478778582,
+        "queries_routed_lexical": 2074
+      },
+      {
+        "quantile": 0.25,
+        "threshold": 4.448585173025745,
+        "score": 0.33186555271284657,
+        "queries_routed_lexical": 1944
+      },
+      {
+        "quantile": 0.3,
+        "threshold": 4.657129924918802,
+        "score": 0.33350395802230504,
+        "queries_routed_lexical": 1824
+      },
+      {
+        "quantile": 0.35,
+        "threshold": 4.92094451596394,
+        "score": 0.3358014229030838,
+        "queries_routed_lexical": 1693
+      },
+      {
+        "quantile": 0.4,
+        "threshold": 5.084573939745742,
+        "score": 0.3368035382319504,
+        "queries_routed_lexical": 1570
+      },
+      {
+        "quantile": 0.45,
+        "threshold": 5.335888368026648,
+        "score": 0.33788919625098424,
+        "queries_routed_lexical": 1459
+      },
+      {
+        "quantile": 0.5,
+        "threshold": 5.595399563511733,
+        "score": 0.33642791125232185,
+        "queries_routed_lexical": 1315
+      },
+      {
+        "quantile": 0.55,
+        "threshold": 5.755742213586912,
+        "score": 0.3363454230501079,
+        "queries_routed_lexical": 1202
+      },
+      {
+        "quantile": 0.6,
+        "threshold": 5.946797450349622,
+        "score": 0.33664740479815136,
+        "queries_routed_lexical": 1085
+      },
+      {
+        "quantile": 0.65,
+        "threshold": 6.1831862284138515,
+        "score": 0.3377502797651671,
+        "queries_routed_lexical": 958
+      },
+      {
+        "quantile": 0.7,
+        "threshold": 6.493341156717691,
+        "score": 0.33901047570275866,
+        "queries_routed_lexical": 788
+      },
+      {
+        "quantile": 0.75,
+        "threshold": 6.694011852179843,
+        "score": 0.33936216946457604,
+        "queries_routed_lexical": 687
+      },
+      {
+        "quantile": 0.8,
+        "threshold": 6.9453262804607485,
+        "score": 0.33802940833938505,
+        "queries_routed_lexical": 552
+      },
+      {
+        "quantile": 0.85,
+        "threshold": 7.2817985170819615,
+        "score": 0.3376702313301553,
+        "queries_routed_lexical": 422
+      },
+      {
+        "quantile": 0.9,
+        "threshold": 7.2817985170819615,
+        "score": 0.3376702313301553,
+        "queries_routed_lexical": 422
+      },
+      {
+        "quantile": 0.95,
+        "threshold": 7.792624140847952,
+        "score": 0.3390436301141663,
+        "queries_routed_lexical": 247
+      },
+      {
+        "quantile": 1.0,
+        "threshold": 7.792624140847952,
+        "score": 0.3390436301141663,
+        "queries_routed_lexical": 247
+      }
+    ],
+    "best": {
+      "quantile": 0.75,
+      "threshold": 6.694011852179843,
+      "score": 0.33936216946457604,
+      "queries_routed_lexical": 687
+    },
+    "lexical_run": "results/nfcorpus-bm25-train.json",
+    "semantic_run": "results/nfcorpus-dense-bge-train.json"
+  },
+  "routed": {
+    "score": 0.34250819429640167,
+    "threshold": 6.694011852179843,
+    "delta_vs_best_single": 0.0034051157085887573,
+    "delta_vs_oracle": -0.04616339180692558,
+    "queries_routed_lexical": 99
+  }
+}

@@ -1,35 +1,35 @@
 {
   "metric": "ndcg@1",
   "seed": 0,
-  "resamples": 100000,
+  "resamples": 10000,
   "holm_adjusted": true,
   "comparisons": [
     {
       "a": {
-        "file": "results/scifact-rrf-rerank-reranked.json",
-        "label": "reranked [rrf] (bm25+dense, k=1.0)"
+        "file": "results/scifact-rrf-rerank-tuned.json",
+        "label": "tuned [rrf] (bm25+dense, k=5.0)"
       },
       "b": {
         "file": "results/scifact-rrf-tuned.json",
-        "label": "tuned [rrf] (bm25+dense, k=1.0)"
+        "label": "tuned [rrf] (bm25+dense, k=5.0)"
       },
       "metric": "ndcg@1",
       "test": "paired_randomisation",
       "alternative": "two-sided",
-      "delta": -0.006666666666666667,
-      "p_value": 0.8817111828881711,
+      "delta": -0.01,
+      "p_value": 0.7728227177282272,
       "num_queries": 300,
-      "num_ties": 256,
-      "effective_queries": 44,
+      "num_ties": 251,
+      "effective_queries": 49,
       "method": "monte-carlo",
-      "num_assignments": 100000,
+      "num_assignments": 10000,
       "seed": 0,
-      "p_value_holm": 0.8817111828881711
+      "p_value_holm": 1.0
     },
     {
       "a": {
-        "file": "results/nfcorpus-rrf-rerank-reranked.json",
-        "label": "reranked [rrf] (bm25+dense, k=10.0)"
+        "file": "results/nfcorpus-rrf-rerank-tuned.json",
+        "label": "tuned [rrf] (bm25+dense, k=10.0)"
       },
       "b": {
         "file": "results/nfcorpus-rrf-tuned.json",
@@ -38,15 +38,59 @@
       "metric": "ndcg@1",
       "test": "paired_randomisation",
       "alternative": "two-sided",
-      "delta": 0.02579979360165119,
-      "p_value": 0.20774792252077479,
+      "delta": 0.058823529411764705,
+      "p_value": 0.007399260073992601,
+      "num_queries": 323,
+      "num_ties": 267,
+      "effective_queries": 56,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.029597040295970403
+    },
+    {
+      "a": {
+        "file": "results/scifact-rrf-rerank-bge.json",
+        "label": "bge [rrf] (bm25+dense, k=1.0)"
+      },
+      "b": {
+        "file": "results/scifact-rrf-bge.json",
+        "label": "bge [rrf] (bm25+dense, k=1.0)"
+      },
+      "metric": "ndcg@1",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": -0.01,
+      "p_value": 0.7709229077092291,
+      "num_queries": 300,
+      "num_ties": 253,
+      "effective_queries": 47,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 1.0
+    },
+    {
+      "a": {
+        "file": "results/nfcorpus-rrf-rerank-bge.json",
+        "label": "bge [rrf] (bm25+dense, k=5.0)"
+      },
+      "b": {
+        "file": "results/nfcorpus-rrf-bge.json",
+        "label": "bge [rrf] (bm25+dense, k=5.0)"
+      },
+      "metric": "ndcg@1",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.026831785345717233,
+      "p_value": 0.18548145185481452,
       "num_queries": 323,
       "num_ties": 276,
       "effective_queries": 47,
       "method": "monte-carlo",
-      "num_assignments": 100000,
+      "num_assignments": 10000,
       "seed": 0,
-      "p_value_holm": 0.41549584504154957
+      "p_value_holm": 0.5564443555644436
     }
   ]
 }

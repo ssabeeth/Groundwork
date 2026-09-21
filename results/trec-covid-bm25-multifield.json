@@ -68,5 +68,6 @@
   "python": "3.11.16",
   "numpy": "1.26.4",
   "run_at": "2026-09-21T11:11:36+00:00",
-  "per_query_file": "per-query/trec-covid-bm25-multifield.json"
+  "per_query_file": "per-query/trec-covid-bm25-multifield.json",
+  "gain_difference_ndcg_at_10": -0.02864117483415518
 }

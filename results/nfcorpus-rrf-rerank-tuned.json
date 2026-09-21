@@ -1,7 +1,7 @@
 {
   "dataset": "nfcorpus",
   "split": "test",
-  "tag": "reranked",
+  "tag": "tuned",
   "method": "rrf",
   "systems": [
     "bm25",
@@ -17,10 +17,10 @@
   "metrics": {
     "ndcg@1": 0.48710010319917424,
     "recall@1": 0.06762809671289025,
-    "ndcg@10": 0.3553604978086847,
-    "recall@10": 0.16497331849304003,
-    "ndcg@100": 0.33482925220852683,
-    "recall@100": 0.32170895837362784
+    "ndcg@10": 0.35545080045036004,
+    "recall@10": 0.16543924432514948,
+    "ndcg@100": 0.3341808728581386,
+    "recall@100": 0.32133344907150524
   },
   "num_queries": 323,
   "num_documents": 3633,
@@ -28,7 +28,15 @@
   "retrievers": {
     "bm25": {
       "method": "bm25",
-      "variant": "lucene",
+      "variant": "lucene-multifield",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "field_weights": [
+        1.0,
+        1.0
+      ],
       "k1": 0.9,
       "b": 0.4,
       "tokenizer": {
@@ -45,6 +53,9 @@
       "normalized": true,
       "max_seq_length": 256,
       "truncation_rate": 0.7883292045141757,
+      "chunk_words": null,
+      "chunk_overlap": null,
+      "num_chunks": 3633,
       "batch_size": 64
     }
   },
@@ -68,26 +79,27 @@
     "exponential": {
       "ndcg@1": 0.48710010319917424,
       "recall@1": 0.06762809671289025,
-      "ndcg@10": 0.3553604978086847,
-      "recall@10": 0.16497331849304003,
-      "ndcg@100": 0.33482925220852683,
-      "recall@100": 0.32170895837362784
+      "ndcg@10": 0.35545080045036004,
+      "recall@10": 0.16543924432514948,
+      "ndcg@100": 0.3341808728581386,
+      "recall@100": 0.32133344907150524
     },
     "linear": {
       "ndcg@1": 0.49226006191950467,
       "recall@1": 0.06762809671289025,
-      "ndcg@10": 0.352974560233863,
-      "recall@10": 0.16497331849304003,
-      "ndcg@100": 0.32801590774553263,
-      "recall@100": 0.32170895837362784
+      "ndcg@10": 0.3529133776958679,
+      "recall@10": 0.16543924432514948,
+      "ndcg@100": 0.32733965163736284,
+      "recall@100": 0.32133344907150524
     }
   },
   "timing_seconds": {
-    "build": 14.6
+    "build": 19.17
   },
-  "per_query_file": "per-query/nfcorpus-rrf-rerank-reranked.json",
+  "per_query_file": "per-query/nfcorpus-rrf-rerank-tuned.json",
   "groundwork_version": "0.1.0",
   "python": "3.11.16",
   "numpy": "1.26.4",
-  "run_at": "2026-09-21T04:28:05+00:00"
+  "run_at": "2026-09-21T12:45:51+00:00",
+  "gain_difference_ndcg_at_10": 0.002537422754492147
 }

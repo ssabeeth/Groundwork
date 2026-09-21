@@ -1,0 +1,97 @@
+{
+  "metric": "ndcg@10",
+  "seed": 0,
+  "resamples": 100000,
+  "holm_adjusted": true,
+  "comparisons": [
+    {
+      "a": {
+        "file": "results/scifact-dense-bge.json",
+        "label": "bge [dense] (BAAI/bge-small-en-v1.5, truncated=9%)"
+      },
+      "b": {
+        "file": "results/scifact-bm25-singlefield.json",
+        "label": "bm25 [bm25] (stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.03979054134544933,
+      "p_value": 0.023229767702322976,
+      "num_queries": 300,
+      "num_ties": 175,
+      "effective_queries": 125,
+      "method": "monte-carlo",
+      "num_assignments": 100000,
+      "seed": 0,
+      "p_value_holm": 0.0929190708092919
+    },
+    {
+      "a": {
+        "file": "results/scifact-dense-bge.json",
+        "label": "bge [dense] (BAAI/bge-small-en-v1.5, truncated=9%)"
+      },
+      "b": {
+        "file": "results/scifact-rrf-tuned-singlefield.json",
+        "label": "tuned [rrf] (bm25+dense, k=1.0)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.005384613556397605,
+      "p_value": 0.7025729742702573,
+      "num_queries": 300,
+      "num_ties": 188,
+      "effective_queries": 112,
+      "method": "monte-carlo",
+      "num_assignments": 100000,
+      "seed": 0,
+      "p_value_holm": 0.7025729742702573
+    },
+    {
+      "a": {
+        "file": "results/nfcorpus-dense-bge.json",
+        "label": "bge [dense] (BAAI/bge-small-en-v1.5, truncated=9%)"
+      },
+      "b": {
+        "file": "results/nfcorpus-bm25-graded-singlefield.json",
+        "label": "graded [bm25] (stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.01669028620214113,
+      "p_value": 0.11989880101198988,
+      "num_queries": 323,
+      "num_ties": 107,
+      "effective_queries": 216,
+      "method": "monte-carlo",
+      "num_assignments": 100000,
+      "seed": 0,
+      "p_value_holm": 0.23979760202397976
+    },
+    {
+      "a": {
+        "file": "results/nfcorpus-dense-bge.json",
+        "label": "bge [dense] (BAAI/bge-small-en-v1.5, truncated=9%)"
+      },
+      "b": {
+        "file": "results/nfcorpus-rrf-tuned-singlefield.json",
+        "label": "tuned [rrf] (bm25+dense, k=10.0)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": -0.016749722211112227,
+      "p_value": 0.03793962060379396,
+      "num_queries": 323,
+      "num_ties": 108,
+      "effective_queries": 215,
+      "method": "monte-carlo",
+      "num_assignments": 100000,
+      "seed": 0,
+      "p_value_holm": 0.11381886181138187
+    }
+  ],
+  "note": "Pre-migration analysis: the runs behind it scored title+text concatenated as one field. Preserved because the experiment 8 and 9 entries quote these figures, and those entries describe real analyses. See docs/decisions.md."
+}

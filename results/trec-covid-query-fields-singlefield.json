@@ -27,7 +27,8 @@
         "recall@10": 0.015485858099731204,
         "ndcg@100": 0.41215269461128484,
         "recall@100": 0.10884491372966852
-      }
+      },
+      "delta_vs_published_ndcg_at_10": -0.09156218994624188
     },
     {
       "formulation": "metadata.query",
@@ -39,7 +40,8 @@
         "recall@10": 0.01730646742178891,
         "ndcg@100": 0.452239514202835,
         "recall@100": 0.12068102090909337
-      }
+      },
+      "delta_vs_published_ndcg_at_10": -0.06999620615434043
     },
     {
       "formulation": "metadata.narrative",
@@ -51,7 +53,8 @@
         "recall@10": 0.012319589832980617,
         "ndcg@100": 0.3380276540234729,
         "recall@100": 0.08699665402496798
-      }
+      },
+      "delta_vs_published_ndcg_at_10": -0.200605522263737
     },
     {
       "formulation": "query+text",
@@ -64,7 +67,8 @@
         "recall@10": 0.019139375688002173,
         "ndcg@100": 0.5087566860364191,
         "recall@100": 0.13722263234730797
-      }
+      },
+      "delta_vs_published_ndcg_at_10": 0.005903443722575119
     },
     {
       "formulation": "query+text+narrative",
@@ -78,7 +82,8 @@
         "recall@10": 0.020120901159894435,
         "ndcg@100": 0.5289952328554913,
         "recall@100": 0.1377332517079039
-      }
+      },
+      "delta_vs_published_ndcg_at_10": 0.04095837629878718
     }
   ],
   "ndcg_at_10_spread": 0.2415638985625242,
@@ -87,5 +92,5 @@
   "python": "3.11.16",
   "numpy": "1.26.4",
   "run_at": "2026-09-21T04:15:21+00:00",
-  "note": "Pre-migration run: BM25 scored title+text concatenated as one field. Preserved because the experiment log entries written before experiment 10 quote these numbers, and those entries describe real runs. See docs/decisions.md."
+  "note": "Pre-migration run: BM25 scored title+text concatenated as one field. Preserved because the experiment log entries written before experiment 10 quote these numbers, and those entries describe real runs. See docs/decisions.md. Derived fields (gain difference, per-formulation deltas, marginal spans) were computed from this file's own recorded values when those fields were added to the schema; they are arithmetic on what the run measured, not new measurements."
 }

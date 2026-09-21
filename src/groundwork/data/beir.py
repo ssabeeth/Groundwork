@@ -23,6 +23,27 @@ logger = logging.getLogger(__name__)
 
 BEIR_URL = "https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/{name}.zip"
 
+# BM25 nDCG@10 as published in the BEIR paper (Thakur et al., 2021), Table 2. Kamalloo
+# et al. (2023), "Resources for Brewing BEIR", reproduce the same column and state the
+# configuration explicitly: Anserini/Lucene with k1=0.9, b=0.4, indexing title and body
+# as separate fields of equal weight. That last detail is why experiment 10 exists.
+#
+# These are quoted from the papers, not measured here, so they are the one kind of figure
+# in this repository that no run produces. They live in the library rather than in a
+# script so that every script and the documentation test read one definition of them.
+REFERENCE_NDCG_10 = {
+    "scifact": 0.665,
+    "trec-covid": 0.656,
+    "nfcorpus": 0.325,
+    "scidocs": 0.158,
+}
+
+# A reimplementation will not match to three decimal places - tokenisation and stemming
+# differ - but landing far outside this means the harness is wrong, not the method. It is
+# absolute rather than relative, so it is a much weaker check on a dataset scoring 0.158
+# than on one scoring 0.665; that asymmetry is recorded in the experiment log.
+REFERENCE_TOLERANCE = 0.03
+
 
 @dataclass(frozen=True)
 class BeirDataset:

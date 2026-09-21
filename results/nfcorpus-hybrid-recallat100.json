@@ -1,7 +1,7 @@
 {
   "metric": "recall@100",
   "seed": 0,
-  "resamples": 100000,
+  "resamples": 10000,
   "holm_adjusted": true,
   "comparisons": [
     {
@@ -16,15 +16,15 @@
       "metric": "recall@100",
       "test": "paired_randomisation",
       "alternative": "two-sided",
-      "delta": 0.0756305007321808,
-      "p_value": 9.99990000099999e-06,
+      "delta": 0.07190891948952743,
+      "p_value": 9.999000099990002e-05,
       "num_queries": 323,
-      "num_ties": 142,
-      "effective_queries": 181,
+      "num_ties": 139,
+      "effective_queries": 184,
       "method": "monte-carlo",
-      "num_assignments": 100000,
+      "num_assignments": 10000,
       "seed": 0,
-      "p_value_holm": 3.999960000399996e-05
+      "p_value_holm": 0.00039996000399960006
     },
     {
       "a": {
@@ -38,15 +38,15 @@
       "metric": "recall@100",
       "test": "paired_randomisation",
       "alternative": "two-sided",
-      "delta": 0.010199034361934796,
-      "p_value": 0.06363936360636394,
+      "delta": 0.009823525059812167,
+      "p_value": 0.06999300069993,
       "num_queries": 323,
-      "num_ties": 181,
-      "effective_queries": 142,
+      "num_ties": 173,
+      "effective_queries": 150,
       "method": "monte-carlo",
-      "num_assignments": 100000,
+      "num_assignments": 10000,
       "seed": 0,
-      "p_value_holm": 0.12727872721272787
+      "p_value_holm": 0.13998600139986
     },
     {
       "a": {
@@ -60,15 +60,15 @@
       "metric": "recall@100",
       "test": "paired_randomisation",
       "alternative": "two-sided",
-      "delta": 0.011178857873195456,
-      "p_value": 0.3394466055339447,
+      "delta": 0.009224670085636094,
+      "p_value": 0.43055694430556946,
       "num_queries": 323,
       "num_ties": 119,
       "effective_queries": 204,
       "method": "monte-carlo",
-      "num_assignments": 100000,
+      "num_assignments": 10000,
       "seed": 0,
-      "p_value_holm": 0.3394466055339447
+      "p_value_holm": 0.43055694430556946
     },
     {
       "a": {
@@ -82,15 +82,15 @@
       "metric": "recall@100",
       "test": "paired_randomisation",
       "alternative": "two-sided",
-      "delta": 0.06543146637024601,
-      "p_value": 9.99990000099999e-06,
+      "delta": 0.06208539442971526,
+      "p_value": 9.999000099990002e-05,
       "num_queries": 323,
-      "num_ties": 114,
-      "effective_queries": 209,
+      "num_ties": 107,
+      "effective_queries": 216,
       "method": "monte-carlo",
-      "num_assignments": 100000,
+      "num_assignments": 10000,
       "seed": 0,
-      "p_value_holm": 3.999960000399996e-05
+      "p_value_holm": 0.00039996000399960006
     }
   ]
 }

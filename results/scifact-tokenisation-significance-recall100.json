@@ -1,94 +1,94 @@
 {
   "metric": "recall@100",
   "seed": 0,
-  "resamples": 100000,
+  "resamples": 10000,
   "holm_adjusted": true,
   "comparisons": [
     {
       "a": {
         "file": "results/scifact-bm25.json",
-        "label": "baseline (stem=porter, stopwords=lucene_english)"
+        "label": "bm25 [bm25] (stem=porter, stopwords=lucene_english)"
       },
       "b": {
         "file": "results/scifact-bm25-no-stem.json",
-        "label": "no-stem (stem=none, stopwords=lucene_english)"
+        "label": "no-stem [bm25] (stem=none, stopwords=lucene_english)"
       },
       "metric": "recall@100",
       "test": "paired_randomisation",
       "alternative": "two-sided",
-      "delta": 0.036111111111111115,
-      "p_value": 0.0045799542004579955,
+      "delta": 0.008333333333333333,
+      "p_value": 0.5461453854614539,
       "num_queries": 300,
-      "num_ties": 284,
-      "effective_queries": 16,
+      "num_ties": 288,
+      "effective_queries": 12,
       "method": "monte-carlo",
-      "num_assignments": 100000,
+      "num_assignments": 10000,
       "seed": 0,
-      "p_value_holm": 0.018319816801831982
+      "p_value_holm": 1.0
     },
     {
       "a": {
         "file": "results/scifact-bm25-no-stopwords.json",
-        "label": "no-stopwords (stem=porter, stopwords=none)"
+        "label": "no-stopwords [bm25] (stem=porter, stopwords=none)"
       },
       "b": {
         "file": "results/scifact-bm25-plain.json",
-        "label": "plain (stem=none, stopwords=none)"
+        "label": "plain [bm25] (stem=none, stopwords=none)"
       },
       "metric": "recall@100",
       "test": "paired_randomisation",
       "alternative": "two-sided",
-      "delta": 0.034444444444444444,
-      "p_value": 0.007139928600713993,
+      "delta": 0.011111111111111113,
+      "p_value": 0.4510548945105489,
       "num_queries": 300,
-      "num_ties": 283,
-      "effective_queries": 17,
+      "num_ties": 282,
+      "effective_queries": 18,
       "method": "monte-carlo",
-      "num_assignments": 100000,
+      "num_assignments": 10000,
       "seed": 0,
-      "p_value_holm": 0.021419785802141978
+      "p_value_holm": 1.0
     },
     {
       "a": {
         "file": "results/scifact-bm25.json",
-        "label": "baseline (stem=porter, stopwords=lucene_english)"
+        "label": "bm25 [bm25] (stem=porter, stopwords=lucene_english)"
       },
       "b": {
         "file": "results/scifact-bm25-no-stopwords.json",
-        "label": "no-stopwords (stem=porter, stopwords=none)"
+        "label": "no-stopwords [bm25] (stem=porter, stopwords=none)"
       },
       "metric": "recall@100",
       "test": "paired_randomisation",
       "alternative": "two-sided",
-      "delta": 0.0023333333333333335,
-      "p_value": 0.4998250017499825,
+      "delta": 0.0022222222222222222,
+      "p_value": 0.5071492850714928,
       "num_queries": 300,
-      "num_ties": 298,
-      "effective_queries": 2,
+      "num_ties": 297,
+      "effective_queries": 3,
       "method": "monte-carlo",
-      "num_assignments": 100000,
+      "num_assignments": 10000,
       "seed": 0,
-      "p_value_holm": 0.999650003499965
+      "p_value_holm": 1.0
     },
     {
       "a": {
         "file": "results/scifact-bm25-no-stem.json",
-        "label": "no-stem (stem=none, stopwords=lucene_english)"
+        "label": "no-stem [bm25] (stem=none, stopwords=lucene_english)"
       },
       "b": {
         "file": "results/scifact-bm25-plain.json",
-        "label": "plain (stem=none, stopwords=none)"
+        "label": "plain [bm25] (stem=none, stopwords=none)"
       },
       "metric": "recall@100",
       "test": "paired_randomisation",
       "alternative": "two-sided",
-      "delta": 0.0006666666666666669,
-      "p_value": 1.0,
+      "delta": 0.005,
+      "p_value": 0.69003099690031,
       "num_queries": 300,
-      "num_ties": 299,
-      "effective_queries": 1,
+      "num_ties": 294,
+      "effective_queries": 6,
       "method": "monte-carlo",
-      "num_assignments": 100000,
+      "num_assignments": 10000,
       "seed": 0,
       "p_value_holm": 1.0
     }

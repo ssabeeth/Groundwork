@@ -178,11 +178,12 @@ numbers reproduce exactly. The rule now holds because it is checked, not because
 followed carefully.
 
 
-## Documents are concatenated, and BEIR does not do that
+## Title and body are separate fields, because BEIR indexes them that way
 
-`BM25Retriever` indexes `title + " " + text` as one bag of words. The docstring used to
-claim this matched BEIR's convention. It does not, and nobody checked until experiment 10
-went looking for the cause of the TREC-COVID reproduction failure.
+`BM25Retriever` indexes `title + " " + text` as one bag of words, and for nine
+experiments that was the default. The docstring claimed it matched BEIR's convention. It
+does not, and nobody checked until experiment 10 went looking for the cause of the
+TREC-COVID reproduction failure.
 
 BEIR's paper is explicit: "We index the title (if available) and passage as separate
 fields for documents." Under Lucene that means each field carries its own document
@@ -195,8 +196,48 @@ TREC-COVID — is a very short *document* under concatenation, so length normali
 inflates whatever it matches. Split into fields it is an ordinary-length title plus an
 empty body that contributes nothing.
 
-`MultiFieldBM25Retriever` implements the BEIR arrangement and experiment 10 measures what
-it is worth. Concatenation remains the default rather than being silently swapped,
-because every result already in this repository was produced with it and changing the
-default would invalidate them all at once; the migration is a decision to take
-deliberately, with the numbers in hand.
+`MultiFieldBM25Retriever` implements the BEIR arrangement, experiment 10 measured what
+it is worth on all three datasets, and **it is now the default**. `--single-field`
+restores concatenation on every script that builds a BM25 index.
+
+The migration was taken rather than avoided because the alternative was worse: a
+repository whose baseline does not match the method its own documentation claims to be
+reproducing, kept that way to protect numbers already published in it. Every
+BM25-derived result was re-run, and the entries that moved say so.
+
+Two consequences worth stating, because both cost something:
+
+- **Pre-migration results are kept, not deleted.** They are real runs and the log entries
+  that quote them describe what actually happened, so they live beside the new ones under
+  a `-singlefield` suffix with a note saying what they are. Deleting them would make the
+  log unverifiable; overwriting them silently is what went wrong once already.
+- **The filename now carries a claim about how the index was built**, so
+  `tests/test_documentation.py` checks it against the retriever's own `describe()`.
+  During the migration several files briefly held concatenated numbers under names that
+  had come to mean multi-field, and nothing detected it. The test exists so that class
+  of mistake cannot be committed again.
+
+## A parameter with no train split is fixed in advance, never swept on test
+
+Every tunable in this repository — `k1`, `b`, RM3's `fb_docs`/`fb_terms`/`alpha`, RRF's
+`k` — is chosen on a train split and scored once on held-out test. Experiment 3 exists
+largely to show what that discipline costs and why it is worth paying: the `k1`/`b`
+sweep's apparent win evaporated on test.
+
+SciDocs has no train split. BEIR ships qrels for its test queries only. That leaves
+three options, and only one of them is honest:
+
+1. Sweep `k` on test and report the best cell. This is the failure mode the train/test
+   split exists to prevent, and it would produce the most flattering number here.
+2. Carry over the `k` chosen on another dataset. Defensible, but it imports a tuning
+   decision made against a different corpus and quietly presents it as untuned.
+3. **Fix `k` at the conventional default of 60 before running anything, and say so.**
+
+Option 3 is what happens, and the value is written into the pre-registration entry
+rather than chosen after seeing the sweep. The cost is a fusion number that is probably
+not the best available — on SciFact and NFCorpus the tuned `k` came out far below 60 —
+and that understatement is the correct direction for a number nothing held out.
+
+The primary use of SciDocs does not touch this at all: the query-dependence analysis has
+no free parameters, which is part of why a dataset without a train split can still
+settle the question it was added to settle.

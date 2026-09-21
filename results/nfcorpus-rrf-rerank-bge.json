@@ -1,0 +1,105 @@
+{
+  "dataset": "nfcorpus",
+  "split": "test",
+  "tag": "bge",
+  "method": "rrf",
+  "systems": [
+    "bm25",
+    "dense"
+  ],
+  "rrf_k": 5.0,
+  "reranker": {
+    "method": "cross-encoder-rerank",
+    "model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+    "depth": 100,
+    "max_length": null
+  },
+  "metrics": {
+    "ndcg@1": 0.4840041279669761,
+    "recall@1": 0.0665961049688242,
+    "ndcg@10": 0.35571875767675615,
+    "recall@10": 0.16643573751864124,
+    "ndcg@100": 0.332488440494873,
+    "recall@100": 0.3148784448251164
+  },
+  "num_queries": 323,
+  "num_documents": 3633,
+  "oracle_recall_at_100": 0.9647038661258809,
+  "retrievers": {
+    "bm25": {
+      "method": "bm25",
+      "variant": "lucene-multifield",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "field_weights": [
+        1.0,
+        1.0
+      ],
+      "k1": 0.9,
+      "b": 0.4,
+      "tokenizer": {
+        "stopwords": "lucene_english",
+        "stem": "porter",
+        "min_length": 1
+      }
+    },
+    "dense": {
+      "method": "dense",
+      "model": "BAAI/bge-small-en-v1.5",
+      "similarity": "cosine",
+      "pooling": "mean",
+      "normalized": true,
+      "max_seq_length": 512,
+      "truncation_rate": 0.09083402146985962,
+      "chunk_words": null,
+      "chunk_overlap": null,
+      "num_chunks": 3633,
+      "batch_size": 64
+    }
+  },
+  "retriever": {
+    "method": "rrf",
+    "systems": [
+      "bm25",
+      "dense"
+    ],
+    "k": 5.0,
+    "tokenizer": {}
+  },
+  "top_k": 100,
+  "gain": "exponential",
+  "graded_qrels": true,
+  "relevance_levels": [
+    1,
+    2
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.4840041279669761,
+      "recall@1": 0.0665961049688242,
+      "ndcg@10": 0.35571875767675615,
+      "recall@10": 0.16643573751864124,
+      "ndcg@100": 0.332488440494873,
+      "recall@100": 0.3148784448251164
+    },
+    "linear": {
+      "ndcg@1": 0.4891640866873065,
+      "recall@1": 0.0665961049688242,
+      "ndcg@10": 0.3533597801025246,
+      "recall@10": 0.16643573751864124,
+      "ndcg@100": 0.3258145264549229,
+      "recall@100": 0.3148784448251164
+    }
+  },
+  "timing_seconds": {
+    "build": 15.14
+  },
+  "per_query_file": "per-query/nfcorpus-rrf-rerank-bge.json",
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T12:51:49+00:00",
+  "gain_difference_ndcg_at_10": 0.0023589775742315355
+}

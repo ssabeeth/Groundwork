@@ -1,28 +1,28 @@
 {
   "metric": "ndcg@10",
   "seed": 0,
-  "resamples": 100000,
+  "resamples": 10000,
   "holm_adjusted": false,
   "comparisons": [
     {
       "a": {
         "file": "results/scifact-bm25-tuned.json",
-        "label": "tuned (stem=porter, stopwords=lucene_english)"
+        "label": "tuned [bm25] (stem=porter, stopwords=lucene_english)"
       },
       "b": {
         "file": "results/scifact-bm25.json",
-        "label": "baseline (stem=porter, stopwords=lucene_english)"
+        "label": "bm25 [bm25] (stem=porter, stopwords=lucene_english)"
       },
       "metric": "ndcg@10",
       "test": "paired_randomisation",
       "alternative": "two-sided",
-      "delta": 0.006262297918051781,
-      "p_value": 0.2173578264217358,
+      "delta": 4.073159499645318e-05,
+      "p_value": 0.9899010098990101,
       "num_queries": 300,
-      "num_ties": 270,
-      "effective_queries": 30,
+      "num_ties": 267,
+      "effective_queries": 33,
       "method": "monte-carlo",
-      "num_assignments": 100000,
+      "num_assignments": 10000,
       "seed": 0
     }
   ]

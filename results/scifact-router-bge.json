@@ -1,0 +1,193 @@
+{
+  "dataset": "scifact",
+  "split": "test",
+  "tag": "bge",
+  "method": "router",
+  "predictor": "max_idf",
+  "metric": "ndcg@10",
+  "lexical_run": "results/scifact-bm25.json",
+  "semantic_run": "results/scifact-dense-bge.json",
+  "num_queries": 300,
+  "single_system": {
+    "lexical": 0.6636172263206429,
+    "semantic": 0.7200042547439367
+  },
+  "oracle": {
+    "score": 0.7749975649260955,
+    "headroom_over_best_single": 0.054993310182158806,
+    "queries_routed_lexical": 227
+  },
+  "quantile_grid": [
+    0.0,
+    0.05,
+    0.1,
+    0.15,
+    0.2,
+    0.25,
+    0.3,
+    0.35,
+    0.4,
+    0.45,
+    0.5,
+    0.55,
+    0.6,
+    0.65,
+    0.7,
+    0.75,
+    0.8,
+    0.85,
+    0.9,
+    0.95,
+    1.0
+  ],
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T12:54:06+00:00",
+  "train_sweep": {
+    "split": "train",
+    "cells": [
+      {
+        "quantile": 0.0,
+        "threshold": 3.1305872931090217,
+        "score": 0.6702198182911826,
+        "queries_routed_lexical": 809
+      },
+      {
+        "quantile": 0.05,
+        "threshold": 4.440852587129909,
+        "score": 0.6785501434347192,
+        "queries_routed_lexical": 768
+      },
+      {
+        "quantile": 0.1,
+        "threshold": 4.9782436287293255,
+        "score": 0.686968046422731,
+        "queries_routed_lexical": 728
+      },
+      {
+        "quantile": 0.15,
+        "threshold": 5.2761875050399345,
+        "score": 0.6943605472011654,
+        "queries_routed_lexical": 692
+      },
+      {
+        "quantile": 0.2,
+        "threshold": 5.532907351887748,
+        "score": 0.7027206533724879,
+        "queries_routed_lexical": 652
+      },
+      {
+        "quantile": 0.25,
+        "threshold": 5.81249221410691,
+        "score": 0.7058814711275493,
+        "queries_routed_lexical": 607
+      },
+      {
+        "quantile": 0.3,
+        "threshold": 6.110985202662906,
+        "score": 0.7102532093888936,
+        "queries_routed_lexical": 572
+      },
+      {
+        "quantile": 0.35,
+        "threshold": 6.302040439425616,
+        "score": 0.7117243119108521,
+        "queries_routed_lexical": 527
+      },
+      {
+        "quantile": 0.4,
+        "threshold": 6.41326607453584,
+        "score": 0.7140466271446407,
+        "queries_routed_lexical": 504
+      },
+      {
+        "quantile": 0.45,
+        "threshold": 6.681530061130519,
+        "score": 0.7238546887412063,
+        "queries_routed_lexical": 447
+      },
+      {
+        "quantile": 0.5,
+        "threshold": 6.848584145793685,
+        "score": 0.727788965002179,
+        "queries_routed_lexical": 418
+      },
+      {
+        "quantile": 0.55,
+        "threshold": 7.049254841255837,
+        "score": 0.7250069359764575,
+        "queries_routed_lexical": 378
+      },
+      {
+        "quantile": 0.6,
+        "threshold": 7.300569269536743,
+        "score": 0.7300479873324348,
+        "queries_routed_lexical": 327
+      },
+      {
+        "quantile": 0.65,
+        "threshold": 7.300569269536743,
+        "score": 0.7300479873324348,
+        "queries_routed_lexical": 327
+      },
+      {
+        "quantile": 0.7,
+        "threshold": 7.6370415061579555,
+        "score": 0.7362465452429237,
+        "queries_routed_lexical": 275
+      },
+      {
+        "quantile": 0.75,
+        "threshold": 7.6370415061579555,
+        "score": 0.7362465452429237,
+        "queries_routed_lexical": 275
+      },
+      {
+        "quantile": 0.8,
+        "threshold": 8.147867129923947,
+        "score": 0.7349751514602384,
+        "queries_routed_lexical": 167
+      },
+      {
+        "quantile": 0.85,
+        "threshold": 8.147867129923947,
+        "score": 0.7349751514602384,
+        "queries_routed_lexical": 167
+      },
+      {
+        "quantile": 0.9,
+        "threshold": 8.147867129923947,
+        "score": 0.7349751514602384,
+        "queries_routed_lexical": 167
+      },
+      {
+        "quantile": 0.95,
+        "threshold": 8.147867129923947,
+        "score": 0.7349751514602384,
+        "queries_routed_lexical": 167
+      },
+      {
+        "quantile": 1.0,
+        "threshold": 8.147867129923947,
+        "score": 0.7349751514602384,
+        "queries_routed_lexical": 167
+      }
+    ],
+    "best": {
+      "quantile": 0.7,
+      "threshold": 7.6370415061579555,
+      "score": 0.7362465452429237,
+      "queries_routed_lexical": 275
+    },
+    "lexical_run": "results/scifact-bm25-train.json",
+    "semantic_run": "results/scifact-dense-bge-train.json"
+  },
+  "routed": {
+    "score": 0.7131340782749919,
+    "threshold": 7.6370415061579555,
+    "delta_vs_best_single": -0.006870176468944833,
+    "delta_vs_oracle": -0.06186348665110364,
+    "queries_routed_lexical": 106
+  }
+}

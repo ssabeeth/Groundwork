@@ -1,0 +1,64 @@
+{
+  "dataset": "scidocs",
+  "split": "test",
+  "tag": "bge",
+  "method": "dense",
+  "metrics": {
+    "ndcg@1": 0.224,
+    "recall@1": 0.04528333333333344,
+    "ndcg@10": 0.1972530482695539,
+    "recall@10": 0.20913333333333264,
+    "ndcg@100": 0.2827960174256923,
+    "recall@100": 0.46270000000000006
+  },
+  "num_queries": 1000,
+  "num_documents": 25657,
+  "oracle_recall_at_100": 1.0,
+  "retriever": {
+    "method": "dense",
+    "model": "BAAI/bge-small-en-v1.5",
+    "similarity": "cosine",
+    "pooling": "mean",
+    "normalized": true,
+    "max_seq_length": 512,
+    "truncation_rate": 0.025373192501071833,
+    "chunk_words": null,
+    "chunk_overlap": null,
+    "num_chunks": 25657,
+    "batch_size": 64
+  },
+  "top_k": 100,
+  "gain": "exponential",
+  "graded_qrels": false,
+  "relevance_levels": [
+    1
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.224,
+      "recall@1": 0.04528333333333344,
+      "ndcg@10": 0.1972530482695539,
+      "recall@10": 0.20913333333333264,
+      "ndcg@100": 0.2827960174256923,
+      "recall@100": 0.46270000000000006
+    },
+    "linear": {
+      "ndcg@1": 0.224,
+      "recall@1": 0.04528333333333344,
+      "ndcg@10": 0.1972530482695539,
+      "recall@10": 0.20913333333333264,
+      "ndcg@100": 0.2827960174256923,
+      "recall@100": 0.46270000000000006
+    }
+  },
+  "timing_seconds": {
+    "encode": 950.27,
+    "retrieve": 4.61
+  },
+  "per_query_file": "per-query/scidocs-dense-bge.json",
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T12:41:43+00:00",
+  "gain_difference_ndcg_at_10": 0.0
+}

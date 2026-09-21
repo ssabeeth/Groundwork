@@ -1,0 +1,85 @@
+{
+  "dataset": "scidocs",
+  "split": "test",
+  "metric": "ndcg@10",
+  "lexical_run": "results/scidocs-bm25.json",
+  "semantic_run": "results/scidocs-dense-bge.json",
+  "num_queries": 1000,
+  "mean_advantage": -0.03955499921086297,
+  "hypothesis": "per-query (ndcg@10 lexical - semantic) correlates positively with max_idf",
+  "primary_predictor": "max_idf",
+  "correlations": {
+    "max_idf": {
+      "test": "spearman_permutation",
+      "alternative": "two-sided",
+      "correlation": 0.001860591896870645,
+      "p_value": 0.9546022698865056,
+      "num_observations": 1000,
+      "num_permutations": 20000,
+      "seed": 0
+    },
+    "mean_idf": {
+      "test": "spearman_permutation",
+      "alternative": "two-sided",
+      "correlation": -0.009858667649871996,
+      "p_value": 0.7575621218939053,
+      "num_observations": 1000,
+      "num_permutations": 20000,
+      "seed": 0,
+      "p_value_holm_secondary": 1.0
+    },
+    "out_of_vocabulary_rate": {
+      "test": "spearman_permutation",
+      "alternative": "two-sided",
+      "correlation": -0.03075492329627332,
+      "p_value": 0.32363381830908455,
+      "num_observations": 1000,
+      "num_permutations": 20000,
+      "seed": 0,
+      "p_value_holm_secondary": 0.9709014549272537
+    },
+    "num_terms": {
+      "test": "spearman_permutation",
+      "alternative": "two-sided",
+      "correlation": -0.019867576081575473,
+      "p_value": 0.5291735413229338,
+      "num_observations": 1000,
+      "num_permutations": 20000,
+      "seed": 0,
+      "p_value_holm_secondary": 1.0
+    }
+  },
+  "terciles": [
+    {
+      "tercile": "lowest",
+      "num_queries": 334,
+      "max_idf_range": [
+        2.4979305275867323,
+        5.214546091547866
+      ],
+      "mean_advantage": -0.04485307118657422
+    },
+    {
+      "tercile": "middle",
+      "num_queries": 333,
+      "max_idf_range": [
+        5.214546091547866,
+        6.768220429463511
+      ],
+      "mean_advantage": -0.04279903538737225
+    },
+    {
+      "tercile": "highest",
+      "num_queries": 333,
+      "max_idf_range": [
+        6.802706605534681,
+        9.747145584701121
+      ],
+      "mean_advantage": -0.03099698093258926
+    }
+  ],
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T12:46:33+00:00"
+}

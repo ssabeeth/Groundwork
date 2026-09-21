@@ -1,5 +1,15 @@
 """Dataset loading."""
 
-from groundwork.data.beir import BeirDataset, load_beir_dataset
+from groundwork.data.beir import (
+    REFERENCE_NDCG_10,
+    REFERENCE_TOLERANCE,
+    BeirDataset,
+    load_beir_dataset,
+)
 
-__all__ = ["BeirDataset", "load_beir_dataset"]
+__all__ = [
+    "REFERENCE_NDCG_10",
+    "REFERENCE_TOLERANCE",
+    "BeirDataset",
+    "load_beir_dataset",
+]

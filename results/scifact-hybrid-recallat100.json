@@ -1,13 +1,13 @@
 {
   "metric": "recall@100",
   "seed": 0,
-  "resamples": 100000,
+  "resamples": 10000,
   "holm_adjusted": true,
   "comparisons": [
     {
       "a": {
         "file": "results/scifact-rrf-tuned.json",
-        "label": "tuned [rrf] (bm25+dense, k=1.0)"
+        "label": "tuned [rrf] (bm25+dense, k=5.0)"
       },
       "b": {
         "file": "results/scifact-bm25.json",
@@ -16,59 +16,59 @@
       "metric": "recall@100",
       "test": "paired_randomisation",
       "alternative": "two-sided",
-      "delta": 0.033,
-      "p_value": 0.005929940700592994,
-      "num_queries": 300,
-      "num_ties": 284,
-      "effective_queries": 16,
-      "method": "monte-carlo",
-      "num_assignments": 100000,
-      "seed": 0,
-      "p_value_holm": 0.023719762802371976
-    },
-    {
-      "a": {
-        "file": "results/scifact-rrf-tuned.json",
-        "label": "tuned [rrf] (bm25+dense, k=1.0)"
-      },
-      "b": {
-        "file": "results/scifact-dense.json",
-        "label": "dense [dense] (sentence-transformers/all-MiniLM-L6-v2, truncated=71%)"
-      },
-      "metric": "recall@100",
-      "test": "paired_randomisation",
-      "alternative": "two-sided",
-      "delta": 0.03,
-      "p_value": 0.02258977410225898,
-      "num_queries": 300,
-      "num_ties": 287,
-      "effective_queries": 13,
-      "method": "monte-carlo",
-      "num_assignments": 100000,
-      "seed": 0,
-      "p_value_holm": 0.05588944110558895
-    },
-    {
-      "a": {
-        "file": "results/scifact-rrf-tuned.json",
-        "label": "tuned [rrf] (bm25+dense, k=1.0)"
-      },
-      "b": {
-        "file": "results/scifact-rm3-tuned.json",
-        "label": "tuned [rm3] (fb=20, terms=20, alpha=0.2, stem=porter, stopwords=lucene_english)"
-      },
-      "metric": "recall@100",
-      "test": "paired_randomisation",
-      "alternative": "two-sided",
-      "delta": 0.029666666666666668,
-      "p_value": 0.018629813701862983,
+      "delta": 0.04911111111111111,
+      "p_value": 9.999000099990002e-05,
       "num_queries": 300,
       "num_ties": 283,
       "effective_queries": 17,
       "method": "monte-carlo",
-      "num_assignments": 100000,
+      "num_assignments": 10000,
       "seed": 0,
-      "p_value_holm": 0.05588944110558895
+      "p_value_holm": 0.00039996000399960006
+    },
+    {
+      "a": {
+        "file": "results/scifact-rrf-tuned.json",
+        "label": "tuned [rrf] (bm25+dense, k=5.0)"
+      },
+      "b": {
+        "file": "results/scifact-dense.json",
+        "label": "dense [dense] (sentence-transformers/all-MiniLM-L6-v2, truncated=71%)"
+      },
+      "metric": "recall@100",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.025,
+      "p_value": 0.0354964503549645,
+      "num_queries": 300,
+      "num_ties": 287,
+      "effective_queries": 13,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.070992900709929
+    },
+    {
+      "a": {
+        "file": "results/scifact-rrf-tuned.json",
+        "label": "tuned [rrf] (bm25+dense, k=5.0)"
+      },
+      "b": {
+        "file": "results/scifact-rm3-tuned.json",
+        "label": "tuned [rm3] (fb=20, terms=50, alpha=0.3, stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "recall@100",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.04466666666666666,
+      "p_value": 0.0004999500049995,
+      "num_queries": 300,
+      "num_ties": 283,
+      "effective_queries": 17,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.0014998500149985001
     },
     {
       "a": {
@@ -82,15 +82,15 @@
       "metric": "recall@100",
       "test": "paired_randomisation",
       "alternative": "two-sided",
-      "delta": 0.0030000000000000014,
-      "p_value": 0.8851311486885132,
+      "delta": 0.02411111111111111,
+      "p_value": 0.15778422157784222,
       "num_queries": 300,
-      "num_ties": 271,
-      "effective_queries": 29,
+      "num_ties": 270,
+      "effective_queries": 30,
       "method": "monte-carlo",
-      "num_assignments": 100000,
+      "num_assignments": 10000,
       "seed": 0,
-      "p_value_holm": 0.8851311486885132
+      "p_value_holm": 0.15778422157784222
     }
   ]
 }

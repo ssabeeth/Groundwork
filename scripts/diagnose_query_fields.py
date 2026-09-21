@@ -34,9 +34,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 import numpy as np
 
 from groundwork import __version__
-from groundwork.data import load_beir_dataset
+from groundwork.data import REFERENCE_NDCG_10, load_beir_dataset
 from groundwork.eval import evaluate_run
-from groundwork.retrieval import LUCENE_ENGLISH_STOPWORDS, BM25Retriever, Tokenizer
+from groundwork.retrieval import (
+    LUCENE_ENGLISH_STOPWORDS,
+    BM25Retriever,
+    MultiFieldBM25Retriever,
+    Tokenizer,
+)
 
 # How each formulation is assembled from a queries.jsonl record.
 FORMULATIONS = {
@@ -58,6 +63,11 @@ def field(record: dict, path: str) -> str:
     return str(value) if value is not None else ""
 
 
+# Each formulation is reported against the published BM25 figure rather than against the
+# canonical one, because the question here is how far a formulation choice moves you from
+# the number BEIR reports. Read from run_baseline.py so there is one definition of it.
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset", default="trec-covid")
@@ -67,6 +77,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--b", type=float, default=0.4)
     parser.add_argument("--top-k", type=int, default=100)
     parser.add_argument("--gain", default="exponential", choices=["exponential", "linear"])
+    parser.add_argument(
+        "--single-field",
+        action="store_true",
+        help="Concatenate title and text (the pre-experiment-10 default)",
+    )
     parser.add_argument("--output", default=None)
     return parser.parse_args()
 
@@ -92,7 +107,11 @@ def main() -> int:
     print(f"{args.dataset}: {len(available)} of {len(FORMULATIONS)} formulations present")
 
     tokenizer = Tokenizer(stopwords=LUCENE_ENGLISH_STOPWORDS, stem=True)
-    retriever = BM25Retriever(k1=args.k1, b=args.b, tokenizer=tokenizer)
+    retriever = (
+        BM25Retriever(k1=args.k1, b=args.b, tokenizer=tokenizer)
+        if args.single_field
+        else MultiFieldBM25Retriever(k1=args.k1, b=args.b, tokenizer=tokenizer)
+    )
     start = time.perf_counter()
     retriever.index(dataset.corpus)
     index_seconds = time.perf_counter() - start
@@ -115,6 +134,14 @@ def main() -> int:
             }
         )
         print(f"  {name:<24} {metrics['ndcg@10']:>9.4f} {metrics['recall@100']:>11.4f}")
+
+    # Each formulation's gap against the one BEIR actually uses. The point of this
+    # diagnostic is the spread between formulations, so the gaps are recorded rather than
+    # subtracted in prose later.
+    published = REFERENCE_NDCG_10.get(args.dataset)
+    if published is not None:
+        for variant in variants:
+            variant["delta_vs_published_ndcg_at_10"] = variant["metrics"]["ndcg@10"] - published
 
     scores = [v["metrics"]["ndcg@10"] for v in variants]
     spread = max(scores) - min(scores)

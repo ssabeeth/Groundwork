@@ -1,0 +1,96 @@
+{
+  "metric": "ndcg@10",
+  "seed": 0,
+  "resamples": 10000,
+  "holm_adjusted": true,
+  "comparisons": [
+    {
+      "a": {
+        "file": "results/scidocs-dense-bge.json",
+        "label": "bge [dense] (BAAI/bge-small-en-v1.5, truncated=3%)"
+      },
+      "b": {
+        "file": "results/scidocs-bm25.json",
+        "label": "bm25 [bm25] (stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.03955499921086297,
+      "p_value": 9.999000099990002e-05,
+      "num_queries": 1000,
+      "num_ties": 382,
+      "effective_queries": 618,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.00039996000399960006
+    },
+    {
+      "a": {
+        "file": "results/scidocs-dense.json",
+        "label": "dense [dense] (sentence-transformers/all-MiniLM-L6-v2, truncated=31%)"
+      },
+      "b": {
+        "file": "results/scidocs-bm25.json",
+        "label": "bm25 [bm25] (stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.05870350659183039,
+      "p_value": 9.999000099990002e-05,
+      "num_queries": 1000,
+      "num_ties": 367,
+      "effective_queries": 633,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.00039996000399960006
+    },
+    {
+      "a": {
+        "file": "results/scidocs-rrf-bge-k60.json",
+        "label": "bge-k60 [rrf] (bm25+dense, k=60.0)"
+      },
+      "b": {
+        "file": "results/scidocs-bm25.json",
+        "label": "bm25 [bm25] (stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.038056104427708036,
+      "p_value": 9.999000099990002e-05,
+      "num_queries": 1000,
+      "num_ties": 474,
+      "effective_queries": 526,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.00039996000399960006
+    },
+    {
+      "a": {
+        "file": "results/scidocs-rrf-bge-k60.json",
+        "label": "bge-k60 [rrf] (bm25+dense, k=60.0)"
+      },
+      "b": {
+        "file": "results/scidocs-dense-bge.json",
+        "label": "bge [dense] (BAAI/bge-small-en-v1.5, truncated=3%)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": -0.0014988947831549298,
+      "p_value": 0.7037296270372962,
+      "num_queries": 1000,
+      "num_ties": 421,
+      "effective_queries": 579,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.7037296270372962
+    }
+  ]
+}

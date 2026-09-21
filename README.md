@@ -2,44 +2,101 @@
 
 Retrieval over scientific literature, with the numbers measured rather than assumed.
 
-Most RAG projects pick a retrieval method and move on. This one treats the choice as
-the experiment: BM25, dense, hybrid and reranked retrieval are scored against the same
+Most RAG projects pick a retrieval method and move on. This one treats the choice as the
+experiment: BM25, RM3, dense, hybrid and reranked retrieval are scored against the same
 human relevance judgements, with a tested evaluation harness, and the results are
-reported including the ones that did not help.
+reported including the ones that did not help — and including the ones this project got
+wrong and had to take back.
 
-**Status:** BM25, RM3, dense, hybrid and reranking all measured on the same harness,
-with paired significance testing throughout. The central claim — that retrieval method
-is query-dependent — was tested against a hypothesis fixed before the data was looked at,
-then deliberately attacked by re-running it with a stronger encoder. It half-survived:
-consistent in direction across two encoders and two corpora, about half the originally
-claimed size, and no longer significant on one of the two datasets. That attack also
-overturned an earlier conclusion of this project's own — see "what didn't work".
+**Status:** twelve experiments across four BEIR datasets. Every method is measured on one
+harness with paired significance testing throughout, every figure in this file is checked
+against a committed run by CI, and two hypotheses were pre-registered in the log before
+the data was touched. Start with the note below: three results here replaced earlier
+results of this project's own, and one pre-registered prediction failed outright.
+
+---
+
+## Note: what this project got wrong, and what changed
+
+Read this before the numbers.
+
+Four things below are corrections this project made to itself. They are at the top rather
+than buried because a benchmark that reports only the results that survived is not
+reporting a measurement, it is reporting a selection. The superseded numbers are kept, not
+deleted — Annexe B says where.
+
+**1. The BM25 baseline was not indexing the way BEIR does.** For nine experiments,
+`bm25.py` concatenated title and body into one bag of words, and its docstring claimed
+this matched BEIR's convention. It does not. BEIR indexes "the title (if available) and
+passage as separate fields", each with its own lengths and its own document frequencies.
+Nobody checked until a reproduction failure on TREC-COVID forced the question. Indexing
+the way BEIR does brings all four published baselines inside tolerance, three of them to
+within 0.0014; concatenation missed TREC-COVID by 0.0916. **Every BM25-derived number in this repository was re-run**, and
+the entries whose conclusions moved say so explicitly — one of them reversed sign.
+
+**2. "Dense retrieval never beats BM25 at ranking" was a claim about one weak model.**
+Experiment 5 reported it. Experiment 9 re-ran the identical comparison with a better
+encoder and the point estimates changed sign on both datasets. The corrected claim is
+not "dense beats BM25" — neither reversal clears Holm across its family — it is that the
+earlier claim is not supportable. Measuring a method with a badly chosen model and
+reporting the result as a property of the method is an easy mistake to make and an
+easier one to leave standing.
+
+**3. The central query-dependence result is about half the size first claimed.** It was
+attacked deliberately, by re-running it against a stronger encoder on the reasoning that
+"BM25 wins where the query has rare terms" and "BM25 wins where the weak model fails"
+are otherwise indistinguishable. It half-broke: consistent in direction across every
+dataset and encoder tested, but which dataset clears p < 0.05 depended on which encoder
+measured it. Experiment 11 added a third dataset with 1,000 queries — pre-registered,
+committed before the data was touched — to settle the size.
+
+**4. For a while, the published repository did not run.** A `data/` line in `.gitignore`
+matched `src/groundwork/data/` at any depth, so the BEIR loader was never committed. The
+README's one-command reproduction failed for anyone cloning it, and CI passing locally
+hid it. Found by cloning the published repo and running it, which is now the only claim
+about reproducibility this project is willing to make on its own say-so.
 
 ---
 
 ## The question
 
-When you retrieve over scientific text, how much does retrieval method actually
-matter, and where? Semantic search is the default recommendation, but scientific
-queries are full of exact tokens — gene symbols, compound names, species binomials,
-accession numbers — where lexical matching is hard to beat. The claim this project
-tests is that the answer is query-dependent, and that the breakdown by query type is
-more useful than a single headline score.
+When you retrieve over scientific text, how much does retrieval method actually matter,
+and where? Semantic search is the default recommendation, but scientific queries are full
+of exact tokens — gene symbols, compound names, species binomials, accession numbers —
+where lexical matching is hard to beat. The claim this project tests is that the answer is
+query-dependent, and that the breakdown by query type is more useful than a single
+headline score.
+
+It was measured, attacked with a stronger encoder, and then pre-registered on a third
+dataset chosen because it was hostile to it. **It did not replicate.** What survives is a
+narrower claim about where lexical matching is a mechanism of relevance at all — and the
+answer to the original question turns out to be less useful than the question assumed. That
+is in the results below rather than in a footnote, because a benchmark that quietly drops
+its own failed prediction is not measuring anything.
 
 ## The data
 
 Evaluation uses [BEIR](https://github.com/beir-cellar/beir), which ships queries with
 human relevance judgements, so the metrics are comparable to published work:
 
-| Dataset | Documents | Test queries | Judgements | Domain |
-|---|---|---|---|---|
-| SciFact | 5,183 | 300 | binary | Scientific claim verification |
-| TREC-COVID | 171,332 | 50 | graded 0–2 | COVID-19 literature |
-| NFCorpus | 3,633 | 323 | graded 0–2 | Nutrition and medical |
+| Dataset | Documents | Test queries | Judgements | Train split | Domain |
+|---|---|---|---|---|---|
+| SciFact | 5,183 | 300 | binary | yes | Scientific claim verification |
+| TREC-COVID | 171,332 | 50 | graded 0–2 | no | COVID-19 literature |
+| NFCorpus | 3,633 | 323 | graded 0–2 | yes | Nutrition and medical |
+| SciDocs | 25,657 | 1,000 | binary | no | Citation prediction between papers |
 
 SciFact is first because it is small enough to iterate on in seconds. It is also the
-dataset where BM25 is already strong, so it is a good harness test and a poor showcase
-for hybrid retrieval — TREC-COVID is where an ablation has room to show something.
+dataset where BM25 is already strong, so it is a good harness test and a poor showcase for
+hybrid retrieval.
+
+SciDocs was added last and deliberately: it has more test queries than SciFact and
+NFCorpus combined, which is what it takes to pin down an effect the size those two
+suggested, and it is *hostile* to this project's central hypothesis. Its queries are paper
+titles and relevance means "this paper cites that one", which is a semantic relation
+rather than a lexical one — so it is the dataset where a claim about BM25's per-query
+advantage is most likely to break. It has no train split, which constrains what may be
+tuned on it; see `docs/decisions.md`.
 
 Datasets download on first use into `data/`, which is gitignored.
 
@@ -48,39 +105,50 @@ Datasets download on first use into `data/`, which is gitignored.
 **BM25, Lucene variant.** Written out in
 [`src/groundwork/retrieval/bm25.py`](src/groundwork/retrieval/bm25.py) rather than
 imported, for two reasons. First, the baseline every later result is measured against
-should be understood, not trusted. Second, the common pip BM25 packages use the
-Robertson IDF, which goes negative for terms appearing in more than half the corpus;
-Lucene's form cannot, and the published BEIR baselines are Lucene's.
+should be understood, not trusted. Second, the common pip BM25 packages use the Robertson
+IDF, which goes negative for terms appearing in more than half the corpus; Lucene's form
+cannot, and the published BEIR baselines are Lucene's.
 
 ```
 idf(q) = ln(1 + (N - df(q) + 0.5) / (df(q) + 0.5))
 score  = Σ_q idf(q) · tf(q,D)(k₁+1) / (tf(q,D) + k₁(1 - b + b·|D|/avgdl))
 ```
 
+**Title and body are separate fields.** Each field carries its own document lengths, its
+own average length and its own document frequencies; a query scores against each
+independently and the scores are summed. This is what BEIR's baselines do, and for nine
+experiments this repository did not — see the note above. `--single-field` restores
+concatenation on every script that builds an index.
+
 Defaults `k1=0.9, b=0.4` — the BEIR paper's settings, not Lucene's out-of-the-box
-`k1=1.2, b=0.75`. Results across those two settings are not comparable, so the values
-used are recorded with every run.
+`k1=1.2, b=0.75`. Results across those two settings are not comparable, so the values used
+are recorded with every run.
 
 **Metrics.** nDCG@k and recall@k in
-[`src/groundwork/eval/metrics.py`](src/groundwork/eval/metrics.py), following
-`trec_eval` conventions, with 21 unit tests against values worked out by hand. Three
-decisions that are the usual cause of numbers that do not reproduce:
+[`src/groundwork/eval/metrics.py`](src/groundwork/eval/metrics.py), following `trec_eval`
+conventions, with unit tests against values worked out by hand. Three decisions that are
+the usual cause of numbers that do not reproduce:
 
 - **Gain is exponential** (`2^rel - 1`), as `trec_eval`'s `ndcg_cut` uses. For binary
-  qrels like SciFact this is identical to linear gain, since `2¹ - 1 = 1` — verified,
-  all six metrics bit-identical. For graded qrels it is not, and the difference is
-  measured: +0.0014 on NFCorpus but **−0.0253** on TREC-COVID. The sign is not
+  qrels like SciFact and SciDocs this is identical to linear gain, since `2¹ - 1 = 1` —
+  verified, all six metrics bit-identical. For graded qrels it is not, and the difference
+  is measured: +0.0008 on NFCorpus but **−0.0286** on TREC-COVID. The sign is not
   predictable, because exponential gain rewards separating grade 2 from grade 1 and
-  penalises a ranking that is blind to the distinction. Both gains are computed from
-  the same retrieval pass and both are recorded.
-- **IDCG is built from every judged-relevant document**, not only the retrieved ones,
-  so a system that misses relevant documents entirely is penalised for it.
-- **Queries in the qrels but absent from the run score zero** rather than being
-  dropped from the average. Dropping them inflates the mean.
+  penalises a ranking blind to the distinction. Both gains are computed from the same
+  retrieval pass and both are recorded.
+- **IDCG is built from every judged-relevant document**, not only the retrieved ones, so a
+  system that misses relevant documents entirely is penalised for it.
+- **Queries in the qrels but absent from the run score zero** rather than being dropped
+  from the average. Dropping them inflates the mean.
 
-**Tokenisation is explicit.** Stemming alone moves BEIR nDCG@10 by a point or two, so
-stopwords and stemming are configurable, off the Lucene English stopword list by
-default, and written into the results file with every run.
+**Tokenisation is explicit.** Stemming moves BEIR nDCG@10 by around three points, so
+stopwords and stemming are configurable, off the Lucene English stopword list by default,
+and written into the results file with every run.
+
+**Parameters are tuned on train and scored once on test.** `k1`, `b`, RM3's feedback
+settings, the fusion constant and the routing threshold are all chosen on a split they are
+not reported on. Experiment 3 exists largely to show what that discipline costs: a sweep
+that looked like a win on the split that chose it was worth nothing on held-out data.
 
 **Differences are tested, not eyeballed.** Two runs are compared with a paired
 randomisation test in
@@ -91,309 +159,167 @@ implementation is tested against exhaustive enumeration of all `2^n` sign assign
 small inputs — the same independent-reference trick used for BM25 — since a sampled test
 checked only against itself proves nothing.
 
-## Results
+**The documentation is tested.** `tests/test_documentation.py` extracts every three- and
+four-decimal figure from this README and from `docs/`, and fails the build unless each one
+traces to a value in a committed results file. It also checks that a results filename
+agrees with how its index was actually built. Both checks exist because the failure they
+catch had already happened.
 
-Reproduce with one command:
+## What the measurements show
+
+Reproduce any of it with one command:
 
 ```bash
 python scripts/run_baseline.py --dataset scifact
 ```
 
-| Dataset | Method | nDCG@10 | Recall@100 | BEIR published BM25 nDCG@10 |
-|---|---|---|---|---|
-| SciFact | BM25 (k1=0.9, b=0.4, Porter) | **0.6802** | 0.9220 | 0.665 |
-| SciFact | BM25 tuned on train (k1=1.4, b=0.5) | 0.6865 | 0.9216 | — |
-| NFCorpus | BM25 (k1=0.9, b=0.4, Porter) | 0.3224 | 0.2461 | 0.325 |
-| TREC-COVID | BM25 (k1=0.9, b=0.4, Porter) | 0.5644 | 0.1088 | 0.656 — see below |
-| NFCorpus | **RM3** (fb=5, terms=50, α=0.8) | **0.3433** | **0.3105** | — |
-| SciFact | RM3 (fb=20, terms=20, α=0.2) | 0.6848 | 0.9253 | — |
+Full tables are in **Annexe A**. The findings, in the order they are worth knowing:
 
-### The main table
+**The harness reproduces published baselines, which is the only reason to trust anything
+below it.** Four BEIR datasets, four published BM25 figures, all inside tolerance and
+three of them within 0.0014 — SciFact −0.0014, NFCorpus +0.0003, SciDocs −0.0003,
+TREC-COVID −0.0198. Landing within a thousandth of numbers produced by different software
+years earlier is not something a reimplementation does by coincidence. It took a
+correction to get there; see the note at the top.
 
-nDCG@10 on test, all methods on the same harness and the same corpora:
+**Encoder choice mattered more than every other decision measured, combined.** Swapping
+MiniLM-L6 for bge-small moves SciFact dense retrieval from 0.6451 to 0.7200 — a larger
+gain than fusion, reranking, RM3, stemming and the entire `k1`/`b` parameter space put
+together. Before reaching for an architecture, try a better encoder.
 
-| Method | SciFact | NFCorpus |
-|---|---|---|
-| BM25 | 0.6802 | 0.3224 |
-| Dense — MiniLM-L6, 256 ctx | 0.6451 | 0.3173 |
-| Dense — S-PubMedBert (biomedical) | — | 0.3142 |
-| Dense — mpnet, 384 ctx | — | 0.3346 |
-| Dense — bge-small, 512 ctx | 0.7200 | 0.3391 |
-| RM3 | 0.6848 | 0.3433 |
-| Hybrid RRF (BM25 + MiniLM) | 0.7146 | 0.3559 |
-| **Hybrid RRF (BM25 + bge-small)** | **0.7399** | **0.3659** |
+**Two methods earned their place, and each only on one dataset.** RM3 gains +0.0188
+nDCG@10 on NFCorpus (Holm p 0.0006) and nothing on SciFact (−0.0086, p 0.117). Fusion
+gains +0.0219 over its stronger parent on NFCorpus (Holm p 0.0010) and **+0.0007 on
+SciFact (p 0.94)** — nothing at all. The same recall ceiling explains both: BM25 has
+already found 90.1% of what exists on SciFact and 25.9% on NFCorpus, so on SciFact there
+is almost nothing left for a second system to add.
 
-Fusion produces the best number on both datasets and beats BM25 decisively (Holm
-p < 0.0001 on both). The fusion constant `k` is tuned on train — 5 and 10 here, far
-below the conventional default of 60.
+**The cheapest thing measured is worth more than most of the expensive ones.** Porter
+stemming is worth +0.0309 nDCG@10 on SciFact (Holm p 0.0156) — larger than RM3, larger
+than fusion on the same dataset, and free. Stopword removal, `k1`/`b` tuning, chunking and
+a domain-matched encoder are all worth nothing measurable. Before reaching for a second
+retrieval system, check the tokeniser.
 
-**Encoder choice mattered more than anything else measured.** Swapping MiniLM-L6 for
-bge-small moves SciFact dense from 0.6451 to 0.7200 — a bigger jump than fusion,
-reranking, RM3, stemming and the entire `k1`/`b` space combined. On SciFact, bge-small
-*alone* (0.7200) matches the whole BM25 + MiniLM fusion (0.7146, p 0.70): one better
-encoder was worth more than fusing two worse systems.
+**One method costs the most and earns the least.** Cross-encoder reranking is by a wide
+margin the most expensive thing here, and it lowered nDCG@10 in three of the four
+configurations tried — the exception being a +0.0062 on NFCorpus that does not survive
+testing.
 
-Two things that did **not** help, both predicted to: a biomedical encoder on a medical
-corpus was the worst of the three strong models, and chunking to eliminate truncation
-made results slightly worse. See "what didn't work".
+**The central claim did not survive its own test.** BM25's per-query advantage rises with
+the rarity of the query's rarest term on SciFact and NFCorpus. On SciDocs, pre-registered
+and with 1,000 queries, it does not: rho −0.0127 and +0.0019, with terciles flat and not
+even monotone. Across all six tests of the hypothesis, two survive Holm correction. What is
+left is a narrower and more defensible statement — term rarity tracks BM25's relative
+standing where term overlap is a mechanism of relevance, and SciDocs' citation-prediction
+task is one where it is not.
 
-### Is retrieval method query-dependent?
-
-This is the question the project exists to ask, so it was asked in a form that could
-come out wrong. The hypothesis was written into
-[`scripts/analyse_queries.py`](scripts/analyse_queries.py) before it was run:
-
-> per-query (nDCG@10 of BM25 − nDCG@10 of dense) correlates **positively** with the
-> rarity of the query's rarest term (`max_idf`, computed from the index alone, before
-> any retrieval).
-
-One continuous predictor rather than query-type buckets, because with enough candidate
-groupings one will always show an effect.
-
-The result replicates in **direction** but not reliably in **significance**, and that
-distinction is the honest summary. Run against two different encoders:
-
-| Dataset | encoder | Spearman rho | p | Holm |
-|---|---|---|---|---|
-| NFCorpus | MiniLM-L6 | +0.158 | 0.0046 | **0.0092** |
-| NFCorpus | bge-small | +0.092 | 0.0990 | 0.0990 |
-| SciFact | MiniLM-L6 | +0.119 | 0.0362 | **0.0362** |
-| SciFact | bge-small | +0.155 | 0.0077 | **0.0154** |
-
-Positive in all four. Terciles monotone in all four. But which dataset clears 0.05
-**depends on which encoder is used to measure it** — NFCorpus is the strong result with
-MiniLM and the null result with bge-small, and SciFact does the reverse.
-
-Since the underlying quantity shouldn't depend on the encoder used to estimate it, the
-effect size is not robustly pinned down, and the first version of this section overstated
-it. What survives: BM25's relative advantage does rise with query term rarity, the
-direction is consistent across two encoders and two corpora, and the effect is roughly
-half the size originally claimed. What doesn't: any confident p-value.
-
-This was found by deliberately trying to break the result — re-running the identical
-analysis against a stronger encoder, on the reasoning that "BM25 wins where the query has
-rare terms" and "BM25 wins where the weak model fails" are otherwise indistinguishable.
-It half-broke. A third dataset is the way to settle the size.
-
-**RM3 pseudo-relevance feedback is the first method here to beat its baseline** — and
-only where there was room. On NFCorpus it gains +0.0208 nDCG@10 (Holm p = 0.0005) and
-+0.0645 recall@100 (p < 0.0001). On SciFact it gains +0.0046 at p = 0.29, which is no
-measurable win at all.
-
-That split was predicted before RM3 existed, by the recall-ceiling table below: SciFact
-had already captured 92% of the achievable recall@100, NFCorpus only 25%. The tuned
-parameters agree from the other side — SciFact's sweep chose α = 0.2 (barely expand the
-query), NFCorpus's chose α = 0.8 (largely replace it). NFCorpus queries are short
-consumer-health phrases against medical writing, and closing that vocabulary gap is
-exactly what feedback terms do; SciFact claims are already written in the register of
-the documents they match.
-
-Cost: retrieval goes from 0.1s to 9.7s per 300 queries — two passes plus feedback
-tokenisation.
-
-The tuned row is here to be dismissed: +0.0063 over the default on held-out test at
-p = 0.217. See "what didn't work".
-
-### All three datasets reproduce — once the index matches BEIR's
-
-BEIR's paper says two things this project's docs got wrong. Its baselines come from
-**Anserini**, not Elasticsearch; and it indexes **"the title (if available) and passage
-as separate fields"**, not concatenated, which is what `bm25.py` claimed to be matching.
-
-Scoring each field with its own lengths and its own IDF, then summing — as Lucene does:
-
-| Dataset | Concatenated | Multi-field | Published |
-|---|---|---|---|
-| SciFact | 0.6802 (+0.0152) | **0.6636 (−0.0014)** | 0.665 |
-| NFCorpus | 0.3224 (−0.0026) | **0.3253 (+0.0003)** | 0.325 |
-| TREC-COVID | 0.5644 (−0.0916) ✗ | **0.6362 (−0.0198)** ✓ | 0.656 |
-
-Two of them land within a thousandth of figures produced by different software years
-earlier. That is not what a reimplementation hits by coincidence.
-
-TREC-COVID was the outlier because 24.6% of its documents have empty abstracts. Under
-concatenation a title-only document is a very short *document*, so length normalisation
-inflates whatever it matches — 42,140 documents getting an unearned boost. Split into
-fields it is an ordinary-length title and an empty body.
-
-**Experiment 4 blamed query formulation and was wrong, and refusing to act on it was
-right.** Concatenating query fields would have landed within 0.006 of the published
-number — for entirely the wrong reason, closing the investigation and leaving a baseline
-that did not match the method it claimed to match. The right number by the wrong route
-would have been worse than the honest failure. The formulation spread is real (0.2416
-nDCG@10) and simply was not the cause:
-
-| TREC-COVID query field | nDCG@10 |
-|---|---|
-| `text` (BEIR canonical, used here) | 0.5644 |
-| `metadata.query` | 0.5860 |
-| `query` + `text` | 0.6619 |
-| `query` + `text` + `narrative` | 0.6970 |
-
-Concatenation remains the default for everything in this repository, because every
-result here was produced with it and switching silently would invalidate them all at
-once. Whether to migrate and re-run all nine experiments is recorded as an open decision
-in the experiment log rather than taken quietly.
-
-**Where the headroom is.** Recall@100 is not comparable across datasets — they differ in
-how many relevant documents exist per query (median 1, 16 and 478). Against the best any
-system could reach given the judgements:
-
-| Dataset | Recall@100 | Oracle | Share of ceiling |
-|---|---|---|---|
-| SciFact | 0.9220 | 1.0000 | **92.2%** |
-| NFCorpus | 0.2461 | 0.9647 | **25.5%** |
-| TREC-COVID | 0.1088 | 0.2674 | **40.7%** |
-
-BM25 has already found 92% of what exists on SciFact, so reranking and fusion have
-almost nothing to win there whatever their quality. NFCorpus is where a method can show
-something.
-
-Tokenisation ablation, same corpus and parameters, nDCG@10 with recall@100 in brackets:
-
-| | stopwords removed | stopwords kept |
-|---|---|---|
-| **Porter stem** | **0.6802** (0.9220) | 0.6814 (0.9197) |
-| **no stem** | 0.6627 (0.8859) | 0.6611 (0.8852) |
-
-```bash
-python scripts/compare_runs.py \
-  --pair results/scifact-bm25.json results/scifact-bm25-no-stem.json
-```
-
-That run is +0.0152 from the published figure, inside the tolerance — the harness
-reproduces a number someone else measured with different software, which is the whole
-reason this milestone exists. Landing slightly above Elasticsearch rather than below is
-the expected direction for a tokenisation difference: Porter stemming plus a 33-word
-stopword list normalises more aggressively than Elasticsearch's default analyzer chain.
-
-The script prints the delta against the published figure and exits non-zero if it is
-more than 0.03 away. That tolerance is deliberate: a reimplementation will not match
-Elasticsearch to three decimals, because tokenisation and stemming differ, but landing
-well outside it means the harness is wrong rather than the method. This is the main
-reason the BM25 baseline exists before anything else — it is a correctness check on
-the evaluation code that everything downstream depends on.
-
-Full run records, including settings and timings, are written to `results/`.
-
+**Encoder quality does not transfer between corpora.** bge-small beat MiniLM-L6 decisively
+on SciFact (0.7200 against 0.6451) and lost to it on SciDocs (0.1973 against 0.2164), while
+truncating far less of the input. "Use the better encoder" is sound; "bge-small is the
+better encoder" is a statement about two corpora, not about the model.
 ## What didn't work
 
+**Cross-encoder reranking costs the most and earns almost nothing — but not quite
+nothing, and that changed.** Rescoring the top 100 fused candidates with
+`ms-marco-MiniLM-L-6-v2` takes minutes of compute per dataset against seconds for the
+fusion it reranks. On nDCG@10 it lowered the score in three of four configurations and
+none of the four differences survive correction (Holm 0.0936 to 0.6791).
+
+On nDCG@1 there is one real result: **+0.0588 on NFCorpus over the MiniLM fusion, Holm
+p 0.0296.** Reranking helping the very top of the ranking and nothing below it is the
+textbook story for cross-encoders, and this project previously reported that the story did
+*not* hold — an earlier version of this README used exactly that number as its example of
+a paired test separating a finding from an anecdote, at p 0.208. Under correct indexing it
+is a finding. It holds in one of four cells, so it is a lead rather than a conclusion, and
+the honest summary is that reranking buys you rank 1 on one dataset and nothing else
+anywhere.
+
+The likely reason for the rest is the same one behind the bi-encoder results: MS MARCO is
+web-search queries against web passages, and neither scientific claims nor consumer-health
+phrases resemble that. This bounds the claim — *this* reranker does not help here; a
+domain-matched one is untested.
+
 **A biomedical encoder was worse than a general one, on a medical corpus.**
-S-PubMedBert-MS-MARCO scores 0.3142 on NFCorpus — below BM25 (0.3224) and below both
+S-PubMedBert-MS-MARCO scores 0.3142 on NFCorpus — below BM25 (0.3253) and below both
 general encoders tested (mpnet 0.3346, bge-small 0.3391). I predicted the opposite when
 proposing the experiment. Whatever it gains from biomedical pretraining it loses to
 bge-small's retrieval training, and "use a domain model for a domain corpus" is not
 supported by anything measured here.
 
 **Chunking to remove truncation made things slightly worse.** Experiment 5 flagged that
-71–79% of documents were truncated, and it sounded damning. Eliminating it by scoring
+71–79% of documents were truncated and it sounded damning. Eliminating it by scoring
 documents on their best-matching 200-word window does not help: unchunked is ahead by
-0.0043 on bge-small (p 0.256) and 0.0120 on mpnet (p 0.026 raw, Holm 0.052). The
+0.0043 on bge-small (p 0.2557) and 0.0120 on mpnet (p 0.0259 raw, Holm 0.0518). The
 discarded tails were not carrying signal, and max-pooling gives an off-topic passage a
 chance to match spuriously. The caveat was worth stating and wrong about what was
 limiting performance.
 
-**Cross-encoder reranking bought nothing, at the highest cost of anything here.**
-Rescoring the top 100 fused candidates with `ms-marco-MiniLM-L-6-v2` takes about six
-minutes of GPU time per dataset, against seconds for the fusion it reranks. SciFact
-0.7146 → 0.6865 (raw p 0.047, Holm 0.094); NFCorpus 0.3559 → 0.3554 (p 0.936). No
-evidence of benefit, and a suggestion of harm on SciFact worth checking elsewhere.
+**Stopword removal buys nothing.** Dropping Lucene's 33-word English list moves nDCG@10
+by +0.0032 with stemming on and +0.0075 with it off, neither close to significant (Holm
+0.4608 and 0.2580; 1.0000 on recall@100 for both). This is the expected result rather
+than a shock — IDF already discounts terms occurring in most documents, so deleting them
+by list duplicates what the scoring function does. The list stays the default for
+comparability with BEIR, not because it earns its place.
 
-nDCG@1 on NFCorpus appeared to rise (0.4613 → 0.4871), which is the expected "helps the
-very top" story — but it does not survive a paired test (p 0.208, Holm 0.416), and 276
-of 323 queries are unchanged. Testing it was the difference between a finding and an
-anecdote.
-
-The likely reason is the same one behind the bi-encoder's result: MS MARCO is web search
-queries against web passages, and neither scientific claims nor consumer-health phrases
-resemble that. This bounds the claim — *this* reranker does not help here; a
-domain-matched one is untested.
-
-**A conclusion this project published and then overturned.** Experiment 5 reported that
-dense retrieval "never beats BM25 at ranking", on MiniLM-L6 with 256-token truncation.
-Experiment 9 re-ran it with bge-small and the point estimates changed sign on both
-datasets — SciFact 0.7200 against BM25's 0.6802, NFCorpus 0.3391 against 0.3224. Neither
-clears Holm across its comparison family, so the claim is not "dense beats BM25"; it is
-that **the earlier claim is no longer supportable**, and it was a statement about one
-weak configuration rather than about dense retrieval.
-
-The original entry stays in the log with its numbers. Measuring a method with a badly
-chosen model and reporting the result as a property of the method is an easy mistake to
-make and an easy one to leave uncorrected.
-
-One part of experiment 5 did survive: dense finds documents BM25 misses entirely. On
-NFCorpus, recall@100 goes 0.2461 → 0.3115 with MiniLM and 0.2461 → 0.3059 with bge-small
-(+0.0599, Holm p < 0.0001). That complementarity is why fusion still produces the best
-number on both datasets even now that the dense side is strong on its own.
-
-**The expensive method was not reliably better than the cheap one.** Hybrid fusion beats
-RM3 on SciFact (+0.0298, Holm p 0.0056) but not on NFCorpus (+0.0126, Holm p 0.290).
-RM3 needs numpy, runs in seconds, and has no model to download, no GPU and no 2 GB
-dependency tree. Before deploying a GPU to serve fusion, it is worth knowing that on one
-of two datasets a far cheaper method was statistically indistinguishable from it.
-
-**A prediction this project made and got half wrong.** Experiment 4 measured that BM25
-had already captured 92.2% of achievable recall@100 on SciFact, and inferred that a
-better method had almost nothing to win there whatever its quality. RM3 confirmed it.
-Fusion refuted it: +0.0344 nDCG@10 at Holm p 0.0021. A recall ceiling bounds what
+**A prediction this project made and got half wrong.** Experiment 4 measured that BM25 had
+already captured over 90% of achievable recall@100 on SciFact, and inferred that a better
+method had almost nothing to win there whatever its quality. RM3 confirmed it. Fusion
+refuted it — +0.0428 nDCG@10 over BM25 at Holm p 0.0004. A recall ceiling bounds what
 *recall-limited* methods can gain and says nothing about reordering documents already
-retrieved — and SciFact's nDCG@10 of 0.68 left plenty of room for that. The claim was
-right about RM3 for the right reason and wrong about fusion for a reason the original
-argument never considered. It stays on the record rather than being quietly amended.
+retrieved. The claim was right about RM3 for the right reason and wrong about fusion for a
+reason the original argument never considered.
 
-**Stopword removal buys nothing on SciFact.** Dropping Lucene's 33-word English list
-moves nDCG@10 by about a thousandth of a point, and the sign flips depending on whether
-stemming is on: −0.0012 stemmed, +0.0016 unstemmed. Neither is close to significant
-(Holm-adjusted p = 1.00 on both nDCG@10 and recall@100). This is the expected result
-rather than a shock — IDF already discounts terms occurring in most documents, so
-deleting them by list duplicates what the scoring function does. The list stays the
-default for comparability with BEIR's Elasticsearch runs, not because it earns its place.
+**The expensive method was not reliably better than the cheap one.** Fusion beats RM3 on
+SciFact (+0.0514, Holm p 0.0004) but not on NFCorpus (+0.0053, Holm p 0.9501). RM3 needs
+numpy, runs in seconds, and has no model to download, no GPU and no 2 GB dependency tree.
+Before deploying a GPU to serve fusion, it is worth knowing that on one of two datasets a
+far cheaper method was statistically indistinguishable from it.
 
-**Tuning `k1` and `b` bought nothing.** A 121-cell sweep on SciFact's 809 train queries
-picked `k1=1.4, b=0.5`, beating BEIR's `0.9/0.4` by 0.0028 nDCG@10 — on the split that
-chose it. Carried to held-out test the gap is +0.0063 at p = 0.217, and −0.0004 on
-recall@100. Not a win. The defaults stay.
+**Tuning `k1` and `b` bought exactly nothing.** A 121-cell sweep on SciFact's 809 train
+queries picked `k1=1.4, b=0.3`. Carried to held-out test it scores +0.0000 against BEIR's
+`0.9/0.4` at p 0.9899 — the two runs are within a ten-thousandth of each other. The
+surface says why: nDCG@10 spans 0.0143 across the whole grid and 93% of cells sit within
+0.010 of the best. There is no peak here, only a cliff to stay off at very low `k1`.
 
-The surface says why: across all 121 cells nDCG@10 spans 0.0268, and 74% of cells sit
-within 0.010 of the best. `b` is nearly irrelevant on this corpus (0.0076 between its
-best and worst, including `b=0`, which disables length normalisation entirely — SciFact
-abstracts are uniform enough that there is little to normalise). `k1` only matters below
-about 0.8, where it costs real score; above that the curve is flat to 2.0. There is no
-peak to find here, only a cliff to stay off — and the whole parameter space is worth less
-than the stemming effect that experiment 2 could not establish as significant.
+This result got *more* decisive after the indexing correction, and it is also the one that
+exposed a bug: the sweep script was never migrated to multi-field, so for several hours it
+was tuning on one index and scoring on another. Both numbers agreed that tuning is
+worthless, which is the only reason the mistake was cheap.
 
-Sweeping on the test split and reporting the best cell would have produced a much more
-flattering number, and a meaningless one.
+**Routing queries by term rarity loses to simply fusing the systems.** The project's
+central finding says BM25 wins on lexically specific queries, so routing each query to
+BM25 or the encoder on that basis ought to beat both. It does not: −0.0069 against always
+using the encoder on SciFact, +0.0034 on NFCorpus, and behind reciprocal rank fusion on
+both.
 
-**Stemming's effect on ranking could not be established, only its effect on recall.**
-The difference of means says stemming is worth about two points of nDCG@10 — the sort of
-number that gets reported as a win. The paired test disagrees: Holm-adjusted p = 0.166
-and 0.110 across the ablation's four comparisons, so on 300 queries that gap is not
-distinguishable from noise. Recall@100 is a different story, a smaller-looking +0.035
-that clears correction comfortably (Holm p = 0.018 and 0.021).
-
-The per-query counts show why. On nDCG@10 stemming changes 65 queries and wins 36 of
-them — close to a coin flip, with the positive mean coming from winning bigger rather
-than winning more often. On recall@100 it changes only 16 queries and wins 14. The
-randomisation test rewards consistency, and here consistency and magnitude point at
-different metrics. Reported as a win on recall, and as undetermined on ranking.
+The oracle router — which picks the better system per query by reading the labels, and so
+bounds every possible router — scores 0.7750, 0.3887 and 0.2313, worth 3 to 5.5 points
+over the better single system on all three datasets. The information is genuinely there.
+`max_idf` finds essentially none of it, and a method that uses both systems on every query
+beats one that has to guess which to use. A correlation of rho +0.09 to +0.17 does not
+support a decision rule, and this is what that sentence means in practice.
 
 ## Limitations
 
-- TREC-COVID's 50 queries give it very little statistical power, so it is excluded
-  from method comparisons.
-- `trec_eval` ties are broken by document id here. `pytrec_eval` breaks them
-  differently, so runs with many exactly-tied scores can differ in the fourth decimal.
+- TREC-COVID's 50 queries give it very little statistical power, so it is excluded from
+  method comparisons and used only as a reproduction check.
+- `trec_eval` ties are broken by document id here. `pytrec_eval` breaks them differently,
+  so runs with many exactly-tied scores can differ in the fourth decimal.
 - Recall@100 caps at the retrieval depth; deeper retrieval would change it.
-- Significance is a paired randomisation test with Holm-Bonferroni across each family
-  of comparisons; seed and resample count are recorded, because p-values near a
-  threshold move in the third decimal between seeds. It answers whether a difference is
-  distinguishable from noise on *this* query set, not whether it generalises or whether
-  it is large enough to care about — which is why effect sizes are always reported
-  next to it.
-- 300 queries is not many. SciFact's per-query nDCG@10 is identical under most
-  configuration changes, so the effective sample behind any comparison is far smaller
-  than 300 and the test has correspondingly little power.
+- Significance is a paired randomisation test with Holm-Bonferroni across each family of
+  comparisons; seed and resample count are recorded, because p-values near a threshold
+  move in the third decimal between seeds. It answers whether a difference is
+  distinguishable from noise on *this* query set, not whether it generalises or whether it
+  is large enough to care about — which is why effect sizes are always reported next to it.
+- SciFact's and NFCorpus' ~300 queries are not many, and per-query scores are identical
+  under most configuration changes, so the effective sample behind any comparison is far
+  smaller than the query count. SciDocs' 1,000 queries were added for exactly this reason.
+- The reference tolerance against published baselines is absolute (±0.03), so it is a much
+  weaker check on a dataset scoring 0.158 than on one scoring 0.665. This was written down
+  before SciDocs was run rather than after seeing which way it went.
+- Every dense and reranking result uses models trained on web search text. A
+  domain-matched bi-encoder was tried and was worse; a domain-matched *cross-encoder* is
+  untested, so "reranking does not help here" is a claim about `ms-marco-MiniLM-L-6-v2`.
 
 ## Roadmap
 
@@ -408,17 +334,15 @@ Numbered as in [`docs/experiments.md`](docs/experiments.md), which is the full l
 6. ~~Hybrid by reciprocal rank fusion~~
 7. ~~Cross-encoder reranking over the fused candidates~~
 8. ~~Results broken down by query type — the actual question~~
+9. ~~Encoder choice and chunking, as a falsification test of 8~~
+10. ~~Multi-field indexing, and the migration that followed~~
+11. ~~SciDocs as a third dataset, hypotheses pre-registered~~
+12. ~~Query routing: is the central finding actionable?~~
 
-Every experiment on the original roadmap is now measured. What remains is listed under
-"Still open" in the experiment log, and the largest item there is a confound rather than
-a feature: **every dense and reranking result here used models trained on web search
-text, reading truncated documents.** Until that is re-run with a domain-matched encoder,
-"dense retrieval does not beat BM25 here" is a claim about one weak configuration.
+Still planned:
 
-Still planned, after that:
-
-9. Answer generation with citations, LLM judge calibrated against human labels
-10. MCP server so it plugs into any assistant
+13. Answer generation with citations, LLM judge calibrated against human labels
+14. MCP server so it plugs into any assistant
 
 ## Install
 
@@ -440,13 +364,15 @@ Dense and hybrid retrieval need the optional `dense` extra, which pulls in torch
 pip install -e ".[dense]"
 ```
 
-The core package stays on numpy and tqdm; everything except dense and hybrid runs
-without it.
+The core package stays on numpy and tqdm; everything except dense and hybrid runs without
+it. The `dense` extra is pinned rather than ranged, because the obvious unpinned
+specification resolves to a torch/numpy combination that fails at import — see
+`docs/decisions.md`.
 
 ## Development
 
 ```bash
-pytest          # 270 tests
+pytest          # 308 tests
 ruff check .
 ruff format .
 ```
@@ -458,24 +384,237 @@ CI runs lint, format check and tests on every push.
 ```
 src/groundwork/
   data/beir.py          dataset download and loading
-  retrieval/bm25.py     Lucene-variant BM25
+  retrieval/bm25.py     Lucene-variant BM25, single- and multi-field
   retrieval/rm3.py      RM3 pseudo-relevance feedback
   retrieval/dense.py    bi-encoder dense retrieval (optional extra)
-  retrieval/tokenize.py tokenisation, stopwords, stemming
-  eval/metrics.py       nDCG@k, recall@k, per-query scoring
-  eval/significance.py  paired randomisation test, Spearman, Holm-Bonferroni
   retrieval/fusion.py   reciprocal rank fusion
   retrieval/rerank.py   cross-encoder reranking
+  retrieval/routing.py  per-query system selection, and its oracle ceiling
+  retrieval/tokenize.py tokenisation, stopwords, stemming
+  eval/metrics.py       nDCG@k, recall@k, per-query scoring, oracle recall
+  eval/significance.py  paired randomisation test, Spearman, Holm-Bonferroni
 scripts/run_baseline.py the one command behind the results table
-scripts/compare_runs.py paired significance test between two runs
 scripts/run_sweep.py    k1/b grid over one shared index
 scripts/run_rm3.py      RM3, with its own train-tuned sweep
 scripts/run_dense.py    bi-encoder retrieval, embeddings cached
 scripts/run_hybrid.py   RRF over BM25/dense/RM3, k tuned on train
+scripts/run_router.py   per-query routing against its oracle ceiling
+scripts/compare_runs.py paired significance test between two runs
 scripts/analyse_queries.py  the pre-specified query-type hypothesis
+scripts/diagnose_query_fields.py  TREC-COVID query formulation spread
 docs/experiments.md     running log, including what failed
-tests/                  270 tests
+docs/decisions.md       why the load-bearing choices are what they are
+tests/                  308 tests
 ```
+## Annexe A — full results
+
+Every figure below is read out of a JSON file in `results/`, written by a script in this
+repository, and checked by `tests/test_documentation.py`: a number in this README that no
+run produced fails the build. BM25 indexes title and body as separate fields, which is
+what BEIR does; `--single-field` reproduces the pre-migration behaviour.
+
+### A.1 BM25 against the published baselines
+
+```bash
+python scripts/run_baseline.py --dataset scifact
+```
+
+| Dataset | nDCG@10 | Recall@100 | BEIR published | Delta |
+|---|---|---|---|---|
+| SciFact | 0.6636 | 0.9009 | 0.665 | **−0.0014** |
+| NFCorpus | 0.3253 | 0.2494 | 0.325 | **+0.0003** |
+| SciDocs | 0.1577 | 0.3567 | 0.158 | **−0.0003** |
+| TREC-COVID | 0.6362 | 0.1139 | 0.656 | −0.0198 |
+
+The script prints the delta and exits non-zero beyond ±0.03. That tolerance is absolute,
+so it is a far weaker check at 0.158 than at 0.665 — stated here because it was written
+into the SciDocs pre-registration before the number was known, not after.
+
+### A.2 Every method on the same harness
+
+nDCG@10 on test, with recall@100 in brackets:
+
+| Method | SciFact | NFCorpus | SciDocs |
+|---|---|---|---|
+| BM25 | 0.6636 (0.9009) | 0.3253 (0.2494) | 0.1577 (0.3567) |
+| RM3 | 0.6550 (0.9053) | **0.3440** (0.3121) | — |
+| Dense — MiniLM-L6 | 0.6451 (0.9250) | 0.3173 (0.3115) | **0.2164** (0.5101) |
+| Dense — mpnet | — | 0.3346 | — |
+| Dense — S-PubMedBert | — | 0.3142 | — |
+| Dense — bge-small | **0.7200** (0.9533) | 0.3391 (0.3059) | 0.1973 (0.4627) |
+| Hybrid RRF (BM25+MiniLM) | 0.7064 (0.9550) | 0.3493 (0.3217) | 0.2012 (0.4804) † |
+| Hybrid RRF (BM25+bge) | **0.7207** (0.9617) | **0.3610** (0.3135) | 0.1958 (0.4541) † |
+
+† SciDocs has no train split, so its fusion constant is fixed at the conventional `k=60`
+in advance rather than swept. The tuned `k` on the other two datasets came out between 1
+and 10, so this understates what fusion is worth there. Sweeping `k` on the only split
+SciDocs has would have produced a better number and no information — see
+`docs/decisions.md`.
+
+### A.3 Where the headroom is
+
+Recall@100 is not comparable across datasets — they differ in how many relevant documents
+exist per query. Against the best any system could reach given the judgements:
+
+| Dataset | Recall@100 | Oracle | Share of ceiling |
+|---|---|---|---|
+| SciFact | 0.9009 | 1.0000 | 90.1% |
+| TREC-COVID | 0.1139 | 0.2674 | 42.6% |
+| SciDocs | 0.3567 | 1.0000 | 35.7% |
+| NFCorpus | 0.2494 | 0.9647 | 25.9% |
+
+BM25 has already found 90% of what exists on SciFact, which is why RM3 and fusion have so
+little to add there and so much on NFCorpus. It bounds *recall-limited* methods only: it
+says nothing about reordering documents already retrieved, which is how fusion beat it.
+
+### A.4 Tokenisation ablation
+
+SciFact, same corpus and parameters, nDCG@10 with recall@100 in brackets:
+
+| | stopwords removed | stopwords kept |
+|---|---|---|
+| **Porter stem** | **0.6636** (0.9009) | 0.6604 (0.8987) |
+| **no stem** | 0.6327 (0.8926) | 0.6252 (0.8876) |
+
+```bash
+python scripts/compare_runs.py \
+  --pair results/scifact-bm25.json results/scifact-bm25-no-stem.json
+```
+
+Stemming is worth +0.0309 nDCG@10 (Holm p 0.0156) and +0.0083 recall@100 (Holm p 1.0000).
+Before the indexing correction those two findings were the other way round; see the note
+at the top.
+
+### A.5 Parameter sweeps, all tuned on train and scored once on test
+
+| Sweep | Grid | Best on train | On held-out test |
+|---|---|---|---|
+| BM25 `k1`/`b`, SciFact | 121 cells | `k1=1.4, b=0.3` | **+0.0000, p 0.9899** |
+| RM3, SciFact | 60 cells | `fb=20, terms=50, α=0.3` | −0.0086, p 0.1168 |
+| RM3, NFCorpus | 60 cells | `fb=5, terms=50, α=0.8` | **+0.0188, Holm p 0.0006** |
+| RRF `k`, SciFact | 9 values | `k=1` (bge), `k=5` (MiniLM) | see A.2 |
+| RRF `k`, NFCorpus | 9 values | `k=5` (bge), `k=10` (MiniLM) | see A.2 |
+
+The `k1`/`b` surface has no peak to find. Across 121 cells nDCG@10 spans 0.0143 and 93%
+of cells sit within 0.010 of the best, so the defaults are already on the plateau. The
+tuned setting carried to test is worth +0.0000 — not rounded down; the two runs score
+within a ten-thousandth of each other.
+
+The fusion constant `k` lands between 1 and 10 on every dataset with a train split, far
+below the conventional default of 60. That default costs real score here, which is why
+SciDocs' untuned fusion in A.2 is a lower bound rather than a measurement.
+
+### A.6 Query-dependence, corrected across every test of it
+
+One hypothesis, asked six times. Correcting across the family is the honest treatment,
+because asking one question of six query sets and reporting the smallest p-value is the
+error that correction exists to prevent:
+
+| Dataset | Encoder | Spearman rho | p | Holm |
+|---|---|---|---|---|
+| SciFact | bge-small | +0.1685 | 0.0043 | **0.0255** |
+| NFCorpus | MiniLM-L6 | +0.1601 | 0.0042 | **0.0255** |
+| SciFact | MiniLM-L6 | +0.1372 | 0.0168 | 0.0674 |
+| NFCorpus | bge-small | +0.0934 | 0.0906 | 0.2719 |
+| SciDocs | bge-small | +0.0019 | 0.9546 | 1.0000 |
+| SciDocs | MiniLM-L6 | −0.0127 | 0.6810 | 1.0000 |
+
+```bash
+python scripts/combine_query_analyses.py \
+  --analysis results/scifact-query-analysis.json \
+  --analysis results/scidocs-query-analysis.json
+```
+
+Two of six survive. The SciDocs rows are not underpowered — they are the largest query
+sets here, and their terciles are flat and non-monotone rather than weakly ordered.
+
+
+### A.7 Query routing and its ceiling
+
+An oracle router picks the better system per query *by reading the labels*. It is not a
+method; it bounds every possible router, including ones nobody has built:
+
+| Dataset | BM25 | bge-small | Oracle | `max_idf` router | Router vs better single |
+|---|---|---|---|---|---|
+| SciFact | 0.6636 | 0.7200 | **0.7750** | 0.7131 | **−0.0069** |
+| NFCorpus | 0.3253 | 0.3391 | **0.3887** | 0.3425 | +0.0034 |
+| SciDocs | 0.1577 | 0.1973 | **0.2313** | — | — |
+
+```bash
+python scripts/run_router.py --dataset scifact \
+  --lexical results/scifact-bm25.json --semantic results/scifact-dense-bge.json \
+  --lexical-train results/scifact-bm25-train.json \
+  --semantic-train results/scifact-dense-bge-train.json --tag bge
+```
+
+Perfect routing is worth 3 to 5.5 points on all three datasets — more than fusion, RM3,
+reranking or stemming. `max_idf` recovers about 7% of it on NFCorpus and goes backwards on
+SciFact, and fusion beats the router on both. SciDocs has no train split, so only the
+ceiling is reported; it needs no tuning, which is a second reason the oracle is the useful
+number.
+
+### A.8 TREC-COVID query formulation
+
+The one BEIR dataset shipping several query forms. Indexing once and re-retrieving per
+field, against the published 0.656:
+
+| Query field | nDCG@10 | vs published | recall@100 |
+|---|---|---|---|
+| `text` (BEIR canonical, what the loader uses) | 0.6362 | −0.0198 | 0.1139 |
+| `metadata.query` (keyword form) | 0.5841 | −0.0719 | 0.1117 |
+| `metadata.narrative` | 0.4944 | −0.1616 | 0.0869 |
+| `query` + `text` | 0.7107 | +0.0547 | 0.1372 |
+| `query` + `text` + `narrative` | 0.7349 | +0.0789 | 0.1367 |
+
+Formulation moves nDCG@10 by 0.2405 between the worst and best form — more than
+tokenisation, `k1`/`b` and the gain function combined. It is reported here and nowhere
+else because every other BEIR dataset ships one query form, so the variable is invisible
+until it is not.
+
+Experiment 4 blamed this spread for TREC-COVID's reproduction failure and was wrong; the
+cause was indexing. Under concatenation, `query` + `text` landed within 0.006 of the
+published figure, which would have looked like a fix and closed the investigation. With
+the index corrected, the canonical field alone lands at −0.0198 and the combined forms
+*overshoot*. The right number by the wrong route would have been worse than the honest
+failure.
+
+## Annexe B — superseded results, and why they are still here
+
+Nothing in `results/` is deleted when a re-run replaces it. Three kinds of file live
+there, and the distinction matters when reading the experiment log:
+
+| Suffix | What it is |
+|---|---|
+| *(none)* | the current run: BM25 indexes title and body as separate fields |
+| `-singlefield` | a preserved pre-migration run, title and body concatenated |
+| `-multifield` | experiment 10's side-by-side comparison, kept under its own name |
+
+Experiments 1 through 9 ran before the indexing correction, so the log entries describing
+them quote the `-singlefield` numbers, and each of those entries carries a banner saying
+so. They are left as they were written. Rewriting them to show the new numbers would
+produce a log in which this project had never been wrong, which is the opposite of what it
+is for.
+
+What the migration changed, for the record:
+
+| Dataset | Concatenated | Multi-field | Published |
+|---|---|---|---|
+| SciFact | 0.6802 (+0.0152) | 0.6636 (−0.0014) | 0.665 |
+| NFCorpus | 0.3224 (−0.0026) | 0.3253 (+0.0003) | 0.325 |
+| TREC-COVID | 0.5644 (−0.0916) | 0.6362 (−0.0198) | 0.656 |
+
+Two safeguards exist because this went wrong before they did:
+
+- **A filename asserts how its index was built**, and a test reads the retriever's own
+  `describe()` to enforce it. During the migration several files briefly held concatenated
+  numbers under names that had come to mean multi-field, and a log entry quoted them as
+  though they were new. A reader caught it; nothing else did.
+- **Every file that scores anything must record what produced it.** Sweep files did not,
+  which is how `run_sweep.py` went through the entire migration still sweeping a
+  concatenated index while every other script had moved on — invisible to both checks,
+  because a record that says nothing cannot contradict itself. Preserved archives are held
+  to a different requirement instead: they must carry a note saying what they are, since
+  back-filling a description onto them would mean writing down settings nothing observed.
 
 ## Licence
 

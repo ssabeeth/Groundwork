@@ -79,8 +79,11 @@ The whole project rests on these numbers being right.
 
 ## Results and the experiment log
 
-- Every number in the README comes from `scripts/run_baseline.py` and is reproducible
-  with one command.
+- Every number in the README comes from a script in `scripts/` and is reproducible with
+  one command. `tests/test_documentation.py` enforces this: a figure in the README or
+  docs that no committed results file contains fails the build. If a number is worth
+  quoting, the script that produces it writes it to `results/` — computing it in prose
+  is how an unchecked figure gets in.
 - Record settings with results. Tokenisation, `k1`, `b` and gain function each move
   scores by as much as the effects an ablation is trying to detect. `describe()` on the
   retriever and tokenizer exists for this; keep it current when adding parameters.
@@ -101,8 +104,15 @@ means updating `docs/decisions.md` in the same commit and re-running affected re
 Both of these are planned, and their absence is a decision rather than an oversight.
 Add them at the point named, not before:
 
-- **MLflow, local file backend.** Comes in at experiment 5 (dense retrieval), when there
-  are enough runs and parameters for JSON files in `results/` to stop being adequate.
+- **MLflow, local file backend.** The trigger was experiment 5, and it has been passed;
+  the project is at twelve experiments and roughly seventy results files without it. The
+  decision was revisited rather than left to rot: JSON files are still adequate, and they
+  are now load-bearing in a way MLflow would not replace. `tests/test_documentation.py`
+  reads them directly to check every documented figure, git preserves superseded runs
+  under a `-singlefield` suffix, and a clean clone can reproduce any comparison from the
+  committed per-query scores. Adopting MLflow now would mean either keeping both or
+  rewriting that check against a database. Revisit if a run ever needs artefacts that do
+  not belong in git.
 - **YAML-loaded typed config.** Premature while parameters fit in argparse flags.
   Revisit when a run needs more than about eight.
 
@@ -124,23 +134,39 @@ python scripts/compare_runs.py \
 
 ## Where the project is
 
-Milestone 1 (tested metrics, BM25 baseline) is done and the SciFact baseline is
-measured: nDCG@10 0.6802, +0.0152 from BEIR's published 0.665 and inside the +/-0.03
-tolerance, so the harness reproduces a published number.
+Twelve experiments, four BEIR datasets, all logged in `docs/experiments.md`. The full
+numbers live in the README's annexe; what matters for working here is the shape:
 
-Experiment 2 (tokenisation ablation) is done. Stemming is a significant win on
-recall@100 (Holm-adjusted p 0.018) and undetermined on nDCG@10 (Holm 0.166); stopword
-removal does nothing on either. Paired significance testing now exists in
-`eval/significance.py` and per-query scores are committed under `results/per-query/`.
+**BM25 indexes title and body as separate fields, as BEIR does.** This was wrong for nine
+experiments and corrected in experiment 10. `--single-field` restores the old behaviour.
+Every BM25-derived result was re-run; pre-migration results are kept under a
+`-singlefield` suffix with a note, because the log entries that quote them describe real
+runs. Two conclusions reversed in the process and the log says which.
 
-Experiment 3 (`k1`/`b` sweep) is done. Tuned on SciFact's train split over 121 cells,
-the best setting does not beat BEIR's `0.9/0.4` on held-out test (+0.0063 nDCG@10,
-p 0.217), so the defaults stay. Sweeps tune on train and report on test; never sweep the
-evaluation split.
+**The harness reproduces four published BM25 baselines**, three of them within 0.0014.
+That is the reason to trust anything downstream of it.
 
-Next is experiment 4, BM25 on TREC-COVID and NFCorpus. Those have graded qrels, so the
-exponential-versus-linear gain choice starts to matter and must be recorded from that
-entry onward. See the pending table in `docs/experiments.md`.
+**Two hypotheses are pre-registered** — SciDocs (experiment 11) and query routing
+(experiment 12) — written into the log and committed before the data was touched. If a
+prediction turns out wrong it stays on the page; that is what pre-registration is for.
+
+**Things that are load-bearing and easy to break:**
+
+- `tests/test_documentation.py` is the only thing standing between this repo and quiet
+  documentation drift. Its traceability check works by making the haystack small, so
+  adding results files weakens it — there is a guard test that fails when coverage grows
+  too far. Do not "fix" that guard by raising its thresholds.
+- A results filename asserts how its index was built. `-singlefield` means concatenated,
+  anything else means multi-field, and a test reads the retriever's own `describe()` to
+  enforce it. This exists because stale single-field files sat under current names for a
+  while and a log entry quoted them as new.
+- Every script that builds a BM25 index must record `retriever.describe()`. `run_sweep.py`
+  did not, and so kept sweeping a concatenated index through the whole migration without
+  anything noticing.
+
+**Next:** roadmap items 13 (answer generation with citations, LLM judge calibrated
+against human labels) and 14 (MCP server). Both are in the README roadmap and neither is
+started.
 
 ## How to work with me on this
 

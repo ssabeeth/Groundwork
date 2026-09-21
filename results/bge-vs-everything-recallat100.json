@@ -1,7 +1,7 @@
 {
   "metric": "recall@100",
   "seed": 0,
-  "resamples": 100000,
+  "resamples": 10000,
   "holm_adjusted": true,
   "comparisons": [
     {
@@ -16,15 +16,15 @@
       "metric": "recall@100",
       "test": "paired_randomisation",
       "alternative": "two-sided",
-      "delta": 0.03133333333333333,
-      "p_value": 0.07308926910730892,
+      "delta": 0.05244444444444444,
+      "p_value": 0.0034996500349965005,
       "num_queries": 300,
-      "num_ties": 270,
-      "effective_queries": 30,
+      "num_ties": 267,
+      "effective_queries": 33,
       "method": "monte-carlo",
-      "num_assignments": 100000,
+      "num_assignments": 10000,
       "seed": 0,
-      "p_value_holm": 0.14617853821461785
+      "p_value_holm": 0.010498950104989501
     },
     {
       "a": {
@@ -33,20 +33,20 @@
       },
       "b": {
         "file": "results/scifact-rrf-tuned.json",
-        "label": "tuned [rrf] (bm25+dense, k=1.0)"
+        "label": "tuned [rrf] (bm25+dense, k=5.0)"
       },
       "metric": "recall@100",
       "test": "paired_randomisation",
       "alternative": "two-sided",
-      "delta": -0.0016666666666666668,
-      "p_value": 1.0,
+      "delta": 0.0033333333333333335,
+      "p_value": 0.8947105289471053,
       "num_queries": 300,
       "num_ties": 284,
       "effective_queries": 16,
       "method": "monte-carlo",
-      "num_assignments": 100000,
+      "num_assignments": 10000,
       "seed": 0,
-      "p_value_holm": 1.0
+      "p_value_holm": 0.8947105289471053
     },
     {
       "a": {
@@ -60,15 +60,15 @@
       "metric": "recall@100",
       "test": "paired_randomisation",
       "alternative": "two-sided",
-      "delta": 0.05985904720445198,
-      "p_value": 9.99990000099999e-06,
+      "delta": 0.056512975263921225,
+      "p_value": 9.999000099990002e-05,
       "num_queries": 323,
-      "num_ties": 107,
-      "effective_queries": 216,
+      "num_ties": 108,
+      "effective_queries": 215,
       "method": "monte-carlo",
-      "num_assignments": 100000,
+      "num_assignments": 10000,
       "seed": 0,
-      "p_value_holm": 3.999960000399996e-05
+      "p_value_holm": 0.00039996000399960006
     },
     {
       "a": {
@@ -82,15 +82,15 @@
       "metric": "recall@100",
       "test": "paired_randomisation",
       "alternative": "two-sided",
-      "delta": -0.015771453527728827,
-      "p_value": 0.04209957900420996,
+      "delta": -0.015395944225606199,
+      "p_value": 0.0496950304969503,
       "num_queries": 323,
-      "num_ties": 122,
-      "effective_queries": 201,
+      "num_ties": 121,
+      "effective_queries": 202,
       "method": "monte-carlo",
-      "num_assignments": 100000,
+      "num_assignments": 10000,
       "seed": 0,
-      "p_value_holm": 0.12629873701262986
+      "p_value_holm": 0.0993900609939006
     }
   ]
 }

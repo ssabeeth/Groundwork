@@ -1,0 +1,72 @@
+{
+  "dataset": "scidocs",
+  "split": "test",
+  "tag": "",
+  "metrics": {
+    "ndcg@1": 0.182,
+    "recall@1": 0.03718333333333334,
+    "ndcg@10": 0.1576980490586911,
+    "recall@10": 0.1651166666666668,
+    "ndcg@100": 0.2226073868019989,
+    "recall@100": 0.3566833333333321
+  },
+  "num_queries": 1000,
+  "num_documents": 25657,
+  "oracle_recall_at_100": 1.0,
+  "retriever": {
+    "method": "bm25",
+    "variant": "lucene-multifield",
+    "fields": [
+      "title",
+      "text"
+    ],
+    "field_weights": [
+      1.0,
+      1.0
+    ],
+    "k1": 0.9,
+    "b": 0.4,
+    "tokenizer": {
+      "stopwords": "lucene_english",
+      "stem": "porter",
+      "min_length": 1
+    }
+  },
+  "top_k": 100,
+  "timing_seconds": {
+    "index": 63.57,
+    "retrieve": 0.71
+  },
+  "gain": "exponential",
+  "graded_qrels": false,
+  "relevance_levels": [
+    1
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.182,
+      "recall@1": 0.03718333333333334,
+      "ndcg@10": 0.1576980490586911,
+      "recall@10": 0.1651166666666668,
+      "ndcg@100": 0.2226073868019989,
+      "recall@100": 0.3566833333333321
+    },
+    "linear": {
+      "ndcg@1": 0.182,
+      "recall@1": 0.03718333333333334,
+      "ndcg@10": 0.1576980490586911,
+      "recall@10": 0.1651166666666668,
+      "ndcg@100": 0.2226073868019989,
+      "recall@100": 0.3566833333333321
+    }
+  },
+  "reference_ndcg_at_10": 0.158,
+  "reference_delta": -0.000301950941308915,
+  "within_reference_tolerance": true,
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T12:22:09+00:00",
+  "per_query_file": "per-query/scidocs-bm25.json",
+  "gain_difference_ndcg_at_10": 0.0
+}

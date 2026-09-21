@@ -1,0 +1,53 @@
+{
+  "metric": "ndcg@10",
+  "seed": 0,
+  "resamples": 100000,
+  "holm_adjusted": true,
+  "comparisons": [
+    {
+      "a": {
+        "file": "results/nfcorpus-rm3-tuned-singlefield.json",
+        "label": "tuned (stem=porter, stopwords=lucene_english)"
+      },
+      "b": {
+        "file": "results/nfcorpus-bm25-graded-singlefield.json",
+        "label": "graded (stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.020841556451519482,
+      "p_value": 0.00026999730002699973,
+      "num_queries": 323,
+      "num_ties": 147,
+      "effective_queries": 176,
+      "method": "monte-carlo",
+      "num_assignments": 100000,
+      "seed": 0,
+      "p_value_holm": 0.0005399946000539995
+    },
+    {
+      "a": {
+        "file": "results/scifact-rm3-tuned-singlefield.json",
+        "label": "tuned (stem=porter, stopwords=lucene_english)"
+      },
+      "b": {
+        "file": "results/scifact-bm25-singlefield.json",
+        "label": "baseline (stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.004575255517282346,
+      "p_value": 0.2899771002289977,
+      "num_queries": 300,
+      "num_ties": 264,
+      "effective_queries": 36,
+      "method": "monte-carlo",
+      "num_assignments": 100000,
+      "seed": 0,
+      "p_value_holm": 0.2899771002289977
+    }
+  ],
+  "note": "Pre-migration comparison: the runs compared here scored title+text concatenated as one field. Preserved because the experiment log entries written before experiment 10 quote these p-values, and those entries describe real tests. See docs/decisions.md."
+}

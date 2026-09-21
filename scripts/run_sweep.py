@@ -32,7 +32,12 @@ from tqdm import tqdm
 from groundwork import __version__
 from groundwork.data import load_beir_dataset
 from groundwork.eval import evaluate_run
-from groundwork.retrieval import LUCENE_ENGLISH_STOPWORDS, BM25Retriever, Tokenizer
+from groundwork.retrieval import (
+    LUCENE_ENGLISH_STOPWORDS,
+    BM25Retriever,
+    MultiFieldBM25Retriever,
+    Tokenizer,
+)
 
 BEIR_DEFAULT_K1 = 0.9
 BEIR_DEFAULT_B = 0.4
@@ -52,6 +57,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--top-k", type=int, default=100)
     parser.add_argument("--no-stem", action="store_true", help="Disable Porter stemming")
     parser.add_argument("--no-stopwords", action="store_true", help="Keep stopwords")
+    parser.add_argument(
+        "--single-field",
+        action="store_true",
+        help="Concatenate title and text (the pre-experiment-10 default)",
+    )
     parser.add_argument(
         "--select-on",
         default="ndcg@10",
@@ -81,7 +91,11 @@ def main() -> int:
         stem=not args.no_stem,
     )
 
-    base = BM25Retriever(k1=BEIR_DEFAULT_K1, b=BEIR_DEFAULT_B, tokenizer=tokenizer)
+    base = (
+        BM25Retriever(k1=BEIR_DEFAULT_K1, b=BEIR_DEFAULT_B, tokenizer=tokenizer)
+        if args.single_field
+        else MultiFieldBM25Retriever(k1=BEIR_DEFAULT_K1, b=BEIR_DEFAULT_B, tokenizer=tokenizer)
+    )
     start = time.perf_counter()
     base.index(dataset.corpus)
     index_seconds = time.perf_counter() - start
@@ -128,17 +142,59 @@ def main() -> int:
     gap = best["metrics"][args.select_on] - default["metrics"][args.select_on]
     print(f"  gap on {args.select_on:<13} {gap:+.4f}  (on the tuning split, so optimistic)")
 
+    # The shape of the surface, not just its peak. A sweep whose cells all score within a
+    # hair of each other has no peak to find, and that is a more useful thing to report
+    # than the coordinates of its noise maximum. These are recorded rather than worked out
+    # in prose so the README can quote them: a figure computed in a sentence is a figure
+    # nothing checks.
+    selected = [cell["metrics"][args.select_on] for cell in cells]
+    peak = max(selected)
+    surface = {
+        "metric": args.select_on,
+        "num_cells": len(cells),
+        "best": peak,
+        "worst": min(selected),
+        "span": peak - min(selected),
+        "cells_within": {
+            f"{tolerance:.3f}": sum(1 for value in selected if peak - value <= tolerance)
+            for tolerance in (0.005, 0.010)
+        },
+        # Best achievable at each value of one axis, maximising over the other. This is
+        # what shows that k1 has a cliff and b has nothing, and it is the shape of the
+        # surface rather than the location of its noisy peak.
+        "marginal_best": {
+            axis: {
+                f"{value:g}": max(
+                    cell["metrics"][args.select_on] for cell in cells if cell[axis] == value
+                )
+                for value in sorted({cell[axis] for cell in cells})
+            }
+            for axis in ("k1", "b")
+        },
+    }
+    print(f"  span across {len(cells)} cells  {surface['span']:.4f}")
+    for tolerance, count in surface["cells_within"].items():
+        print(
+            f"  within {tolerance} of best  {count}/{len(cells)} cells "
+            f"({100 * count / len(cells):.0f}%)"
+        )
+
     record = {
         "dataset": args.dataset,
         "split": args.split,
         "num_queries": len(dataset.queries),
         "num_documents": len(dataset.corpus),
         "tokenizer": tokenizer.describe(),
+        # Without this a sweep record says nothing about how its index was built, which
+        # is how a single-field sweep survived the migration unnoticed.
+        "retriever": base.describe(),
         "top_k": args.top_k,
         "select_on": args.select_on,
         "grid": {"k1": k1_values, "b": b_values},
         "best": best,
         "beir_default": default,
+        "gap_over_default": gap,
+        "surface": surface,
         "cells": cells,
         "timing_seconds": {"index": round(index_seconds, 2), "sweep": round(sweep_seconds, 2)},
         "groundwork_version": __version__,

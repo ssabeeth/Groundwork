@@ -419,6 +419,48 @@ class MultiFieldBM25Retriever:
             retriever.index(view, show_progress=show_progress)
             self._indexes[field] = retriever
 
+    def with_parameters(
+        self, k1: float | None = None, b: float | None = None
+    ) -> MultiFieldBM25Retriever:
+        """Return a retriever over these same field indexes, scoring with new parameters.
+
+        The counterpart of :meth:`BM25Retriever.with_parameters`, and it exists for the
+        same reason: ``k1`` and ``b`` appear only in scoring, so a sweep can reuse one
+        index for every cell.
+
+        Its absence was a live bug rather than an omission. `run_sweep.py` could not use
+        the multi-field retriever without it, so after the migration flipped every other
+        script's default the sweep quietly carried on scoring a concatenated index — and
+        the parameters it chose were then applied to multi-field test runs. Nothing
+        caught it, because sweep records did not describe their retriever at all.
+
+        Args:
+            k1: New term frequency saturation, or None to keep the current value.
+            b: New length normalisation, or None to keep the current value.
+
+        Returns:
+            A retriever sharing this one's per-field indexes.
+
+        Raises:
+            RuntimeError: If called before :meth:`index`.
+        """
+        if not self._indexes:
+            raise RuntimeError("index() must be called before with_parameters()")
+
+        clone = MultiFieldBM25Retriever(
+            fields=self.fields,
+            weights=self.weights,
+            k1=self.k1 if k1 is None else k1,
+            b=self.b if b is None else b,
+            tokenizer=self.tokenizer,
+        )
+        clone.doc_ids = self.doc_ids
+        clone._indexes = {
+            field: index.with_parameters(k1=clone.k1, b=clone.b)
+            for field, index in self._indexes.items()
+        }
+        return clone
+
     def search(self, query: str, top_k: int = 100) -> list[tuple[str, float]]:
         """Return the ``top_k`` highest scoring documents, summing over fields.
 

@@ -254,6 +254,53 @@ class TestMultiFieldBM25:
         retriever.index(view, show_progress=False)
         return dict(retriever.search(query, top_k=10))
 
+    @pytest.mark.parametrize(("k1", "b"), [(0.9, 0.4), (1.4, 0.5), (0.0, 0.0), (2.0, 1.0)])
+    def test_with_parameters_matches_a_retriever_indexed_from_scratch(self, k1, b):
+        """Same contract as the single-field version: reusing the index changes nothing.
+
+        This method did not exist until after the multi-field migration, and its absence
+        was why `run_sweep.py` was still sweeping a concatenated index while every other
+        script had moved on. A sweep that cannot reuse its index is a sweep that quietly
+        keeps using whichever retriever it was written against.
+        """
+        shared = MultiFieldBM25Retriever(k1=0.9, b=0.4, tokenizer=PLAIN)
+        shared.index(self.FIELDED, show_progress=False)
+        reused = shared.with_parameters(k1=k1, b=b)
+
+        fresh = MultiFieldBM25Retriever(k1=k1, b=b, tokenizer=PLAIN)
+        fresh.index(self.FIELDED, show_progress=False)
+
+        for query in ("lazy dog", "quick fox", "the"):
+            assert dict(reused.search(query, top_k=10)) == pytest.approx(
+                dict(fresh.search(query, top_k=10))
+            )
+
+    def test_with_parameters_leaves_the_original_scoring_unchanged(self):
+        shared = MultiFieldBM25Retriever(k1=0.9, b=0.4, tokenizer=PLAIN)
+        shared.index(self.FIELDED, show_progress=False)
+        before = dict(shared.search("lazy dog", top_k=10))
+
+        shared.with_parameters(k1=2.0, b=1.0).search("lazy dog", top_k=10)
+
+        assert dict(shared.search("lazy dog", top_k=10)) == pytest.approx(before)
+
+    def test_with_parameters_keeps_the_axis_that_was_not_given(self):
+        shared = MultiFieldBM25Retriever(k1=1.3, b=0.7, tokenizer=PLAIN)
+        shared.index(self.FIELDED, show_progress=False)
+        assert shared.with_parameters(b=0.2).k1 == 1.3
+        assert shared.with_parameters(k1=0.5).b == 0.7
+
+    def test_with_parameters_before_indexing_fails_loudly(self):
+        with pytest.raises(RuntimeError, match="index\\(\\) must be called"):
+            MultiFieldBM25Retriever().with_parameters(k1=1.2)
+
+    def test_with_parameters_reports_the_multifield_variant(self):
+        """A clone that described itself as single-field would defeat the filename check
+        in tests/test_documentation.py, which reads exactly this field."""
+        shared = MultiFieldBM25Retriever(tokenizer=PLAIN)
+        shared.index(self.FIELDED, show_progress=False)
+        assert shared.with_parameters(k1=1.4).describe()["variant"] == "lucene-multifield"
+
     def test_score_is_the_sum_of_the_per_field_scores(self):
         multi = MultiFieldBM25Retriever(k1=0.9, b=0.4, tokenizer=PLAIN)
         multi.index(self.FIELDED, show_progress=False)

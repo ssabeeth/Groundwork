@@ -58,5 +58,7 @@
   "python": "3.11.16",
   "run_at": "2026-09-21T01:42:40+00:00",
   "per_query_file": "per-query/trec-covid-bm25-graded-singlefield.json",
-  "note": "Pre-migration run: BM25 scored title+text concatenated as one field. Preserved because the experiment log entries written before experiment 10 quote these numbers, and those entries describe real runs. See docs/decisions.md."
+  "note": "Pre-migration run: BM25 scored title+text concatenated as one field. Preserved because the experiment log entries written before experiment 10 quote these numbers, and those entries describe real runs. See docs/decisions.md. reference_delta was computed from this file's own metrics.ndcg@10 and reference_ndcg_at_10 when the field was added to the schema; it is arithmetic on values the run recorded, not a new measurement. Derived fields (gain difference, per-formulation deltas, marginal spans) were computed from this file's own recorded values when those fields were added to the schema; they are arithmetic on what the run measured, not new measurements.",
+  "reference_delta": -0.09156218994624188,
+  "gain_difference_ndcg_at_10": -0.025308341089770536
 }

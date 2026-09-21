@@ -5,15 +5,15 @@
   "lexical_run": "results/scifact-bm25.json",
   "semantic_run": "results/scifact-dense.json",
   "num_queries": 300,
-  "mean_advantage": 0.03513206125290997,
+  "mean_advantage": 0.018535574175065364,
   "hypothesis": "per-query (ndcg@10 lexical - semantic) correlates positively with max_idf",
   "primary_predictor": "max_idf",
   "correlations": {
     "max_idf": {
       "test": "spearman_permutation",
       "alternative": "two-sided",
-      "correlation": 0.11908748795435467,
-      "p_value": 0.03624818759062047,
+      "correlation": 0.13723140408896967,
+      "p_value": 0.016849157542122895,
       "num_observations": 300,
       "num_permutations": 20000,
       "seed": 0
@@ -21,32 +21,32 @@
     "mean_idf": {
       "test": "spearman_permutation",
       "alternative": "two-sided",
-      "correlation": 0.12602418499366,
-      "p_value": 0.02944852757362132,
+      "correlation": 0.1382712054715357,
+      "p_value": 0.01629918504074796,
       "num_observations": 300,
       "num_permutations": 20000,
       "seed": 0,
-      "p_value_holm_secondary": 0.08834558272086396
+      "p_value_holm_secondary": 0.048897555122243884
     },
     "out_of_vocabulary_rate": {
       "test": "spearman_permutation",
       "alternative": "two-sided",
-      "correlation": -0.031035401967518344,
-      "p_value": 0.5931203439828009,
+      "correlation": -0.01973793060248563,
+      "p_value": 0.7357632118394081,
       "num_observations": 300,
       "num_permutations": 20000,
       "seed": 0,
-      "p_value_holm_secondary": 0.6576671166441678
+      "p_value_holm_secondary": 1.0
     },
     "num_terms": {
       "test": "spearman_permutation",
       "alternative": "two-sided",
-      "correlation": -0.05607286133346652,
-      "p_value": 0.3288335583220839,
+      "correlation": 0.002624759192305176,
+      "p_value": 0.967551622418879,
       "num_observations": 300,
       "num_permutations": 20000,
       "seed": 0,
-      "p_value_holm_secondary": 0.6576671166441678
+      "p_value_holm_secondary": 1.0
     }
   },
   "terciles": [
@@ -57,7 +57,7 @@
         3.3971546386451967,
         6.201956980868633
       ],
-      "mean_advantage": -0.02399578907020321
+      "mean_advantage": -0.04367979431233957
     },
     {
       "tercile": "middle",
@@ -66,7 +66,7 @@
         6.201956980868633,
         7.6370415061579555
       ],
-      "mean_advantage": 0.05604453294229215
+      "mean_advantage": 0.04182013699301217
     },
     {
       "tercile": "highest",
@@ -75,11 +75,11 @@
         7.6370415061579555,
         8.147867129923947
       ],
-      "mean_advantage": 0.07334743988664098
+      "mean_advantage": 0.057466379844523505
     }
   ],
   "groundwork_version": "0.1.0",
   "python": "3.11.16",
   "numpy": "1.26.4",
-  "run_at": "2026-09-21T03:49:49+00:00"
+  "run_at": "2026-09-21T12:31:18+00:00"
 }

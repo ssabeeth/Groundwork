@@ -1,52 +1,52 @@
 {
   "metric": "recall@100",
   "seed": 0,
-  "resamples": 100000,
+  "resamples": 10000,
   "holm_adjusted": true,
   "comparisons": [
     {
       "a": {
         "file": "results/nfcorpus-rm3-tuned.json",
-        "label": "tuned (stem=porter, stopwords=lucene_english)"
+        "label": "tuned [rm3] (fb=5, terms=50, alpha=0.8, stem=porter, stopwords=lucene_english)"
       },
       "b": {
         "file": "results/nfcorpus-bm25-graded.json",
-        "label": "graded (stem=porter, stopwords=lucene_english)"
+        "label": "graded [bm25] (stem=porter, stopwords=lucene_english)"
       },
       "metric": "recall@100",
       "test": "paired_randomisation",
       "alternative": "two-sided",
-      "delta": 0.06445164285898536,
-      "p_value": 9.99990000099999e-06,
+      "delta": 0.06268424940389132,
+      "p_value": 9.999000099990002e-05,
       "num_queries": 323,
-      "num_ties": 152,
-      "effective_queries": 171,
+      "num_ties": 142,
+      "effective_queries": 181,
       "method": "monte-carlo",
-      "num_assignments": 100000,
+      "num_assignments": 10000,
       "seed": 0,
-      "p_value_holm": 1.999980000199998e-05
+      "p_value_holm": 0.00019998000199980003
     },
     {
       "a": {
         "file": "results/scifact-rm3-tuned.json",
-        "label": "tuned (stem=porter, stopwords=lucene_english)"
+        "label": "tuned [rm3] (fb=20, terms=50, alpha=0.3, stem=porter, stopwords=lucene_english)"
       },
       "b": {
         "file": "results/scifact-bm25.json",
-        "label": "baseline (stem=porter, stopwords=lucene_english)"
+        "label": "bm25 [bm25] (stem=porter, stopwords=lucene_english)"
       },
       "metric": "recall@100",
       "test": "paired_randomisation",
       "alternative": "two-sided",
-      "delta": 0.0033333333333333335,
-      "p_value": 1.0,
+      "delta": 0.004444444444444445,
+      "p_value": 0.6273372662733727,
       "num_queries": 300,
-      "num_ties": 299,
-      "effective_queries": 1,
+      "num_ties": 296,
+      "effective_queries": 4,
       "method": "monte-carlo",
-      "num_assignments": 100000,
+      "num_assignments": 10000,
       "seed": 0,
-      "p_value_holm": 1.0
+      "p_value_holm": 0.6273372662733727
     }
   ]
 }

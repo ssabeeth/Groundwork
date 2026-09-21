@@ -1100,17 +1100,49 @@
     "k1": 0.9,
     "b": 0.4
   },
+  "retriever": {
+    "method": "rm3",
+    "base": {
+      "method": "bm25",
+      "variant": "lucene-multifield",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "field_weights": [
+        1.0,
+        1.0
+      ],
+      "k1": 0.9,
+      "b": 0.4,
+      "tokenizer": {
+        "stopwords": "lucene_english",
+        "stem": "porter",
+        "min_length": 1
+      }
+    },
+    "fb_docs": 10,
+    "fb_terms": 10,
+    "alpha": 0.5,
+    "k1": 0.9,
+    "b": 0.4,
+    "tokenizer": {
+      "stopwords": "lucene_english",
+      "stem": "porter",
+      "min_length": 1
+    }
+  },
   "tokenizer": {
     "stopwords": "lucene_english",
     "stem": "porter",
     "min_length": 1
   },
   "timing_seconds": {
-    "index": 13.83,
-    "sweep": 118.16
+    "index": 14.14,
+    "sweep": 121.26
   },
   "groundwork_version": "0.1.0",
   "python": "3.11.16",
   "numpy": "1.26.4",
-  "run_at": "2026-09-21T11:56:11+00:00"
+  "run_at": "2026-09-21T13:05:36+00:00"
 }

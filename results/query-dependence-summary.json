@@ -1,0 +1,75 @@
+{
+  "predictor": "max_idf",
+  "family_size": 6,
+  "members": [
+    {
+      "source": "results/scifact-query-analysis.json",
+      "dataset": "scifact",
+      "semantic_run": "results/scifact-dense.json",
+      "num_queries": 300,
+      "mean_advantage": 0.018535574175065364,
+      "correlation": 0.13723140408896967,
+      "p_value": 0.016849157542122895,
+      "p_value_holm": 0.06739663016849158
+    },
+    {
+      "source": "results/scifact-query-analysis-bge.json",
+      "dataset": "scifact",
+      "semantic_run": "results/scifact-dense-bge.json",
+      "num_queries": 300,
+      "mean_advantage": -0.056387028423293926,
+      "correlation": 0.16853694410219905,
+      "p_value": 0.0042997850107494625,
+      "p_value_holm": 0.025498725063746813
+    },
+    {
+      "source": "results/nfcorpus-query-analysis.json",
+      "dataset": "nfcorpus",
+      "semantic_run": "results/nfcorpus-dense.json",
+      "num_queries": 323,
+      "mean_advantage": 0.007987056902444863,
+      "correlation": 0.16007406711387284,
+      "p_value": 0.004249787510624469,
+      "p_value_holm": 0.025498725063746813
+    },
+    {
+      "source": "results/nfcorpus-query-analysis-bge.json",
+      "dataset": "nfcorpus",
+      "semantic_run": "results/nfcorpus-dense-bge.json",
+      "num_queries": 323,
+      "mean_advantage": -0.013844508017771566,
+      "correlation": 0.0933982067096624,
+      "p_value": 0.09064546772661367,
+      "p_value_holm": 0.271936403179841
+    },
+    {
+      "source": "results/scidocs-query-analysis.json",
+      "dataset": "scidocs",
+      "semantic_run": "results/scidocs-dense.json",
+      "num_queries": 1000,
+      "mean_advantage": -0.05870350659183039,
+      "correlation": -0.012675524334254422,
+      "p_value": 0.6809659517024149,
+      "p_value_holm": 1.0
+    },
+    {
+      "source": "results/scidocs-query-analysis-bge.json",
+      "dataset": "scidocs",
+      "semantic_run": "results/scidocs-dense-bge.json",
+      "num_queries": 1000,
+      "mean_advantage": -0.03955499921086297,
+      "correlation": 0.001860591896870645,
+      "p_value": 0.9546022698865056,
+      "p_value_holm": 1.0
+    }
+  ],
+  "all_positive": false,
+  "num_significant_after_holm": 2,
+  "min_correlation": -0.012675524334254422,
+  "max_correlation": 0.16853694410219905,
+  "median_correlation": 0.11531480539931603,
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T12:46:57+00:00"
+}

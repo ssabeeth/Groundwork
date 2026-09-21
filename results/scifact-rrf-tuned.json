@@ -7,15 +7,15 @@
     "bm25",
     "dense"
   ],
-  "rrf_k": 1.0,
+  "rrf_k": 5.0,
   "reranker": null,
   "metrics": {
-    "ndcg@1": 0.5833333333333334,
-    "recall@1": 0.5623333333333332,
-    "ndcg@10": 0.7146196411875388,
-    "recall@10": 0.8383333333333334,
-    "ndcg@100": 0.7410381918403739,
-    "recall@100": 0.955
+    "ndcg@1": 0.5866666666666667,
+    "recall@1": 0.5604999999999999,
+    "ndcg@10": 0.7064479900729854,
+    "recall@10": 0.8322222222222222,
+    "ndcg@100": 0.7338153356987432,
+    "recall@100": 0.95
   },
   "num_queries": 300,
   "num_documents": 5183,
@@ -23,7 +23,15 @@
   "retrievers": {
     "bm25": {
       "method": "bm25",
-      "variant": "lucene",
+      "variant": "lucene-multifield",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "field_weights": [
+        1.0,
+        1.0
+      ],
       "k1": 0.9,
       "b": 0.4,
       "tokenizer": {
@@ -40,6 +48,9 @@
       "normalized": true,
       "max_seq_length": 256,
       "truncation_rate": 0.710206444144318,
+      "chunk_words": null,
+      "chunk_overlap": null,
+      "num_chunks": 5183,
       "batch_size": 64
     }
   },
@@ -49,7 +60,7 @@
       "bm25",
       "dense"
     ],
-    "k": 1.0,
+    "k": 5.0,
     "tokenizer": {}
   },
   "top_k": 100,
@@ -60,28 +71,29 @@
   ],
   "metrics_by_gain": {
     "exponential": {
-      "ndcg@1": 0.5833333333333334,
-      "recall@1": 0.5623333333333332,
-      "ndcg@10": 0.7146196411875388,
-      "recall@10": 0.8383333333333334,
-      "ndcg@100": 0.7410381918403739,
-      "recall@100": 0.955
+      "ndcg@1": 0.5866666666666667,
+      "recall@1": 0.5604999999999999,
+      "ndcg@10": 0.7064479900729854,
+      "recall@10": 0.8322222222222222,
+      "ndcg@100": 0.7338153356987432,
+      "recall@100": 0.95
     },
     "linear": {
-      "ndcg@1": 0.5833333333333334,
-      "recall@1": 0.5623333333333332,
-      "ndcg@10": 0.7146196411875388,
-      "recall@10": 0.8383333333333334,
-      "ndcg@100": 0.7410381918403739,
-      "recall@100": 0.955
+      "ndcg@1": 0.5866666666666667,
+      "recall@1": 0.5604999999999999,
+      "ndcg@10": 0.7064479900729854,
+      "recall@10": 0.8322222222222222,
+      "ndcg@100": 0.7338153356987432,
+      "recall@100": 0.95
     }
   },
   "timing_seconds": {
-    "build": 17.39
+    "build": 17.72
   },
   "per_query_file": "per-query/scifact-rrf-tuned.json",
   "groundwork_version": "0.1.0",
   "python": "3.11.16",
   "numpy": "1.26.4",
-  "run_at": "2026-09-21T04:11:13+00:00"
+  "run_at": "2026-09-21T12:19:47+00:00",
+  "gain_difference_ndcg_at_10": 0.0
 }

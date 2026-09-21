@@ -1,0 +1,86 @@
+{
+  "dataset": "nfcorpus",
+  "split": "test",
+  "metric": "ndcg@10",
+  "lexical_run": "results/nfcorpus-bm25-graded-singlefield.json",
+  "semantic_run": "results/nfcorpus-dense-bge.json",
+  "num_queries": 323,
+  "mean_advantage": -0.01669028620214113,
+  "hypothesis": "per-query (ndcg@10 lexical - semantic) correlates positively with max_idf",
+  "primary_predictor": "max_idf",
+  "correlations": {
+    "max_idf": {
+      "test": "spearman_permutation",
+      "alternative": "two-sided",
+      "correlation": 0.09155977242713063,
+      "p_value": 0.09904504774761262,
+      "num_observations": 323,
+      "num_permutations": 20000,
+      "seed": 0
+    },
+    "mean_idf": {
+      "test": "spearman_permutation",
+      "alternative": "two-sided",
+      "correlation": 0.15770161352474843,
+      "p_value": 0.004649767511624419,
+      "num_observations": 323,
+      "num_permutations": 20000,
+      "seed": 0,
+      "p_value_holm_secondary": 0.009299535023248838
+    },
+    "out_of_vocabulary_rate": {
+      "test": "spearman_permutation",
+      "alternative": "two-sided",
+      "correlation": -0.026142405602032973,
+      "p_value": 0.6464176791160442,
+      "num_observations": 323,
+      "num_permutations": 20000,
+      "seed": 0,
+      "p_value_holm_secondary": 0.6464176791160442
+    },
+    "num_terms": {
+      "test": "spearman_permutation",
+      "alternative": "two-sided",
+      "correlation": -0.22050515734832069,
+      "p_value": 9.99950002499875e-05,
+      "num_observations": 323,
+      "num_permutations": 20000,
+      "seed": 0,
+      "p_value_holm_secondary": 0.0002999850007499625
+    }
+  },
+  "terciles": [
+    {
+      "tercile": "lowest",
+      "num_queries": 108,
+      "max_idf_range": [
+        0.0,
+        4.959410796791736
+      ],
+      "mean_advantage": -0.031482274706319
+    },
+    {
+      "tercile": "middle",
+      "num_queries": 108,
+      "max_idf_range": [
+        4.999416131405435,
+        6.493341156717691
+      ],
+      "mean_advantage": -0.025489279009490558
+    },
+    {
+      "tercile": "highest",
+      "num_queries": 107,
+      "max_idf_range": [
+        6.493341156717691,
+        7.792624140847952
+      ],
+      "mean_advantage": 0.007121171570241565
+    }
+  ],
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T10:55:25+00:00",
+  "note": "Pre-migration analysis: the runs behind it scored title+text concatenated as one field. Preserved because the experiment 8 and 9 entries quote these figures, and those entries describe real analyses. See docs/decisions.md."
+}

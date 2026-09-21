@@ -3,21 +3,29 @@
   "split": "test",
   "tag": "tuned",
   "metrics": {
-    "ndcg@1": 0.56,
-    "recall@1": 0.5466666666666666,
-    "ndcg@10": 0.6864760113165389,
-    "recall@10": 0.8109999999999999,
-    "ndcg@100": 0.7120008619972447,
-    "recall@100": 0.9215555555555557
+    "ndcg@1": 0.5333333333333333,
+    "recall@1": 0.513611111111111,
+    "ndcg@10": 0.663657957915639,
+    "recall@10": 0.8019999999999999,
+    "ndcg@100": 0.6861749502217889,
+    "recall@100": 0.9008888888888889
   },
   "num_queries": 300,
   "num_documents": 5183,
   "oracle_recall_at_100": 1.0,
   "retriever": {
     "method": "bm25",
-    "variant": "lucene",
+    "variant": "lucene-multifield",
+    "fields": [
+      "title",
+      "text"
+    ],
+    "field_weights": [
+      1.0,
+      1.0
+    ],
     "k1": 1.4,
-    "b": 0.5,
+    "b": 0.3,
     "tokenizer": {
       "stopwords": "lucene_english",
       "stem": "porter",
@@ -26,38 +34,39 @@
   },
   "top_k": 100,
   "timing_seconds": {
-    "index": 15.39,
-    "retrieve": 0.1
+    "index": 14.13,
+    "retrieve": 0.16
   },
   "gain": "exponential",
   "graded_qrels": false,
   "relevance_levels": [
     1
   ],
+  "gain_difference_ndcg_at_10": 0.0,
   "metrics_by_gain": {
     "exponential": {
-      "ndcg@1": 0.56,
-      "recall@1": 0.5466666666666666,
-      "ndcg@10": 0.6864760113165389,
-      "recall@10": 0.8109999999999999,
-      "ndcg@100": 0.7120008619972447,
-      "recall@100": 0.9215555555555557
+      "ndcg@1": 0.5333333333333333,
+      "recall@1": 0.513611111111111,
+      "ndcg@10": 0.663657957915639,
+      "recall@10": 0.8019999999999999,
+      "ndcg@100": 0.6861749502217889,
+      "recall@100": 0.9008888888888889
     },
     "linear": {
-      "ndcg@1": 0.56,
-      "recall@1": 0.5466666666666666,
-      "ndcg@10": 0.6864760113165389,
-      "recall@10": 0.8109999999999999,
-      "ndcg@100": 0.7120008619972447,
-      "recall@100": 0.9215555555555557
+      "ndcg@1": 0.5333333333333333,
+      "recall@1": 0.513611111111111,
+      "ndcg@10": 0.663657957915639,
+      "recall@10": 0.8019999999999999,
+      "ndcg@100": 0.6861749502217889,
+      "recall@100": 0.9008888888888889
     }
   },
   "reference_ndcg_at_10": 0.665,
-  "reference_delta": 0.021476011316538868,
+  "reference_delta": -0.0013420420843610614,
   "within_reference_tolerance": true,
   "groundwork_version": "0.1.0",
   "python": "3.11.16",
   "numpy": "1.26.4",
-  "run_at": "2026-09-21T04:12:27+00:00",
+  "run_at": "2026-09-21T13:03:21+00:00",
   "per_query_file": "per-query/scifact-bm25-tuned.json"
 }

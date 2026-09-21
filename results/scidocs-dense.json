@@ -1,0 +1,64 @@
+{
+  "dataset": "scidocs",
+  "split": "test",
+  "tag": "",
+  "method": "dense",
+  "metrics": {
+    "ndcg@1": 0.24,
+    "recall@1": 0.04853333333333349,
+    "ndcg@10": 0.21640155565052147,
+    "recall@10": 0.23086666666666597,
+    "ndcg@100": 0.312119655926882,
+    "recall@100": 0.510116666666667
+  },
+  "num_queries": 1000,
+  "num_documents": 25657,
+  "oracle_recall_at_100": 1.0,
+  "retriever": {
+    "method": "dense",
+    "model": "sentence-transformers/all-MiniLM-L6-v2",
+    "similarity": "cosine",
+    "pooling": "mean",
+    "normalized": true,
+    "max_seq_length": 256,
+    "truncation_rate": 0.3050629457847761,
+    "chunk_words": null,
+    "chunk_overlap": null,
+    "num_chunks": 25657,
+    "batch_size": 64
+  },
+  "top_k": 100,
+  "gain": "exponential",
+  "graded_qrels": false,
+  "relevance_levels": [
+    1
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.24,
+      "recall@1": 0.04853333333333349,
+      "ndcg@10": 0.21640155565052147,
+      "recall@10": 0.23086666666666597,
+      "ndcg@100": 0.312119655926882,
+      "recall@100": 0.510116666666667
+    },
+    "linear": {
+      "ndcg@1": 0.24,
+      "recall@1": 0.04853333333333349,
+      "ndcg@10": 0.21640155565052147,
+      "recall@10": 0.23086666666666597,
+      "ndcg@100": 0.312119655926882,
+      "recall@100": 0.510116666666667
+    }
+  },
+  "timing_seconds": {
+    "encode": 213.19,
+    "retrieve": 2.54
+  },
+  "per_query_file": "per-query/scidocs-dense.json",
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T12:25:46+00:00",
+  "gain_difference_ndcg_at_10": 0.0
+}

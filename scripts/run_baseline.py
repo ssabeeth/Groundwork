@@ -26,7 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 import numpy as np
 
 from groundwork import __version__
-from groundwork.data import load_beir_dataset
+from groundwork.data import REFERENCE_NDCG_10, REFERENCE_TOLERANCE, load_beir_dataset
 from groundwork.eval import evaluate_run, evaluate_run_per_query, oracle_recall_at_k
 from groundwork.retrieval import (
     LUCENE_ENGLISH_STOPWORDS,
@@ -34,20 +34,6 @@ from groundwork.retrieval import (
     MultiFieldBM25Retriever,
     Tokenizer,
 )
-
-# BM25 nDCG@10 as published in the BEIR paper (Thakur et al., 2021), Table 2. Kamalloo
-# et al. (2023), "Resources for Brewing BEIR", reproduce the same column and state the
-# configuration explicitly: Anserini/Lucene with k1=0.9, b=0.4, indexing title and body
-# as separate fields of equal weight. That last detail is why experiment 10 exists.
-# A reimplementation will not match to three decimal places - tokenisation and stemming
-# differ - but landing far outside the tolerance below means the harness is wrong.
-REFERENCE_NDCG_10 = {
-    "scifact": 0.665,
-    "trec-covid": 0.656,
-    "nfcorpus": 0.325,
-    "scidocs": 0.158,
-}
-REFERENCE_TOLERANCE = 0.03
 
 # A tag becomes part of the results filename, so keep it to characters that are safe
 # there and cannot climb out of results/.
@@ -176,6 +162,12 @@ def main() -> int:
         "gain": args.gain,
         "graded_qrels": graded,
         "relevance_levels": sorted(levels_present),
+        # The quantity the graded-qrels entries actually discuss. Recorded rather than
+        # subtracted in prose, because a figure worked out in a sentence is a figure
+        # nothing checks.
+        "gain_difference_ndcg_at_10": (
+            metrics_by_gain["exponential"]["ndcg@10"] - metrics_by_gain["linear"]["ndcg@10"]
+        ),
         "metrics_by_gain": {
             name: {k: v for k, v in scores.items() if k != "num_queries"}
             for name, scores in metrics_by_gain.items()
