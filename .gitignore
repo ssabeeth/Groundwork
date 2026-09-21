@@ -11,9 +11,11 @@ dist/
 .ipynb_checkpoints/
 .DS_Store
 
-# Datasets are downloaded, never committed
-data/
-!data/.gitkeep
+# Datasets are downloaded, never committed.
+# Leading slash anchors this to the repo root: an unanchored "data/" also matches
+# src/groundwork/data/, which silently kept the BEIR loader out of the repository.
+/data/
+!/data/.gitkeep
 
 # Run files are large; only committed metrics summaries are tracked
 results/runs/
