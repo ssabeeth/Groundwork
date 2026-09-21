@@ -1716,6 +1716,105 @@ command.
 
 ---
 
+## 2026-09-21 — Experiment 13 (result): the RAG-era trick loses to the 2001 one
+
+Pre-registered above. `flan-t5-base` writes one pseudo-document per query; the expanded
+query is the original repeated `weight` times followed by the generated passage; `weight`
+is swept on train and scored once on test. Multi-field BM25 throughout. Tuned weights: 20
+on NFCorpus, 8 on SciFact.
+
+**Two of three predictions held. The one that failed is H1, the prediction that the modern
+method would help.**
+
+| Prediction | Measured | Verdict |
+|---|---|---|
+| **H1** HyDE beats BM25 on NFCorpus | −0.0046, Holm 0.2553 | **failed** |
+| **H2** HyDE does not beat BM25 on SciFact | +0.0007, Holm 0.5426 | held |
+| **H3** HyDE does not beat RM3 on either | loses by 0.0234 on NFCorpus, Holm 0.0004 | held, emphatically |
+
+### nDCG@10 on test
+
+| Dataset | BM25 | RM3 | HyDE | HyDE − BM25 | Holm | HyDE − RM3 | Holm |
+|---|---|---|---|---|---|---|---|
+| NFCorpus | 0.3253 | 0.3440 | 0.3207 | −0.0046 | 0.2553 | **−0.0234** | **0.0004** |
+| SciFact | 0.6636 | 0.6550 | 0.6643 | +0.0007 | 0.5426 | +0.0093 | 0.2553 |
+
+### Why, measured before the scoring rather than reasoned backwards from it
+
+`scripts/analyse_expansions.py` counts the distinct *new indexable terms* an expansion
+adds — terms absent from the original, compared after stemming and stopword removal,
+because only those can change which documents match. Repeating a term the query already
+has changes term frequency, not reachability. It was run before any expanded retrieval
+had been scored.
+
+| Dataset | inputs | expansions adding **no** new term | median new terms | new fraction of generated vocabulary |
+|---|---|---|---|---|
+| NFCorpus (test) | 323 | 99 | 2 | 0.4498 |
+| SciFact (test) | 300 | **249** | **0** | **0.0349** |
+
+RM3, the baseline, adds 50 feedback terms on both datasets.
+
+So H3 was never 2001 against 2024 on equal terms. It was fifty corpus-grounded terms
+against a median of two generated ones on NFCorpus, and against nothing at all on SciFact,
+where `flan-t5-base` asked to write an abstract answering a claim mostly restates the
+claim.
+
+### The paired test says the same thing, independently and for free
+
+The randomisation test records how many queries score identically under both systems. It
+is a different route to the same conclusion, and it did not need the analysis above:
+
+| Comparison | ties | queries that moved |
+|---|---|---|
+| SciFact HyDE vs BM25, nDCG@10 | 293 | **7** |
+| SciFact HyDE vs BM25, recall@100 | 299 | **1** |
+| NFCorpus HyDE vs BM25, nDCG@10 | 271 | 52 |
+
+On SciFact the expansion changed the top ten for seven queries out of three hundred. H2
+held for a more basic reason than the recall ceiling it was justified by: on most SciFact
+queries there was no expansion to evaluate. That is worth separating from the
+recall-ceiling story in experiment 4b rather than being read as confirming it — this run
+does not test that explanation, because the treatment was not applied.
+
+### The sweep walked to the edge of the grid, in the direction of switching the method off
+
+NFCorpus's best weight was 20, the largest on the grid, and `ndcg@10` rises monotonically
+across all eight cells (span 0.0795). `weight` is how many times the *original* query is
+repeated, so a larger weight dilutes the generated text. A curve that never turns over is
+the tuner asking for less expansion, and its limit is not a better setting of this method
+— it is unexpanded BM25, which scores 0.3253 against the tuned run's 0.3207.
+
+`run_expanded.py` now records `best_at_grid_edge` and `monotone` with every sweep and
+prints a warning, because "best weight 20" on its own reads like a tuned parameter rather
+than like a method turned down as far as the grid allows.
+
+### One thing improved, and not where the method is sold
+
+Recall@100 on NFCorpus rose +0.0066 (Holm 0.0165) while nDCG@10 fell. The expansion
+reaches a few more relevant documents deep in the ranking and disturbs the top ten doing
+it. Against RM3 it loses on recall by far more: −0.0561 (Holm 0.0004).
+
+### What this establishes, and what it does not
+
+It does **not** establish that LLM query expansion is worthless. It bounds one small
+instruction-tuned model, as the pre-registration said it would, and the vocabulary
+measurement makes that bound tighter than expected: this model largely did not perform the
+technique. A larger model that actually wrote an abstract would add more terms and might
+well beat RM3. Anyone reading this as "HyDE does not work" has read it wrong.
+
+What transfers is the measurement, not the verdict. **Before believing a generative
+expansion helped, count the new indexable terms it added.** That number is free, available
+before any retrieval runs, and on SciFact it would have predicted the null result without
+scoring a single ranking.
+
+The honest answer to "is this project dated in 2026" is: partly, and the fix is not to add
+a modern method and admire it. It is to put the modern method against the old one on the
+same harness. Done that way, on these two datasets and with this model, the 2001 technique
+wins by a Holm-significant margin — and the reason is not that the old method is cleverer
+but that the new one was not checked for whether it was doing anything at all.
+
+---
+
 ## In progress: experiments 13, 14 and 15
 
 All three are pre-registered above. Generation is the long pole and runs detached, so
@@ -1749,7 +1848,7 @@ comparisons beside them.
 
 Re-run checklist:
 
-- [ ] Experiment 13 entry written, against H1, H2 and H3 as pre-registered
+- [x] Experiment 13 entry written, against H1, H2 and H3 as pre-registered (H1 failed, H2 and H3 held)
 - [ ] Experiment 14 entry written, including H3 (doc2query and RM3 should not stack)
 - [ ] Experiment 15 entry written, and experiment 7's bounded conclusion revisited
 - [ ] README narrative and Annexe A updated with whichever of these produced a result
