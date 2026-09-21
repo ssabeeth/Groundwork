@@ -166,7 +166,7 @@ prediction turns out wrong it stays on the page; that is what pre-registration i
 
 **All eighteen roadmap items are done.** Experiments 13, 14 and 15 put an LLM query
 expander, doc2query and a modern reranker against the older methods with the same mechanism.
-Eight of their nine pre-registered predictions failed or could not be scored, and the
+Seven of their nine pre-registered predictions failed or could not be scored, and the
 failures are the content: a 2001 technique beats HyDE, a better reranker reranks worse, and
 doc2query expands every document in a corpus without moving retrieval.
 

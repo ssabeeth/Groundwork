@@ -8,15 +8,26 @@ against the same human relevance judgements, with a tested evaluation harness, a
 results are reported including the ones that did not help — and including the ones this
 project got wrong and had to take back.
 
-**Status:** sixteen experiments across four BEIR datasets, three of them still running,
-with an LLM judge and an MCP server on top. Every method is measured on one harness with
-paired significance testing throughout, and every figure in this file is checked against a
-committed run by CI.
+The short version of what it found: **the older methods keep winning.** RM3, a
+pseudo-relevance-feedback technique from 2001, beats LLM query expansion by a
+Holm-significant margin. A modern cross-encoder reranks *worse* than the small one it was
+meant to replace, and on nDCG@10 both leave a good ranking worse than they found it.
+doc2query expands every document in a corpus — a median of six new indexable terms each —
+and retrieval does not move. The one thing that reliably helped was the least fashionable:
+fusing a lexical and a dense retriever, which beats both of its own components on both
+datasets at Holm 0.0006 or below. No router built on this project's own central finding
+beat simply doing that.
+
+**Status:** sixteen experiments across four BEIR datasets, all complete, with an LLM judge,
+cited answer generation and an MCP server on top. Every method is measured on one harness
+with paired significance testing throughout, and every figure in this file is checked
+against a committed run by CI.
 
 Start with the note below. Six experiments were pre-registered in the log and committed to
-git before their data was touched; **three of those predictions turned out wrong and are
-still on the page**, including the one this project's central claim rested on. Three
-further results replaced earlier results of this project's own.
+git before their data was touched. **In five of those six, at least one prediction turned
+out wrong** — including the one this project's central claim rested on — and every one of
+them is still on the page. Three further results replaced earlier results of this project's
+own.
 
 ---
 
@@ -24,7 +35,7 @@ further results replaced earlier results of this project's own.
 
 Read this before the numbers.
 
-Four things below are corrections this project made to itself. They are at the top rather
+Three things below are corrections this project made to itself. They are at the top rather
 than buried because a benchmark that reports only the results that survived is not
 reporting a measurement, it is reporting a selection. The superseded numbers are kept, not
 deleted — Annexe B says where.
@@ -53,12 +64,6 @@ are otherwise indistinguishable. It half-broke: consistent in direction across e
 dataset and encoder tested, but which dataset clears p < 0.05 depended on which encoder
 measured it. Experiment 11 added a third dataset with 1,000 queries — pre-registered,
 committed before the data was touched — to settle the size.
-
-**4. For a while, the published repository did not run.** A `data/` line in `.gitignore`
-matched `src/groundwork/data/` at any depth, so the BEIR loader was never committed. The
-README's one-command reproduction failed for anyone cloning it, and CI passing locally
-hid it. Found by cloning the published repo and running it, which is now the only claim
-about reproducibility this project is willing to make on its own say-so.
 
 ---
 
