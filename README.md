@@ -373,7 +373,7 @@ without it.
 ## Development
 
 ```bash
-pytest          # 206 tests
+pytest          # 235 tests
 ruff check .
 ruff format .
 ```
@@ -401,7 +401,7 @@ scripts/run_dense.py    bi-encoder retrieval, embeddings cached
 scripts/run_hybrid.py   RRF over BM25/dense/RM3, k tuned on train
 scripts/analyse_queries.py  the pre-specified query-type hypothesis
 docs/experiments.md     running log, including what failed
-tests/                  206 tests
+tests/                  235 tests
 ```
 
 ## Licence
