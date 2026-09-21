@@ -63,9 +63,12 @@ used are recorded with every run.
 decisions that are the usual cause of numbers that do not reproduce:
 
 - **Gain is exponential** (`2^rel - 1`), as `trec_eval`'s `ndcg_cut` uses. For binary
-  qrels like SciFact this is identical to linear gain, since `2¹ - 1 = 1`. For graded
-  qrels it is not, and it weights a level-2 document three times a level-1 one rather
-  than twice. Both are implemented; which one was used is recorded.
+  qrels like SciFact this is identical to linear gain, since `2¹ - 1 = 1` — verified,
+  all six metrics bit-identical. For graded qrels it is not, and the difference is
+  measured: +0.0014 on NFCorpus but **−0.0253** on TREC-COVID. The sign is not
+  predictable, because exponential gain rewards separating grade 2 from grade 1 and
+  penalises a ranking that is blind to the distinction. Both gains are computed from
+  the same retrieval pass and both are recorded.
 - **IDCG is built from every judged-relevant document**, not only the retrieved ones,
   so a system that misses relevant documents entirely is penalised for it.
 - **Queries in the qrels but absent from the run score zero** rather than being
@@ -96,9 +99,42 @@ python scripts/run_baseline.py --dataset scifact
 |---|---|---|---|---|
 | SciFact | BM25 (k1=0.9, b=0.4, Porter) | **0.6802** | 0.9220 | 0.665 |
 | SciFact | BM25 tuned on train (k1=1.4, b=0.5) | 0.6865 | 0.9216 | — |
+| NFCorpus | BM25 (k1=0.9, b=0.4, Porter) | 0.3224 | 0.2461 | 0.325 |
+| TREC-COVID | BM25 (k1=0.9, b=0.4, Porter) | 0.5644 | 0.1088 | 0.656 — **not reproduced** |
 
 The tuned row is here to be dismissed: +0.0063 over the default on held-out test at
 p = 0.217. See "what didn't work".
+
+TREC-COVID is 0.092 below the published figure and is reported as a failed
+reproduction rather than quietly fixed. It is the only BEIR dataset shipping several
+query formulations, and the choice between them moves nDCG@10 by 0.24 — more than
+tokenisation, `k1`/`b` and the gain function combined:
+
+| TREC-COVID query field | nDCG@10 |
+|---|---|
+| `text` (BEIR canonical, used here) | 0.5644 |
+| `metadata.query` | 0.5860 |
+| `query` + `text` | 0.6619 |
+| `query` + `text` + `narrative` | 0.6970 |
+
+Concatenating fields would land within 0.006 of the published number. That is exactly
+why it was not adopted: nothing independent says BEIR did that, and the only argument
+for it is that it matches the target. `text` is what the loader uses everywhere and it
+reproduces SciFact and NFCorpus without special pleading.
+
+**Where the headroom is.** Recall@100 is not comparable across datasets — they differ in
+how many relevant documents exist per query (median 1, 16 and 478). Against the best any
+system could reach given the judgements:
+
+| Dataset | Recall@100 | Oracle | Share of ceiling |
+|---|---|---|---|
+| SciFact | 0.9220 | 1.0000 | **92.2%** |
+| NFCorpus | 0.2461 | 0.9647 | **25.5%** |
+| TREC-COVID | 0.1088 | 0.2674 | **40.7%** |
+
+BM25 has already found 92% of what exists on SciFact, so reranking and fusion have
+almost nothing to win there whatever their quality. NFCorpus is where a method can show
+something.
 
 Tokenisation ablation, same corpus and parameters, nDCG@10 with recall@100 in brackets:
 
@@ -168,8 +204,8 @@ different metrics. Reported as a win on recall, and as undetermined on ranking.
 
 ## Limitations
 
-- Only SciFact is wired up so far; TREC-COVID and NFCorpus are supported by the loader
-  but not yet run.
+- TREC-COVID's published number is not reproduced here; see the results section. Its
+  50 queries also give it very little statistical power.
 - `trec_eval` ties are broken by document id here. `pytrec_eval` breaks them
   differently, so runs with many exactly-tied scores can differ in the fourth decimal.
 - Recall@100 caps at the retrieval depth; deeper retrieval would change it.
@@ -211,7 +247,7 @@ pip install -e ".[dev,stem]"
 ## Development
 
 ```bash
-pytest          # 108 tests
+pytest          # 134 tests
 ruff check .
 ruff format .
 ```
@@ -224,6 +260,7 @@ CI runs lint, format check and tests on every push.
 src/groundwork/
   data/beir.py          dataset download and loading
   retrieval/bm25.py     Lucene-variant BM25
+  retrieval/rm3.py      RM3 pseudo-relevance feedback
   retrieval/tokenize.py tokenisation, stopwords, stemming
   eval/metrics.py       nDCG@k, recall@k, per-query scoring
   eval/significance.py  paired randomisation test, Holm-Bonferroni
@@ -231,7 +268,7 @@ scripts/run_baseline.py the one command behind the results table
 scripts/compare_runs.py paired significance test between two runs
 scripts/run_sweep.py    k1/b grid over one shared index
 docs/experiments.md     running log, including what failed
-tests/                  108 tests
+tests/                  134 tests
 ```
 
 ## Licence

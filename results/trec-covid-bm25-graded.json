@@ -1,0 +1,61 @@
+{
+  "dataset": "trec-covid",
+  "split": "test",
+  "tag": "graded",
+  "metrics": {
+    "ndcg@1": 0.6466666666666666,
+    "recall@1": 0.001931122684698682,
+    "ndcg@10": 0.5644378100537581,
+    "recall@10": 0.015485858099731204,
+    "ndcg@100": 0.41215269461128484,
+    "recall@100": 0.10884491372966852
+  },
+  "num_queries": 50,
+  "num_documents": 171332,
+  "retriever": {
+    "method": "bm25",
+    "variant": "lucene",
+    "k1": 0.9,
+    "b": 0.4,
+    "tokenizer": {
+      "stopwords": "lucene_english",
+      "stem": "porter",
+      "min_length": 1
+    }
+  },
+  "top_k": 100,
+  "timing_seconds": {
+    "index": 348.62,
+    "retrieve": 0.09
+  },
+  "gain": "exponential",
+  "graded_qrels": true,
+  "relevance_levels": [
+    1,
+    2
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.6466666666666666,
+      "recall@1": 0.001931122684698682,
+      "ndcg@10": 0.5644378100537581,
+      "recall@10": 0.015485858099731204,
+      "ndcg@100": 0.41215269461128484,
+      "recall@100": 0.10884491372966852
+    },
+    "linear": {
+      "ndcg@1": 0.68,
+      "recall@1": 0.001931122684698682,
+      "ndcg@10": 0.5897461511435287,
+      "recall@10": 0.015485858099731204,
+      "ndcg@100": 0.4353363426318313,
+      "recall@100": 0.10884491372966852
+    }
+  },
+  "reference_ndcg_at_10": 0.656,
+  "within_reference_tolerance": false,
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "run_at": "2026-09-21T01:42:40+00:00",
+  "per_query_file": "per-query/trec-covid-bm25-graded.json"
+}

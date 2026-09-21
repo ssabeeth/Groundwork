@@ -146,14 +146,17 @@ class BM25Retriever:
         clone._idf = self._idf
         return clone
 
+    def _length_factor(self) -> np.ndarray:
+        """Per-document denominator term: ``k1 * (1 - b + b * |D| / avgdl)``."""
+        return self.k1 * (1.0 - self.b + self.b * (self.doc_lengths / self.avg_doc_length))
+
     def _score_all(self, query: str) -> np.ndarray:
         """Score every document against ``query``."""
         scores = np.zeros(len(self.doc_ids), dtype=np.float32)
         if self.avg_doc_length == 0.0:
             return scores
 
-        # Denominator length factor, per document: k1 * (1 - b + b * |D| / avgdl)
-        length_factor = self.k1 * (1.0 - self.b + self.b * (self.doc_lengths / self.avg_doc_length))
+        length_factor = self._length_factor()
 
         for term in self.tokenizer(query):
             posting = self._postings.get(term)
@@ -165,6 +168,73 @@ class BM25Retriever:
             scores[indices] += self._idf[term] * (numerator / denominator)
 
         return scores
+
+    def score_weighted_terms(self, term_weights: Mapping[str, float]) -> np.ndarray:
+        """Score every document against already-tokenised terms carrying weights.
+
+        Plain :meth:`search` treats a query as a bag of equally weighted terms, repeated
+        terms counting twice. Query expansion needs the general case: terms with
+        arbitrary non-negative weights, already tokenised, because an expansion term is
+        chosen from the index and must not be re-tokenised on the way back in.
+
+        Args:
+            term_weights: ``{term: weight}``, terms already tokenised. Terms absent
+                from the index are ignored, as in ordinary scoring.
+
+        Returns:
+            A score per document, in :attr:`doc_ids` order.
+
+        Raises:
+            RuntimeError: If the index has not been built.
+        """
+        if not self.doc_ids:
+            raise RuntimeError("index() must be called before score_weighted_terms()")
+
+        scores = np.zeros(len(self.doc_ids), dtype=np.float32)
+        if self.avg_doc_length == 0.0:
+            return scores
+
+        length_factor = self._length_factor()
+
+        for term, weight in term_weights.items():
+            posting = self._postings.get(term)
+            if posting is None or weight == 0.0:
+                continue
+            indices, freqs = posting
+            numerator = freqs * (self.k1 + 1.0)
+            denominator = freqs + length_factor[indices]
+            scores[indices] += weight * self._idf[term] * (numerator / denominator)
+
+        return scores
+
+    def rank_scores(self, scores: np.ndarray, top_k: int) -> list[tuple[str, float]]:
+        """Turn a score vector into a ranking, dropping zeros and breaking ties by id.
+
+        Shared by :meth:`search` and by any retriever that scores through
+        :meth:`score_weighted_terms`, so every ranking in the project is built the same
+        way and the tie-breaking rule lives in one place.
+
+        Args:
+            scores: One score per document, in :attr:`doc_ids` order.
+            top_k: Maximum documents to return.
+
+        Returns:
+            ``[(doc_id, score), ...]``, highest first, ties broken by doc id ascending.
+        """
+        if top_k <= 0:
+            raise ValueError("top_k must be positive")
+
+        nonzero = np.flatnonzero(scores > 0.0)
+        if nonzero.size == 0:
+            return []
+
+        if nonzero.size > top_k:
+            partition = np.argpartition(-scores[nonzero], top_k)[:top_k]
+            nonzero = nonzero[partition]
+
+        results = [(self.doc_ids[i], float(scores[i])) for i in nonzero]
+        results.sort(key=lambda item: (-item[1], item[0]))
+        return results[:top_k]
 
     def search(self, query: str, top_k: int = 100) -> list[tuple[str, float]]:
         """Return the ``top_k`` highest scoring documents for ``query``.
@@ -184,18 +254,7 @@ class BM25Retriever:
         if top_k <= 0:
             raise ValueError("top_k must be positive")
 
-        scores = self._score_all(query)
-        nonzero = np.flatnonzero(scores > 0.0)
-        if nonzero.size == 0:
-            return []
-
-        if nonzero.size > top_k:
-            partition = np.argpartition(-scores[nonzero], top_k)[:top_k]
-            nonzero = nonzero[partition]
-
-        results = [(self.doc_ids[i], float(scores[i])) for i in nonzero]
-        results.sort(key=lambda item: (-item[1], item[0]))
-        return results[:top_k]
+        return self.rank_scores(self._score_all(query), top_k)
 
     def retrieve(
         self,

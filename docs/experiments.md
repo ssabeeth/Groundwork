@@ -277,6 +277,104 @@ of the method.
 
 ---
 
+## 2026-09-21 — BM25 on graded qrels: NFCorpus and TREC-COVID
+
+**Question:** Does the harness hold on graded relevance, and does the
+exponential-versus-linear gain choice actually matter?
+
+**Setup:** BM25 `k1=0.9, b=0.4`, Porter stemming, Lucene stopwords, depth 100, on
+NFCorpus (3,633 documents, 323 test queries) and TREC-COVID (171,332 documents, 50 test
+queries). Both have levels {1, 2}; TREC-COVID's qrels also contain 41,661 explicit
+zeros and two judgements at level −1, all of which score as non-relevant.
+
+`run_baseline.py` gained a `--gain` flag. Both gains are now computed from the *same*
+retrieval pass — the ranking does not depend on the gain function, only the scoring of
+it does — and both are recorded, so no graded number in this repo can be quoted without
+the gain that produced it.
+
+**Result:**
+
+| Dataset | nDCG@10 (exp) | nDCG@10 (lin) | gain difference | published | delta |
+|---|---|---|---|---|---|
+| NFCorpus | 0.3224 | 0.3210 | +0.0014 | 0.325 | −0.0026 ✓ |
+| TREC-COVID | 0.5644 | 0.5897 | **−0.0253** | 0.656 | **−0.0916 ✗** |
+
+NFCorpus reproduces. TREC-COVID does not, by three times the tolerance, and the script
+exits non-zero as designed.
+
+**Read, part 1 — the gain function matters, and its sign is not predictable.**
+
+On NFCorpus exponential gain scores *higher* than linear; on TREC-COVID it scores
+0.0253 *lower*. That difference is larger than the stemming effect from experiment 2 and
+larger than the entire `k1`/`b` parameter space from experiment 3.
+
+The mechanism: exponential gain weights a level-2 document at 3 and a level-1 at 1,
+against 2 and 1 for linear, so it rewards a system that separates the two grades and
+penalises one that does not — the IDCG rises faster than the DCG when the ranking is
+grade-blind. NFCorpus's BM25 ranking separates grades slightly; TREC-COVID's does not.
+So the choice is not a convention that quietly cancels out. It is worth a quarter of the
+gap being investigated below, and on binary qrels it is provably nothing at all
+(verified: all six SciFact metrics are bit-identical under the two gains, since
+`2¹ − 1 = 1`). Recorded with every run from here on.
+
+**Read, part 2 — TREC-COVID's gap is query formulation, not the harness.**
+
+TREC-COVID is the one BEIR dataset shipping several query formulations. `queries.jsonl`
+carries the question form in `text`, and a keyword form and a narrative in `metadata`.
+Indexing once and re-retrieving per field — retrieval is 0.1s, so this is nearly free:
+
+| Query field | nDCG@10 | vs published 0.656 | recall@100 |
+|---|---|---|---|
+| `text` (BEIR canonical, what the loader uses) | 0.5644 | −0.0916 | 0.1088 |
+| `metadata.query` (keyword form) | 0.5860 | −0.0700 | 0.1207 |
+| `metadata.narrative` | 0.4554 | −0.2006 | 0.0870 |
+| `query` + `text` | 0.6619 | +0.0059 | 0.1372 |
+| `query` + `text` + `narrative` | 0.6970 | +0.0410 | 0.1377 |
+
+Query formulation moves nDCG@10 on this dataset by **0.24** between its worst and best
+form. That dwarfs tokenisation, `k1`/`b` and the gain function put together, and it is a
+variable no entry in this log had been recording, because on every other BEIR dataset
+there is only one query field and nothing to record.
+
+**The loader keeps using `text`, and the reproduction is recorded as failed.**
+
+`query + text` lands within 0.006 of the published figure and would turn this entry
+green. That is precisely why it is not being adopted. Nothing independent establishes
+that BEIR's Elasticsearch runs concatenated those fields; the only evidence for it is
+that it matches the number being chased, which is the definition of fitting to the
+target. `text` is what `queries.jsonl` designates as the query, it is what the loader
+uses for every dataset, and it reproduces SciFact (+0.0152) and NFCorpus (−0.0026)
+without special pleading. Changing the convention for the one dataset where the
+convention is inconvenient would make all three numbers unfalsifiable.
+
+So TREC-COVID stands as **not reproduced**, with the cause identified and quantified.
+The harness is not the suspect: it reproduces two datasets either side of this one, and
+the candidate explanation accounts for the entire gap on its own.
+
+**Read, part 3 — where the headroom is.** Recall@100 is not comparable across these
+datasets, because they differ enormously in how many relevant documents exist per query
+(SciFact median 1, NFCorpus 16, TREC-COVID 478). Against the best recall@100 any system
+could achieve given the judgements:
+
+| Dataset | measured R@100 | oracle R@100 | share of ceiling |
+|---|---|---|---|
+| SciFact | 0.9220 | 1.0000 | **92.2%** |
+| NFCorpus | 0.2461 | 0.9647 | **25.5%** |
+| TREC-COVID | 0.1088 | 0.2674 | **40.7%** |
+
+This reframes every remaining experiment. Dense retrieval, fusion and reranking all act
+on the candidate set, and on SciFact BM25 has already found 92% of what is there — so a
+win on SciFact is close to unavailable regardless of method quality, and any that
+appears should be read as noise before it is read as progress. NFCorpus, at a quarter of
+its ceiling, has room for a method to show something. TREC-COVID has room too, but with
+50 queries it has very little statistical power, and that is worth saying before running
+anything there rather than after.
+
+**Next:** RM3 pseudo-relevance feedback — the first method in the project expected to
+beat the baseline rather than define it. NFCorpus is the dataset to watch.
+
+---
+
 ## Pending
 
 Planned runs, in order. Each is a separate entry when it happens.
@@ -286,7 +384,7 @@ Planned runs, in order. Each is a separate entry when it happens.
 | 1 | ~~BM25 on SciFact~~ | **Done** — nDCG@10 0.6802 vs published 0.665 |
 | 2 | ~~Tokenisation ablation~~ | **Done** — stemming helps recall@100 (Holm p 0.018); stopwords do nothing |
 | 3 | ~~`k1`/`b` sweep~~ | **Done** — tuned on train, no held-out gain (p 0.22); defaults kept |
-| 4 | BM25 on TREC-COVID and NFCorpus | Does the harness hold on graded qrels |
+| 4 | ~~BM25 on TREC-COVID and NFCorpus~~ | **Done** — NFCorpus reproduces; TREC-COVID does not (query formulation, −0.092) |
 | 5 | Dense retrieval, same harness | The first real comparison |
 | 6 | Hybrid via reciprocal rank fusion | Whether fusion beats both parents |
 | 7 | Cross-encoder reranking over hybrid | Cost/benefit at depth 100 |

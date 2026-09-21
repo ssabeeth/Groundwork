@@ -59,6 +59,12 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Results JSON path (default: results/<dataset>-bm25.json)",
     )
+    parser.add_argument(
+        "--gain",
+        default="exponential",
+        choices=["exponential", "linear"],
+        help="nDCG gain function; identical on binary qrels, not on graded ones",
+    )
     parser.add_argument("--tag", default="", help="Short label for this run")
     return parser.parse_args()
 
@@ -96,10 +102,20 @@ def main() -> int:
     run = retriever.retrieve(dataset.queries, top_k=args.top_k)
     retrieve_seconds = time.perf_counter() - start
 
-    metrics = evaluate_run(run, dataset.qrels, k_values=(1, 10, 100))
-    per_query = evaluate_run_per_query(run, dataset.qrels, k_values=(1, 10, 100))
+    # The ranking does not depend on the gain function - only the scoring of it does -
+    # so both are computed from the one run rather than retrieving twice. On graded
+    # qrels the two differ, and a number without its gain function is not reproducible.
+    metrics_by_gain = {
+        name: evaluate_run(run, dataset.qrels, k_values=(1, 10, 100), gain=name)
+        for name in ("exponential", "linear")
+    }
+    metrics = metrics_by_gain[args.gain]
+    per_query = evaluate_run_per_query(run, dataset.qrels, k_values=(1, 10, 100), gain=args.gain)
 
-    print(f"\n{args.dataset} / {args.split} / BM25 (k1={args.k1}, b={args.b})")
+    levels_present = {level for d in dataset.qrels.values() for level in d.values() if level > 0}
+    graded = len(levels_present) > 1
+
+    print(f"\n{args.dataset} / {args.split} / BM25 (k1={args.k1}, b={args.b}, gain={args.gain})")
     print("-" * 52)
     for name in sorted(metrics):
         if name != "num_queries":
@@ -107,6 +123,13 @@ def main() -> int:
     print(f"  {'queries':<14} {int(metrics['num_queries'])}")
     print(f"  {'index time':<14} {index_seconds:.1f}s")
     print(f"  {'retrieve time':<14} {retrieve_seconds:.1f}s")
+
+    if graded:
+        other = "linear" if args.gain == "exponential" else "exponential"
+        delta = metrics["ndcg@10"] - metrics_by_gain[other]["ndcg@10"]
+        print(f"\n  graded qrels, levels {sorted(levels_present)}")
+        print(f"  nDCG@10 under {args.gain}: {metrics['ndcg@10']:.4f}")
+        print(f"  nDCG@10 under {other}: {metrics_by_gain[other]['ndcg@10']:.4f}  ({delta:+.4f})")
 
     reference = REFERENCE_NDCG_10.get(args.dataset)
     within_tolerance = None
@@ -129,6 +152,13 @@ def main() -> int:
         "timing_seconds": {
             "index": round(index_seconds, 2),
             "retrieve": round(retrieve_seconds, 2),
+        },
+        "gain": args.gain,
+        "graded_qrels": graded,
+        "relevance_levels": sorted(levels_present),
+        "metrics_by_gain": {
+            name: {k: v for k, v in scores.items() if k != "num_queries"}
+            for name, scores in metrics_by_gain.items()
         },
         "reference_ndcg_at_10": reference,
         "within_reference_tolerance": within_tolerance,
@@ -155,6 +185,7 @@ def main() -> int:
         "dataset": args.dataset,
         "split": args.split,
         "tag": args.tag,
+        "gain": args.gain,
         "retriever": retriever.describe(),
         "per_query": per_query,
     }
