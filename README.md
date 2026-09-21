@@ -338,14 +338,28 @@ different metrics. Reported as a win on recall, and as undetermined on ranking.
 
 ## Roadmap
 
+Numbered as in [`docs/experiments.md`](docs/experiments.md), which is the full log.
+
 1. ~~Tested metrics and BM25 baseline~~
 2. ~~Tokenisation ablation, with paired significance testing~~
 3. ~~`k1`/`b` sweep, tuned on train and checked on held-out test~~
-4. Dense retrieval, and the same numbers on the same harness
-5. Hybrid (reciprocal rank fusion), plus a cross-encoder reranker
-6. Results broken down by query type — the actual question
-7. Answer generation with citations, LLM judge calibrated against human labels
-8. MCP server so it plugs into any assistant
+4. ~~BM25 on graded qrels: NFCorpus and TREC-COVID~~
+4b. ~~RM3 pseudo-relevance feedback~~
+5. ~~Dense retrieval on the same harness~~
+6. ~~Hybrid by reciprocal rank fusion~~
+7. ~~Cross-encoder reranking over the fused candidates~~
+8. ~~Results broken down by query type — the actual question~~
+
+Every experiment on the original roadmap is now measured. What remains is listed under
+"Still open" in the experiment log, and the largest item there is a confound rather than
+a feature: **every dense and reranking result here used models trained on web search
+text, reading truncated documents.** Until that is re-run with a domain-matched encoder,
+"dense retrieval does not beat BM25 here" is a claim about one weak configuration.
+
+Still planned, after that:
+
+9. Answer generation with citations, LLM judge calibrated against human labels
+10. MCP server so it plugs into any assistant
 
 ## Install
 
