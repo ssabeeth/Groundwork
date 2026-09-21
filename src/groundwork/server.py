@@ -200,6 +200,33 @@ def compare_methods(index: DatasetIndex, query: str, top_k: int = 5) -> dict[str
     }
 
 
+def answer(index: DatasetIndex, query: str, top_k: int = 5) -> dict[str, Any]:
+    """Retrieve, then answer the question from what was retrieved, with citations.
+
+    The response carries the retrieved documents alongside the answer, and flags any
+    citation that does not resolve to one of them. It does not claim the answer is
+    correct: this benchmark ships no reference answers, so answer quality is not
+    measurable on it, and the citation check is the strongest guarantee available.
+    """
+    from groundwork.generate import answer_from_documents
+
+    retrieved = search(index, query, top_k=top_k)
+    doc_ids = [document["doc_id"] for document in retrieved["results"]]
+    cited = answer_from_documents(query, doc_ids, index.dataset.corpus)
+
+    described = cited.describe()
+    described["retrieved"] = retrieved["results"]
+    described["retrieval_method"] = retrieved["method"]
+    described["caveat"] = (
+        "Citations are checked against the retrieved set, so a fabricated source number "
+        "is reported in invalid_citations. Nothing here checks that a cited document "
+        "actually supports the claim citing it, or that the answer is correct: BEIR has "
+        "no reference answers, and an LLM judge asked to supply one would need "
+        "calibrating first - see experiment 16."
+    )
+    return described
+
+
 def describe_benchmark(index: DatasetIndex) -> dict[str, Any]:
     """What this dataset is, and how this implementation scores on it."""
     dataset = index.dataset
@@ -235,6 +262,11 @@ def build_server(index: DatasetIndex) -> Any:
     def groundwork_compare_methods(query: str, top_k: int = 5) -> dict:
         """Run lexical and semantic retrieval side by side and report their overlap."""
         return compare_methods(index, query, top_k=top_k)
+
+    @server.tool()
+    def groundwork_answer(query: str, top_k: int = 5) -> dict:
+        """Answer a question from retrieved documents, with checked citations."""
+        return answer(index, query, top_k=top_k)
 
     @server.tool()
     def groundwork_describe_benchmark() -> dict:
