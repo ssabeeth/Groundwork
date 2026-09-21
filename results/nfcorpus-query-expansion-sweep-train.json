@@ -24,6 +24,16 @@
       "recall@100": 0.25931999197850425
     }
   },
+  "surface": {
+    "metric": "ndcg@10",
+    "num_cells": 8,
+    "best": 0.317721377555484,
+    "worst": 0.23818452028841436,
+    "span": 0.07953685726706966,
+    "best_weight": 20,
+    "best_at_grid_edge": true,
+    "monotone": "increasing"
+  },
   "cells": [
     {
       "weight": 0,
@@ -135,5 +145,5 @@
     }
   },
   "groundwork_version": "0.1.0",
-  "run_at": "2026-09-21T18:39:15+00:00"
+  "run_at": "2026-09-21T18:45:52+00:00"
 }

@@ -177,7 +177,7 @@ class TestSummariseExpansions:
         "q2": ["statins cause myopathy in adults"],  # 5 words, 4 new of 4 distinct
         "q3": [],                                    # nothing generated
         "q4": ["screening reduces mortality"],       # 3 words, 2 new of 3 distinct
-    }
+    }  # fmt: skip
 
     def summary(self):
         return summarise_expansions(self.ORIGINALS, self.EXPANSIONS, PLAIN)

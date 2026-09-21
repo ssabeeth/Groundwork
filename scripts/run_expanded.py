@@ -28,6 +28,7 @@ import platform
 import sys
 import time
 from datetime import UTC, datetime
+from itertools import pairwise
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
@@ -159,6 +160,42 @@ def main() -> int:
             print(f"  weight={weight:<4} ndcg@10 {nd:.4f}  recall@100 {rc:.4f}")
         best = max(cells, key=lambda cell: cell["metrics"][args.select_on])
         print(f"\n  best weight on {args.select_on}: {best['weight']}")
+
+        # A one-dimensional sweep has two failure modes that reporting only the best cell
+        # hides. The peak can sit on the edge of the grid, which means the grid was too
+        # narrow to contain the optimum. And the curve can never turn over, which means
+        # the sweep is asking for more of something the grid caps.
+        #
+        # Both matter here more than usual, because of what the parameter is. `weight` is
+        # how many times the ORIGINAL query is repeated before the generated passage, so
+        # a larger weight dilutes the expansion. A curve that rises monotonically to the
+        # largest weight on the grid is the tuner asking for *less* expansion, and its
+        # limit is the unexpanded baseline rather than any setting of this method.
+        selected = [cell["metrics"][args.select_on] for cell in cells]
+        peak = max(selected)
+        # pairwise, not zip(xs, xs[1:], strict=True): the offset pairing is deliberate,
+        # so strict= raises on the length mismatch - but only once all() consumes the
+        # whole iterator, which happens precisely when the curve IS monotone.
+        rising = all(b > a for a, b in pairwise(selected))
+        falling = all(b < a for a, b in pairwise(selected))
+        surface = {
+            "metric": args.select_on,
+            "num_cells": len(cells),
+            "best": peak,
+            "worst": min(selected),
+            "span": peak - min(selected),
+            "best_weight": best["weight"],
+            "best_at_grid_edge": best["weight"] in (min(SWEEP_WEIGHTS), max(SWEEP_WEIGHTS)),
+            "monotone": "increasing" if rising else "decreasing" if falling else "neither",
+        }
+        print(f"  span across {len(cells)} weights  {surface['span']:.4f}")
+        if surface["best_at_grid_edge"]:
+            print(
+                f"  NOTE: the best weight is at the edge of the grid "
+                f"{min(SWEEP_WEIGHTS)}..{max(SWEEP_WEIGHTS)}, and the curve is "
+                f"{surface['monotone']}. The optimum may lie outside the grid; for this "
+                f"parameter that direction means less expansion, not more."
+            )
         record = {
             "dataset": args.dataset,
             "split": args.split,
@@ -168,6 +205,7 @@ def main() -> int:
             "select_on": args.select_on,
             "grid": list(SWEEP_WEIGHTS),
             "best": best,
+            "surface": surface,
             "cells": cells,
             "expansion": {k: v for k, v in expansion_record.items() if k != "expansions"},
             "retriever": retriever.describe(),
