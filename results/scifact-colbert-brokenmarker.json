@@ -58,7 +58,7 @@
     "index": 79.89,
     "retrieve": 15.13
   },
-  "per_query_file": "per-query/scifact-colbert.json",
+  "per_query_file": "per-query/scifact-colbert-brokenmarker.json",
   "groundwork_version": "0.1.0",
   "python": "3.11.16",
   "numpy": "1.26.4",
