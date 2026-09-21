@@ -1,0 +1,73 @@
+{
+  "dataset": "nfcorpus",
+  "split": "test",
+  "tag": "tuned",
+  "method": "rm3",
+  "metrics": {
+    "ndcg@1": 0.41073271413828677,
+    "recall@1": 0.05260964920177745,
+    "ndcg@10": 0.34325434883719125,
+    "recall@10": 0.1704771256950768,
+    "ndcg@100": 0.3178370689665627,
+    "recall@100": 0.3105301005004324
+  },
+  "num_queries": 323,
+  "num_documents": 3633,
+  "retriever": {
+    "method": "rm3",
+    "base": {
+      "method": "bm25",
+      "variant": "lucene",
+      "k1": 0.9,
+      "b": 0.4,
+      "tokenizer": {
+        "stopwords": "lucene_english",
+        "stem": "porter",
+        "min_length": 1
+      }
+    },
+    "fb_docs": 5,
+    "fb_terms": 50,
+    "alpha": 0.8,
+    "k1": 0.9,
+    "b": 0.4,
+    "tokenizer": {
+      "stopwords": "lucene_english",
+      "stem": "porter",
+      "min_length": 1
+    }
+  },
+  "top_k": 100,
+  "gain": "exponential",
+  "graded_qrels": true,
+  "relevance_levels": [
+    1,
+    2
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.41073271413828677,
+      "recall@1": 0.05260964920177745,
+      "ndcg@10": 0.34325434883719125,
+      "recall@10": 0.1704771256950768,
+      "ndcg@100": 0.3178370689665627,
+      "recall@100": 0.3105301005004324
+    },
+    "linear": {
+      "ndcg@1": 0.4148606811145511,
+      "recall@1": 0.05260964920177745,
+      "ndcg@10": 0.3421255413974611,
+      "recall@10": 0.1704771256950768,
+      "ndcg@100": 0.31188585843528305,
+      "recall@100": 0.3105301005004324
+    }
+  },
+  "timing_seconds": {
+    "index": 10.42,
+    "retrieve": 3.44
+  },
+  "per_query_file": "per-query/nfcorpus-rm3-tuned.json",
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "run_at": "2026-09-21T01:58:04+00:00"
+}

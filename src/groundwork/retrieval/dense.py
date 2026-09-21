@@ -1,0 +1,299 @@
+"""Dense retrieval with a sentence-transformer bi-encoder.
+
+The first method here that does not match tokens at all. BM25 scores a document by the
+query terms it literally contains; a bi-encoder maps both into a vector space and scores
+by cosine similarity, so it can connect "myocardial infarction" to "heart attack" and
+can equally well connect a gene symbol to a different gene symbol that keeps similar
+company. Which of those two behaviours dominates is the question this project exists to
+answer, and it is why the comparison is run per query rather than as a single headline.
+
+**Three things are recorded with every run, because each silently changes the result.**
+
+*The model.* A bi-encoder's score is a property of its training data as much as of the
+query. Several popular encoders are fine-tuned on data overlapping BEIR, and BEIR is
+meant to be a zero-shot benchmark — so a model that has seen the test set is not
+measuring what the leaderboard claims. The model id goes in `describe()` so the claim
+can be checked rather than assumed.
+
+*The truncation.* Encoders have a maximum sequence length, commonly 256 or 512 word
+pieces. Scientific abstracts frequently exceed it, and the excess is silently discarded.
+"Dense retrieval underperforms on long documents" and "half the document was never
+encoded" are different findings, so this class measures the truncation rate rather than
+leaving it to be assumed.
+
+*The pooling and normalisation.* Mean pooling with L2 normalisation, so the inner
+product is cosine similarity. Stated because it is a choice, not a law.
+
+**Embeddings are cached** to disk, keyed by model, truncation length and a digest of the
+corpus. Encoding is by far the slowest thing in this repo, and a sweep that re-encoded
+per cell would be unusable.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import logging
+from collections.abc import Mapping
+from pathlib import Path
+
+import numpy as np
+
+logger = logging.getLogger(__name__)
+
+DEFAULT_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+
+
+def _require_sentence_transformers():  # noqa: ANN202 - third-party class, not ours to name
+    """Import sentence-transformers, or explain how to install it.
+
+    Kept lazy and behind an extra for the same reason stemming is: the core package
+    depends on numpy and tqdm, and a torch install is a reason people do not run
+    portfolio code.
+    """
+    try:
+        from sentence_transformers import SentenceTransformer
+    except ImportError as exc:  # pragma: no cover - exercised only without the extra
+        raise ImportError(
+            "Dense retrieval requires sentence-transformers. "
+            "Install with: pip install -e '.[dense]'"
+        ) from exc
+    return SentenceTransformer
+
+
+def corpus_digest(corpus: Mapping[str, Mapping[str, str]]) -> str:
+    """Stable digest of a corpus, for keying an embedding cache.
+
+    Hashes ids and text in iteration order. Two corpora with the same documents in a
+    different order digest differently, which is deliberate: the cache stores a matrix
+    whose rows are positional, so reusing it across orderings would silently misalign
+    every document.
+
+    Args:
+        corpus: ``{doc_id: {"title": ..., "text": ...}}``.
+
+    Returns:
+        A hex digest.
+    """
+    hasher = hashlib.sha256()
+    for doc_id, fields in corpus.items():
+        hasher.update(doc_id.encode("utf-8"))
+        hasher.update(b"\x00")
+        hasher.update((fields.get("title", "") or "").encode("utf-8"))
+        hasher.update(b"\x00")
+        hasher.update((fields.get("text", "") or "").encode("utf-8"))
+        hasher.update(b"\x01")
+    return hasher.hexdigest()[:16]
+
+
+class DenseRetriever:
+    """Bi-encoder retrieval over cosine similarity.
+
+    Args:
+        model_name: Sentence-transformers model id, recorded with every result.
+        batch_size: Encoding batch size. Affects speed only.
+        max_seq_length: Word-piece cap. None keeps the model's own default.
+        cache_dir: Where to cache embeddings. None disables caching.
+        device: Torch device string, or None to let the library choose.
+    """
+
+    def __init__(
+        self,
+        model_name: str = DEFAULT_MODEL,
+        batch_size: int = 64,
+        max_seq_length: int | None = None,
+        cache_dir: Path | str | None = "data/embeddings",
+        device: str | None = None,
+    ) -> None:
+        self.model_name = model_name
+        self.batch_size = batch_size
+        self.max_seq_length = max_seq_length
+        self.cache_dir = Path(cache_dir) if cache_dir is not None else None
+        self.device = device
+
+        self._model = None
+        self.doc_ids: list[str] = []
+        self.embeddings: np.ndarray = np.zeros((0, 0), dtype=np.float32)
+        self.truncation_rate: float | None = None
+        self.effective_max_seq_length: int | None = None
+
+    @property
+    def model(self):  # noqa: ANN201 - third-party class, not ours to name
+        """The encoder, loaded on first use."""
+        if self._model is None:
+            SentenceTransformer = _require_sentence_transformers()
+            self._model = SentenceTransformer(self.model_name, device=self.device)
+            if self.max_seq_length is not None:
+                self._model.max_seq_length = self.max_seq_length
+            self.effective_max_seq_length = int(self._model.max_seq_length)
+        return self._model
+
+    def _encode(self, texts: list[str], show_progress: bool) -> np.ndarray:
+        """Encode to L2-normalised float32, so an inner product is cosine similarity."""
+        vectors = self.model.encode(
+            texts,
+            batch_size=self.batch_size,
+            show_progress_bar=show_progress,
+            convert_to_numpy=True,
+            normalize_embeddings=True,
+        )
+        return np.asarray(vectors, dtype=np.float32)
+
+    def measure_truncation(self, texts: list[str]) -> float:
+        """Fraction of ``texts`` the encoder will cut off.
+
+        Args:
+            texts: Document or query texts as they will be encoded.
+
+        Returns:
+            The fraction exceeding the model's maximum sequence length, in [0, 1].
+        """
+        tokenizer = self.model.tokenizer
+        limit = int(self.model.max_seq_length)
+        over = 0
+        for text in texts:
+            # add_special_tokens matches what encoding actually does, so the count is
+            # the one that decides whether this document loses its tail.
+            length = len(tokenizer.encode(text, add_special_tokens=True, truncation=False))
+            if length > limit:
+                over += 1
+        return over / len(texts) if texts else 0.0
+
+    def _cache_path(self, corpus: Mapping[str, Mapping[str, str]]) -> Path | None:
+        if self.cache_dir is None:
+            return None
+        model_slug = self.model_name.replace("/", "__")
+        length = self.max_seq_length if self.max_seq_length is not None else "default"
+        return self.cache_dir / f"{model_slug}__len{length}__{corpus_digest(corpus)}.npz"
+
+    def index(
+        self,
+        corpus: Mapping[str, Mapping[str, str]],
+        show_progress: bool = True,
+        measure_truncation: bool = True,
+    ) -> None:
+        """Encode the corpus, reusing a cached matrix when one matches.
+
+        Args:
+            corpus: ``{doc_id: {"title": ..., "text": ...}}``.
+            show_progress: Display an encoding progress bar.
+            measure_truncation: Also compute what fraction of documents get cut off.
+                Costs a full tokenisation pass, which is worth it once per corpus.
+        """
+        if not corpus:
+            raise ValueError("corpus is empty")
+
+        self.doc_ids = list(corpus)
+        texts = [
+            f"{(corpus[d].get('title', '') or '')} {(corpus[d].get('text', '') or '')}".strip()
+            for d in self.doc_ids
+        ]
+
+        cache_path = self._cache_path(corpus)
+        if cache_path is not None and cache_path.exists():
+            with np.load(cache_path, allow_pickle=False) as cached:
+                self.embeddings = cached["embeddings"]
+                stored = cached["truncation_rate"]
+                self.truncation_rate = float(stored) if stored.size else None
+                self.effective_max_seq_length = int(cached["max_seq_length"])
+            logger.info("Loaded %d cached embeddings from %s", len(self.doc_ids), cache_path)
+            if self.embeddings.shape[0] != len(self.doc_ids):
+                raise ValueError(
+                    f"cached embeddings have {self.embeddings.shape[0]} rows for a corpus of "
+                    f"{len(self.doc_ids)}; delete {cache_path} and re-index"
+                )
+            return
+
+        if measure_truncation:
+            self.truncation_rate = self.measure_truncation(texts)
+            logger.info("Truncation rate: %.1f%% of documents", 100 * self.truncation_rate)
+
+        self.embeddings = self._encode(texts, show_progress=show_progress)
+        self.effective_max_seq_length = int(self.model.max_seq_length)
+
+        if cache_path is not None:
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
+            np.savez_compressed(
+                cache_path,
+                embeddings=self.embeddings,
+                truncation_rate=np.array(
+                    [] if self.truncation_rate is None else [self.truncation_rate]
+                ),
+                max_seq_length=np.array(self.effective_max_seq_length),
+            )
+            logger.info("Cached embeddings to %s", cache_path)
+
+    def search(self, query: str, top_k: int = 100) -> list[tuple[str, float]]:
+        """Return the ``top_k`` nearest documents to ``query`` by cosine similarity.
+
+        Unlike BM25, every document has a score, and a score near zero means "unrelated"
+        rather than "shares no term". Nothing is dropped, so the ranking is always
+        ``top_k`` long.
+
+        Args:
+            query: Query text.
+            top_k: Documents to return.
+
+        Returns:
+            ``[(doc_id, score), ...]``, highest first, ties broken by doc id ascending.
+        """
+        if not self.doc_ids:
+            raise RuntimeError("index() must be called before search()")
+        if top_k <= 0:
+            raise ValueError("top_k must be positive")
+
+        vector = self._encode([query], show_progress=False)[0]
+        scores = self.embeddings @ vector
+
+        k = min(top_k, scores.shape[0])
+        candidates = np.argpartition(-scores, k - 1)[:k]
+        results = [(self.doc_ids[i], float(scores[i])) for i in candidates]
+        results.sort(key=lambda item: (-item[1], item[0]))
+        return results
+
+    def retrieve(
+        self,
+        queries: Mapping[str, str],
+        top_k: int = 100,
+        show_progress: bool = True,
+    ) -> dict[str, dict[str, float]]:
+        """Score documents for every query, encoding the queries in one batch.
+
+        Args:
+            queries: ``{query_id: query_text}``.
+            top_k: Documents per query.
+            show_progress: Display an encoding progress bar.
+
+        Returns:
+            ``{query_id: {doc_id: score}}``.
+        """
+        if not self.doc_ids:
+            raise RuntimeError("index() must be called before retrieve()")
+
+        query_ids = list(queries)
+        vectors = self._encode([queries[q] for q in query_ids], show_progress=show_progress)
+        similarities = vectors @ self.embeddings.T
+
+        k = min(top_k, len(self.doc_ids))
+        run: dict[str, dict[str, float]] = {}
+        for row, query_id in enumerate(query_ids):
+            scores = similarities[row]
+            candidates = np.argpartition(-scores, k - 1)[:k]
+            ranked = sorted(
+                ((self.doc_ids[i], float(scores[i])) for i in candidates),
+                key=lambda item: (-item[1], item[0]),
+            )
+            run[query_id] = dict(ranked)
+        return run
+
+    def describe(self) -> dict[str, object]:
+        """Settings, for recording alongside results."""
+        return {
+            "method": "dense",
+            "model": self.model_name,
+            "similarity": "cosine",
+            "pooling": "mean",
+            "normalized": True,
+            "max_seq_length": self.effective_max_seq_length,
+            "truncation_rate": self.truncation_rate,
+            "batch_size": self.batch_size,
+        }

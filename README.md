@@ -101,6 +101,24 @@ python scripts/run_baseline.py --dataset scifact
 | SciFact | BM25 tuned on train (k1=1.4, b=0.5) | 0.6865 | 0.9216 | — |
 | NFCorpus | BM25 (k1=0.9, b=0.4, Porter) | 0.3224 | 0.2461 | 0.325 |
 | TREC-COVID | BM25 (k1=0.9, b=0.4, Porter) | 0.5644 | 0.1088 | 0.656 — **not reproduced** |
+| NFCorpus | **RM3** (fb=5, terms=50, α=0.8) | **0.3433** | **0.3105** | — |
+| SciFact | RM3 (fb=20, terms=20, α=0.2) | 0.6848 | 0.9253 | — |
+
+**RM3 pseudo-relevance feedback is the first method here to beat its baseline** — and
+only where there was room. On NFCorpus it gains +0.0208 nDCG@10 (Holm p = 0.0005) and
++0.0645 recall@100 (p < 0.0001). On SciFact it gains +0.0046 at p = 0.29, which is no
+measurable win at all.
+
+That split was predicted before RM3 existed, by the recall-ceiling table below: SciFact
+had already captured 92% of the achievable recall@100, NFCorpus only 25%. The tuned
+parameters agree from the other side — SciFact's sweep chose α = 0.2 (barely expand the
+query), NFCorpus's chose α = 0.8 (largely replace it). NFCorpus queries are short
+consumer-health phrases against medical writing, and closing that vocabulary gap is
+exactly what feedback terms do; SciFact claims are already written in the register of
+the documents they match.
+
+Cost: retrieval goes from 0.1s to 9.7s per 300 queries — two passes plus feedback
+tokenisation.
 
 The tuned row is here to be dismissed: +0.0063 over the default on held-out test at
 p = 0.217. See "what didn't work".
@@ -223,7 +241,7 @@ different metrics. Reported as a win on recall, and as undetermined on ranking.
 
 1. ~~Tested metrics and BM25 baseline~~
 2. ~~Tokenisation ablation, with paired significance testing~~
-3. ~~`k1`/`b` sweep, tuned on train and checked on held-out test~~ ← current
+3. ~~`k1`/`b` sweep, tuned on train and checked on held-out test~~
 4. Dense retrieval, and the same numbers on the same harness
 5. Hybrid (reciprocal rank fusion), plus a cross-encoder reranker
 6. Results broken down by query type — the actual question
@@ -247,7 +265,7 @@ pip install -e ".[dev,stem]"
 ## Development
 
 ```bash
-pytest          # 134 tests
+pytest          # 138 tests
 ruff check .
 ruff format .
 ```
@@ -261,14 +279,16 @@ src/groundwork/
   data/beir.py          dataset download and loading
   retrieval/bm25.py     Lucene-variant BM25
   retrieval/rm3.py      RM3 pseudo-relevance feedback
+  retrieval/dense.py    bi-encoder dense retrieval (optional extra)
   retrieval/tokenize.py tokenisation, stopwords, stemming
   eval/metrics.py       nDCG@k, recall@k, per-query scoring
   eval/significance.py  paired randomisation test, Holm-Bonferroni
 scripts/run_baseline.py the one command behind the results table
 scripts/compare_runs.py paired significance test between two runs
 scripts/run_sweep.py    k1/b grid over one shared index
+scripts/run_rm3.py      RM3, with its own train-tuned sweep
 docs/experiments.md     running log, including what failed
-tests/                  134 tests
+tests/                  138 tests
 ```
 
 ## Licence

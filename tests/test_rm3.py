@@ -194,3 +194,35 @@ class TestDescribe:
         assert described["fb_terms"] == 13
         assert described["alpha"] == 0.35
         assert described["tokenizer"] == PLAIN.describe()
+
+
+class TestFeedbackTokenCache:
+    """Caching feedback tokens must change speed and nothing else."""
+
+    def test_cached_and_uncached_searches_agree(self):
+        warm = build(fb_docs=3, fb_terms=5, alpha=0.5)
+        warm.search("quick fox", top_k=10)  # populates the cache
+        assert warm._token_cache  # the search really did cache something
+
+        cold = build(fb_docs=3, fb_terms=5, alpha=0.5)
+        assert dict(warm.search("quick fox", top_k=10)) == pytest.approx(
+            dict(cold.search("quick fox", top_k=10))
+        )
+
+    def test_cache_holds_only_documents_used_as_feedback(self):
+        rm3 = build(fb_docs=1, fb_terms=5, alpha=0.5)
+        rm3.search("dog", top_k=10)
+        assert len(rm3._token_cache) == 1
+        assert len(rm3._token_cache) < len(BIGGER)
+
+    def test_reindexing_clears_the_cache(self):
+        rm3 = build(fb_docs=3, fb_terms=5, alpha=0.5)
+        rm3.search("quick fox", top_k=10)
+        rm3.index(CORPUS, show_progress=False)
+        assert rm3._token_cache == {}
+
+    def test_clone_shares_the_cache(self):
+        rm3 = build(fb_docs=3, fb_terms=5, alpha=0.5)
+        rm3.search("quick fox", top_k=10)
+        clone = rm3.with_parameters(alpha=0.2)
+        assert clone._token_cache is rm3._token_cache

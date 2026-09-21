@@ -375,6 +375,83 @@ beat the baseline rather than define it. NFCorpus is the dataset to watch.
 
 ---
 
+## 2026-09-21 — RM3 pseudo-relevance feedback
+
+**Question:** Can a method beat the BM25 baseline, and does the headroom measured in
+experiment 4 predict where?
+
+**Setup:** RM3 over BM25 (`retrieval/rm3.py`). Retrieve, take the top `fb_docs`
+documents, estimate a relevance model over their terms weighted by normalised BM25
+score, keep the top `fb_terms`, interpolate with the original query at weight `alpha`,
+and re-retrieve. No relevance judgements are used — the assumption is that the top
+documents are relevant, which is exactly the assumption that can fail.
+
+Three parameters, so experiment 3's discipline applies: a 96-cell grid
+(`fb_docs` × `fb_terms` × `alpha`) swept on **train**, the winner scored once on
+**test**. SciFact train is 809 queries, NFCorpus train 2,590. BM25 stays at
+`k1=0.9, b=0.4` with Porter stemming and Lucene stopwords. Paired randomisation test,
+100,000 resamples, seed 0, Holm across the two datasets per metric.
+
+**Result:**
+
+| Dataset | tuned setting | BM25 | RM3 | delta | Holm p |
+|---|---|---|---|---|---|
+| NFCorpus | `fb_docs=5, fb_terms=50, alpha=0.8` | 0.3224 | **0.3433** | **+0.0208** | **0.0005** |
+| SciFact | `fb_docs=20, fb_terms=20, alpha=0.2` | 0.6802 | 0.6848 | +0.0046 | 0.290 |
+
+nDCG@10 above; recall@100 below:
+
+| Dataset | BM25 | RM3 | delta | Holm p |
+|---|---|---|---|---|
+| NFCorpus | 0.2461 | **0.3105** | **+0.0645** | **<0.0001** |
+| SciFact | 0.9220 | 0.9253 | +0.0033 | 1.000 |
+
+**Read:** **The first method in this project to beat its baseline, and it beats it on
+exactly the dataset experiment 4 predicted.**
+
+That prediction is the part worth keeping. Experiment 4 measured how much of the
+achievable recall@100 BM25 was already capturing: 92.2% on SciFact, 25.5% on NFCorpus.
+The inference drawn there — that a better method has almost nothing to win on SciFact
+however good it is, and room to win on NFCorpus — was made before RM3 existed. It held.
+NFCorpus gains 0.0208 nDCG@10 at Holm p 0.0005 and 0.0645 recall@100 at the floor of
+what 100,000 resamples can report; SciFact gains 0.0046 at p 0.29, which is nothing.
+RM3 moves NFCorpus from 25.5% of its recall ceiling to 32.2%.
+
+The tuned parameters say the same thing from the other side, and neither was chosen by
+hand. SciFact's sweep settled on `alpha=0.2` — keep 80% of the original query, barely
+expand. NFCorpus settled on `alpha=0.8` with fifty expansion terms — largely replace the
+query with terms harvested from the feedback documents. Two corpora, the same grid, and
+opposite answers about how much to trust the original query.
+
+The mechanism is not mysterious. NFCorpus queries are short consumer-health phrases
+against medical writing, and the vocabulary mismatch between the two is exactly what
+feedback terms repair. SciFact queries are already scientific claims written in the
+register of the documents they are matched against, so there is little mismatch to
+repair and expansion mostly adds noise. This is the first concrete evidence for the
+project's central claim — that retrieval method is query-dependent — though it is
+evidence at the level of *corpora* rather than individual queries, which is the weaker
+version. Experiment 8 is where the per-query version gets tested.
+
+**What it costs.** Retrieval time on SciFact goes from 0.1s to 9.7s for 300 queries —
+two passes plus re-tokenising twenty feedback documents per query. Still fast in
+absolute terms, but roughly a hundredfold, and worth stating next to a two-point gain.
+Feedback documents are re-tokenised on demand and cached; the cache is bounded by
+`fb_docs × queries`, not corpus size, which is what makes a 96-cell sweep finish in
+181 seconds instead of re-tokenising the same documents ten thousand times.
+
+**A caution on the SciFact result.** +0.0046 at p 0.29 is not a small win, it is no
+measurable win. It would be easy to report it as "RM3 helps slightly on SciFact too".
+264 of 300 queries are unchanged, and of those that move, the direction is close to even.
+The honest reading is that SciFact had nothing left to give, which is what its recall
+ceiling already said.
+
+**Next:** Dense retrieval on the same harness. NFCorpus is the dataset to watch for the
+same reason it was here. TREC-COVID stays out of method comparisons for now: 50 queries
+gives too little power to distinguish anything, and its reproduction is already known
+to be off.
+
+---
+
 ## Pending
 
 Planned runs, in order. Each is a separate entry when it happens.
@@ -385,6 +462,7 @@ Planned runs, in order. Each is a separate entry when it happens.
 | 2 | ~~Tokenisation ablation~~ | **Done** — stemming helps recall@100 (Holm p 0.018); stopwords do nothing |
 | 3 | ~~`k1`/`b` sweep~~ | **Done** — tuned on train, no held-out gain (p 0.22); defaults kept |
 | 4 | ~~BM25 on TREC-COVID and NFCorpus~~ | **Done** — NFCorpus reproduces; TREC-COVID does not (query formulation, −0.092) |
+| 4b | ~~RM3 pseudo-relevance feedback~~ | **Done** — +0.0208 nDCG@10 on NFCorpus (Holm p 0.0005); nothing on SciFact |
 | 5 | Dense retrieval, same harness | The first real comparison |
 | 6 | Hybrid via reciprocal rank fusion | Whether fusion beats both parents |
 | 7 | Cross-encoder reranking over hybrid | Cost/benefit at depth 100 |

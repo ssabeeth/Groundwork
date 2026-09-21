@@ -82,6 +82,12 @@ class RM3Retriever:
         self.alpha = alpha
         self.bm25 = BM25Retriever(k1=k1, b=b, tokenizer=tokenizer)
         self._corpus: Mapping[str, Mapping[str, str]] | None = None
+        # Feedback documents are re-tokenised on demand, and a sweep asks for the same
+        # ones over and over. The cache holds at most fb_docs x |queries| entries -
+        # only documents that actually surfaced as feedback - not the whole corpus, so
+        # it stays small even on TREC-COVID. Tokenisation is deterministic, so this
+        # changes speed and nothing else.
+        self._token_cache: dict[str, list[str]] = {}
 
     @property
     def tokenizer(self) -> Tokenizer:
@@ -97,15 +103,21 @@ class RM3Retriever:
         """
         self.bm25.index(corpus, show_progress=show_progress)
         self._corpus = corpus
+        self._token_cache = {}
 
     def _document_tokens(self, doc_id: str) -> list[str]:
         """Tokens of one document, re-tokenised on demand."""
         if self._corpus is None:
             raise RuntimeError("index() must be called before searching")
+        cached = self._token_cache.get(doc_id)
+        if cached is not None:
+            return cached
         fields = self._corpus[doc_id]
         title = fields.get("title", "") or ""
         text = fields.get("text", "") or ""
-        return self.tokenizer(f"{title} {text}".strip())
+        tokens = self.tokenizer(f"{title} {text}".strip())
+        self._token_cache[doc_id] = tokens
+        return tokens
 
     def relevance_model(self, feedback: list[tuple[str, float]]) -> dict[str, float]:
         """Estimate ``P(t|R)`` from scored feedback documents.
@@ -248,6 +260,9 @@ class RM3Retriever:
         )
         clone.bm25 = self.bm25
         clone._corpus = self._corpus
+        # Shared, not copied: the tokeniser is the same object, so the cached tokens are
+        # valid for the clone and a sweep tokenises each feedback document once in total.
+        clone._token_cache = self._token_cache
         return clone
 
     def describe(self) -> dict[str, object]:

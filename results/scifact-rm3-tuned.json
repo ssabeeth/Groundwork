@@ -1,0 +1,72 @@
+{
+  "dataset": "scifact",
+  "split": "test",
+  "tag": "tuned",
+  "method": "rm3",
+  "metrics": {
+    "ndcg@1": 0.5566666666666666,
+    "recall@1": 0.5408333333333334,
+    "ndcg@10": 0.6847889689157695,
+    "recall@10": 0.8079999999999999,
+    "ndcg@100": 0.710811597493763,
+    "recall@100": 0.9253333333333335
+  },
+  "num_queries": 300,
+  "num_documents": 5183,
+  "retriever": {
+    "method": "rm3",
+    "base": {
+      "method": "bm25",
+      "variant": "lucene",
+      "k1": 0.9,
+      "b": 0.4,
+      "tokenizer": {
+        "stopwords": "lucene_english",
+        "stem": "porter",
+        "min_length": 1
+      }
+    },
+    "fb_docs": 20,
+    "fb_terms": 20,
+    "alpha": 0.2,
+    "k1": 0.9,
+    "b": 0.4,
+    "tokenizer": {
+      "stopwords": "lucene_english",
+      "stem": "porter",
+      "min_length": 1
+    }
+  },
+  "top_k": 100,
+  "gain": "exponential",
+  "graded_qrels": false,
+  "relevance_levels": [
+    1
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.5566666666666666,
+      "recall@1": 0.5408333333333334,
+      "ndcg@10": 0.6847889689157695,
+      "recall@10": 0.8079999999999999,
+      "ndcg@100": 0.710811597493763,
+      "recall@100": 0.9253333333333335
+    },
+    "linear": {
+      "ndcg@1": 0.5566666666666666,
+      "recall@1": 0.5408333333333334,
+      "ndcg@10": 0.6847889689157695,
+      "recall@10": 0.8079999999999999,
+      "ndcg@100": 0.710811597493763,
+      "recall@100": 0.9253333333333335
+    }
+  },
+  "timing_seconds": {
+    "index": 14.81,
+    "retrieve": 9.65
+  },
+  "per_query_file": "per-query/scifact-rm3-tuned.json",
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "run_at": "2026-09-21T01:56:26+00:00"
+}
