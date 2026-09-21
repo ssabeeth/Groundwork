@@ -1,14 +1,14 @@
 {
   "dataset": "scifact",
   "split": "test",
-  "tag": "",
+  "tag": "no-stopwords",
   "metrics": {
-    "ndcg@1": 0.5533333333333333,
-    "recall@1": 0.5397222222222222,
-    "ndcg@10": 0.6802137133984872,
-    "recall@10": 0.8029999999999999,
-    "ndcg@100": 0.7072131083058675,
-    "recall@100": 0.922
+    "ndcg@1": 0.5633333333333334,
+    "recall@1": 0.5475,
+    "ndcg@10": 0.6814346570138844,
+    "recall@10": 0.7973333333333333,
+    "ndcg@100": 0.7093501097578881,
+    "recall@100": 0.9196666666666666
   },
   "num_queries": 300,
   "num_documents": 5183,
@@ -18,20 +18,20 @@
     "k1": 0.9,
     "b": 0.4,
     "tokenizer": {
-      "stopwords": "lucene_english",
+      "stopwords": "none",
       "stem": "porter",
       "min_length": 1
     }
   },
   "top_k": 100,
   "timing_seconds": {
-    "index": 13.59,
-    "retrieve": 0.09
+    "index": 16.54,
+    "retrieve": 0.12
   },
   "reference_ndcg_at_10": 0.665,
   "within_reference_tolerance": true,
   "groundwork_version": "0.1.0",
   "python": "3.11.16",
-  "run_at": "2026-09-21T01:20:17+00:00",
-  "per_query_file": "per-query/scifact-bm25.json"
+  "run_at": "2026-09-21T01:20:58+00:00",
+  "per_query_file": "per-query/scifact-bm25-no-stopwords.json"
 }

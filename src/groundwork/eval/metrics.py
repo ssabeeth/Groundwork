@@ -102,6 +102,55 @@ def recall_at_k(
     return found / len(relevant)
 
 
+def evaluate_run_per_query(
+    run: Run,
+    qrels: Qrels,
+    k_values: Iterable[int] = (10, 100),
+    gain: GainFn = "exponential",
+) -> dict[str, dict[str, float]]:
+    """Score a run without averaging: one metric dict per query.
+
+    This is what a paired significance test needs. Averages throw away the pairing
+    between two systems on the same query, and the pairing is where most of the
+    statistical power lives — two systems can differ by a tenth of a point on the mean
+    while disagreeing substantially on individual queries, or vice versa.
+
+    Queries present in ``qrels`` but absent from ``run`` are scored as 0 rather than
+    dropped, exactly as in :func:`evaluate_run`.
+
+    Args:
+        run: ``{query_id: {doc_id: score}}``. Higher score means higher rank.
+        qrels: ``{query_id: {doc_id: relevance_level}}``.
+        k_values: Rank cutoffs to report.
+        gain: Gain function for nDCG.
+
+    Returns:
+        ``{query_id: {"ndcg@10": ..., "recall@10": ...}}``, one entry per query in
+        ``qrels``, ordered by query id.
+    """
+    k_list = sorted(set(k_values))
+    if not k_list:
+        raise ValueError("k_values must not be empty")
+
+    query_ids = sorted(qrels)
+    if not query_ids:
+        raise ValueError("qrels is empty")
+
+    max_k = max(k_list)
+    per_query: dict[str, dict[str, float]] = {}
+
+    for query_id in query_ids:
+        relevance = qrels[query_id]
+        ranked = _ranked_doc_ids(run.get(query_id, {}), max_k)
+        scores: dict[str, float] = {}
+        for k in k_list:
+            scores[f"ndcg@{k}"] = ndcg_at_k(ranked, relevance, k, gain=gain)
+            scores[f"recall@{k}"] = recall_at_k(ranked, relevance, k)
+        per_query[query_id] = scores
+
+    return per_query
+
+
 def evaluate_run(
     run: Run,
     qrels: Qrels,
@@ -123,29 +172,14 @@ def evaluate_run(
     Returns:
         ``{"ndcg@10": ..., "recall@10": ..., ...}`` plus ``"num_queries"``.
     """
-    k_list = sorted(set(k_values))
-    if not k_list:
-        raise ValueError("k_values must not be empty")
+    per_query = evaluate_run_per_query(run, qrels, k_values=k_values, gain=gain)
 
-    query_ids = sorted(qrels)
-    if not query_ids:
-        raise ValueError("qrels is empty")
-
-    max_k = max(k_list)
+    n = len(per_query)
     totals: dict[str, float] = {}
+    for scores in per_query.values():
+        for name, value in scores.items():
+            totals[name] = totals.get(name, 0.0) + value
 
-    for query_id in query_ids:
-        relevance = qrels[query_id]
-        ranked = _ranked_doc_ids(run.get(query_id, {}), max_k)
-        for k in k_list:
-            totals[f"ndcg@{k}"] = totals.get(f"ndcg@{k}", 0.0) + ndcg_at_k(
-                ranked, relevance, k, gain=gain
-            )
-            totals[f"recall@{k}"] = totals.get(f"recall@{k}", 0.0) + recall_at_k(
-                ranked, relevance, k
-            )
-
-    n = len(query_ids)
     results = {name: total / n for name, total in totals.items()}
     results["num_queries"] = float(n)
     return results

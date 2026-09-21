@@ -75,6 +75,15 @@ decisions that are the usual cause of numbers that do not reproduce:
 stopwords and stemming are configurable, off the Lucene English stopword list by
 default, and written into the results file with every run.
 
+**Differences are tested, not eyeballed.** Two runs are compared with a paired
+randomisation test in
+[`src/groundwork/eval/significance.py`](src/groundwork/eval/significance.py), two-sided,
+with Holm-Bonferroni across each family of comparisons. Per-query scores are committed
+alongside every result so any comparison can be reproduced from a clean clone. The
+implementation is tested against exhaustive enumeration of all `2^n` sign assignments on
+small inputs — the same independent-reference trick used for BM25 — since a sampled test
+checked only against itself proves nothing.
+
 ## Results
 
 Reproduce with one command:
@@ -86,6 +95,18 @@ python scripts/run_baseline.py --dataset scifact
 | Dataset | Method | nDCG@10 | Recall@100 | BEIR published BM25 nDCG@10 |
 |---|---|---|---|---|
 | SciFact | BM25 (k1=0.9, b=0.4, Porter) | **0.6802** | 0.9220 | 0.665 |
+
+Tokenisation ablation, same corpus and parameters, nDCG@10 with recall@100 in brackets:
+
+| | stopwords removed | stopwords kept |
+|---|---|---|
+| **Porter stem** | **0.6802** (0.9220) | 0.6814 (0.9197) |
+| **no stem** | 0.6627 (0.8859) | 0.6611 (0.8852) |
+
+```bash
+python scripts/compare_runs.py \
+  --pair results/scifact-bm25.json results/scifact-bm25-no-stem.json
+```
 
 That run is +0.0152 from the published figure, inside the tolerance — the harness
 reproduces a number someone else measured with different software, which is the whole
@@ -104,8 +125,26 @@ Full run records, including settings and timings, are written to `results/`.
 
 ## What didn't work
 
-Nothing to report yet — this section fills in as experiments run, and failed ones stay
-here with their numbers.
+**Stopword removal buys nothing on SciFact.** Dropping Lucene's 33-word English list
+moves nDCG@10 by about a thousandth of a point, and the sign flips depending on whether
+stemming is on: −0.0012 stemmed, +0.0016 unstemmed. Neither is close to significant
+(Holm-adjusted p = 1.00 on both nDCG@10 and recall@100). This is the expected result
+rather than a shock — IDF already discounts terms occurring in most documents, so
+deleting them by list duplicates what the scoring function does. The list stays the
+default for comparability with BEIR's Elasticsearch runs, not because it earns its place.
+
+**Stemming's effect on ranking could not be established, only its effect on recall.**
+The difference of means says stemming is worth about two points of nDCG@10 — the sort of
+number that gets reported as a win. The paired test disagrees: Holm-adjusted p = 0.166
+and 0.110 across the ablation's four comparisons, so on 300 queries that gap is not
+distinguishable from noise. Recall@100 is a different story, a smaller-looking +0.035
+that clears correction comfortably (Holm p = 0.018 and 0.021).
+
+The per-query counts show why. On nDCG@10 stemming changes 65 queries and wins 36 of
+them — close to a coin flip, with the positive mean coming from winning bigger rather
+than winning more often. On recall@100 it changes only 16 queries and wins 14. The
+randomisation test rewards consistency, and here consistency and magnitude point at
+different metrics. Reported as a win on recall, and as undetermined on ranking.
 
 ## Limitations
 
@@ -114,17 +153,25 @@ here with their numbers.
 - `trec_eval` ties are broken by document id here. `pytrec_eval` breaks them
   differently, so runs with many exactly-tied scores can differ in the fourth decimal.
 - Recall@100 caps at the retrieval depth; deeper retrieval would change it.
-- No significance testing yet. Differences under roughly a point on 300 queries should
-  not be read as real until paired tests are added.
+- Significance is a paired randomisation test with Holm-Bonferroni across each family
+  of comparisons; seed and resample count are recorded, because p-values near a
+  threshold move in the third decimal between seeds. It answers whether a difference is
+  distinguishable from noise on *this* query set, not whether it generalises or whether
+  it is large enough to care about — which is why effect sizes are always reported
+  next to it.
+- 300 queries is not many. SciFact's per-query nDCG@10 is identical under most
+  configuration changes, so the effective sample behind any comparison is far smaller
+  than 300 and the test has correspondingly little power.
 
 ## Roadmap
 
-1. ~~Tested metrics and BM25 baseline~~ ← current
-2. Dense retrieval, and the same numbers on the same harness
-3. Hybrid (reciprocal rank fusion), plus a cross-encoder reranker
-4. Results broken down by query type — the actual question
-5. Answer generation with citations, LLM judge calibrated against human labels
-6. MCP server so it plugs into any assistant
+1. ~~Tested metrics and BM25 baseline~~
+2. ~~Tokenisation ablation, with paired significance testing~~ ← current
+3. Dense retrieval, and the same numbers on the same harness
+4. Hybrid (reciprocal rank fusion), plus a cross-encoder reranker
+5. Results broken down by query type — the actual question
+6. Answer generation with citations, LLM judge calibrated against human labels
+7. MCP server so it plugs into any assistant
 
 ## Install
 
@@ -143,7 +190,7 @@ pip install -e ".[dev,stem]"
 ## Development
 
 ```bash
-pytest          # 64 tests
+pytest          # 98 tests
 ruff check .
 ruff format .
 ```
@@ -157,10 +204,12 @@ src/groundwork/
   data/beir.py          dataset download and loading
   retrieval/bm25.py     Lucene-variant BM25
   retrieval/tokenize.py tokenisation, stopwords, stemming
-  eval/metrics.py       nDCG@k, recall@k
+  eval/metrics.py       nDCG@k, recall@k, per-query scoring
+  eval/significance.py  paired randomisation test, Holm-Bonferroni
 scripts/run_baseline.py the one command behind the results table
+scripts/compare_runs.py paired significance test between two runs
 docs/experiments.md     running log, including what failed
-tests/                  64 tests
+tests/                  98 tests
 ```
 
 ## Licence

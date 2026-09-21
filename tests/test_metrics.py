@@ -15,7 +15,12 @@ Useful constants:
 
 import pytest
 
-from groundwork.eval.metrics import evaluate_run, ndcg_at_k, recall_at_k
+from groundwork.eval.metrics import (
+    evaluate_run,
+    evaluate_run_per_query,
+    ndcg_at_k,
+    recall_at_k,
+)
 
 
 class TestNDCG:
@@ -164,3 +169,40 @@ class TestEvaluateRun:
     def test_rejects_empty_qrels(self):
         with pytest.raises(ValueError):
             evaluate_run({}, {}, k_values=[10])
+
+
+class TestEvaluateRunPerQuery:
+    def test_scores_each_query_separately_with_hand_computed_values(self):
+        # q1: d1 is relevant and sits at rank 1 -> DCG = IDCG = 1.0, nDCG = 1.0
+        # q2: d2 is relevant and sits at rank 2 -> DCG = 1/log2(3), IDCG = 1.0
+        qrels = {"q1": {"d1": 1}, "q2": {"d2": 1}}
+        run = {"q1": {"d1": 5.0, "x": 1.0}, "q2": {"y": 1.0, "d2": 0.5}}
+        per_query = evaluate_run_per_query(run, qrels, k_values=[10])
+
+        assert per_query["q1"]["ndcg@10"] == pytest.approx(1.0)
+        assert per_query["q2"]["ndcg@10"] == pytest.approx(0.6309297535714574)
+        assert per_query["q1"]["recall@10"] == pytest.approx(1.0)
+        assert per_query["q2"]["recall@10"] == pytest.approx(1.0)
+
+    def test_one_entry_per_judged_query_ordered_by_id(self):
+        qrels = {"q2": {"d1": 1}, "q1": {"d1": 1}, "q10": {"d1": 1}}
+        run = {"q1": {"d1": 1.0}}
+        per_query = evaluate_run_per_query(run, qrels, k_values=[10])
+        assert list(per_query) == ["q1", "q10", "q2"]
+
+    def test_query_missing_from_the_run_scores_zero(self):
+        qrels = {"q1": {"d1": 1}, "q2": {"d2": 1}}
+        run = {"q1": {"d1": 1.0}}
+        per_query = evaluate_run_per_query(run, qrels, k_values=[10])
+        assert per_query["q2"]["ndcg@10"] == 0.0
+        assert per_query["q2"]["recall@10"] == 0.0
+
+    def test_reports_every_requested_cutoff(self):
+        qrels = {"q1": {"d1": 1}}
+        run = {"q1": {"d1": 1.0}}
+        per_query = evaluate_run_per_query(run, qrels, k_values=[1, 10])
+        assert set(per_query["q1"]) == {"ndcg@1", "recall@1", "ndcg@10", "recall@10"}
+
+    def test_rejects_empty_qrels(self):
+        with pytest.raises(ValueError):
+            evaluate_run_per_query({}, {}, k_values=[10])

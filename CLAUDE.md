@@ -117,16 +117,24 @@ Add them at the point named, not before:
 pytest
 ruff check . && ruff format .
 python scripts/run_baseline.py --dataset scifact
-python scripts/run_baseline.py --dataset scifact --no-stem --tag no-stemming
+python scripts/run_baseline.py --dataset scifact --no-stem --tag no-stem
+python scripts/compare_runs.py \
+    --pair results/scifact-bm25.json results/scifact-bm25-no-stem.json
 ```
 
 ## Where the project is
 
 Milestone 1 (tested metrics, BM25 baseline) is done and the SciFact baseline is
 measured: nDCG@10 0.6802, +0.0152 from BEIR's published 0.665 and inside the +/-0.03
-tolerance, so the harness reproduces a published number. Next is the tokenisation
-ablation (experiment 2), then dense retrieval on the same harness. See the pending
-table in `docs/experiments.md`.
+tolerance, so the harness reproduces a published number.
+
+Experiment 2 (tokenisation ablation) is done. Stemming is a significant win on
+recall@100 (Holm-adjusted p 0.018) and undetermined on nDCG@10 (Holm 0.166); stopword
+removal does nothing on either. Paired significance testing now exists in
+`eval/significance.py` and per-query scores are committed under `results/per-query/`.
+
+Next is experiment 3, the `k1`/`b` sweep, then dense retrieval on the same harness. See
+the pending table in `docs/experiments.md`.
 
 ## How to work with me on this
 

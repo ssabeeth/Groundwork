@@ -95,6 +95,96 @@ ablation is what puts a number on how much.
 
 ---
 
+## 2026-09-21 — Tokenisation ablation on SciFact
+
+**Question:** How much of BM25's score on SciFact is tokenisation, and is either
+component's contribution large enough to be distinguished from noise?
+
+**Setup:** The full 2x2 — Porter stemming on/off crossed with Lucene's 33-word English
+stopword list applied/not. SciFact test split, `k1=0.9`, `b=0.4`, depth 100, exponential
+gain, everything else held fixed. Four runs, one per cell, each recorded in `results/`
+with its per-query scores beside it in `results/per-query/`.
+
+Differences are tested with a paired randomisation test (`eval/significance.py`),
+100,000 sampled sign assignments, seed 0, two-sided, with Holm-Bonferroni applied across
+the family of four comparisons made on this one query set. The seed matters and is
+recorded: p-values near a threshold move in the third decimal between seeds, so a bare
+p-value without its seed and resample count is not reproducible. Checked at seeds 0, 1
+and 2; the conclusions below do not move.
+
+**Result:**
+
+nDCG@10 (recall@100 in brackets):
+
+| | stopwords removed | stopwords kept |
+|---|---|---|
+| **Porter stem** | 0.6802 (0.9220) | 0.6814 (0.9197) |
+| **no stem** | 0.6627 (0.8859) | 0.6611 (0.8852) |
+
+The four comparisons, with Holm-adjusted p in brackets:
+
+| Comparison | nDCG@10 | recall@100 |
+|---|---|---|
+| Stemming, stopwords removed | +0.0175, p 0.055 (0.166) | +0.0361, p 0.0046 (**0.018**) |
+| Stemming, stopwords kept | +0.0204, p 0.028 (0.110) | +0.0344, p 0.0071 (**0.021**) |
+| Stopword removal, stemmed | −0.0012, p 0.698 (1.000) | +0.0023, p 0.500 (1.000) |
+| Stopword removal, unstemmed | +0.0016, p 0.514 (1.000) | +0.0007, p 1.000 (1.000) |
+
+Stemming also costs about 40x the index time: 15-16s against 0.4s on 5,183 documents.
+
+**Read:** Two findings, and the second one is the reason the significance machinery had
+to exist before the write-up.
+
+*Stopword removal does nothing here.* Roughly a thousandth of a point on nDCG@10, and
+the sign flips depending on whether stemming is on. No comparison comes close to
+significance on either metric. This is the expected result rather than a surprise — IDF
+already discounts terms that appear in most documents, so deleting them by list is
+mostly redundant with what the scoring function does anyway. The Lucene list stays the
+default, but on the grounds given in `decisions.md` (comparability with the
+Elasticsearch runs BEIR published), not because it earns anything. Recorded as a
+negative result.
+
+*Stemming helps recall, and its effect on ranking cannot be established on 300 queries.*
+This is the interesting one. The difference of means says stemming is worth about two
+points of nDCG@10, which is the kind of number that gets reported as a win. The paired
+test says that on this query set it is not distinguishable from noise once the family of
+four comparisons is accounted for (Holm 0.166 and 0.110). Meanwhile recall@100 — a
+smaller-looking 3.5 points — clears correction comfortably (Holm 0.018 and 0.021).
+
+The per-query breakdown explains the inversion, and it is worth stating because it is
+exactly what a difference of means conceals. Against the unstemmed run with stopwords
+removed:
+
+| Metric | stemming wins | loses | ties |
+|---|---|---|---|
+| nDCG@10 | 36 | 29 | 235 |
+| recall@100 | 14 | 2 | 284 |
+
+On nDCG@10 stemming changes 65 queries and is close to a coin flip on which direction it
+moves them; the positive mean comes from winning larger than it loses (+11.6 against
+−6.4), not from winning more often. On recall@100 it changes only 16 queries but wins 14
+of them. Consistency, not magnitude, is what the randomisation test rewards, and here
+consistency and magnitude point at different metrics.
+
+The honest summary: **stemming reliably widens the candidate pool, and any claim about
+what it does to top-10 ordering is beyond what 300 queries can support.** That second
+half would have been reported as a two-point win by anyone comparing means, this project
+included, if the test had not been written first.
+
+This also puts a number on a claim `decisions.md` has been making without one: stemming
+moves BEIR nDCG@10 "by a point or two". It does — 1.75 to 2.04 points — and that is
+simultaneously true and not significant here, which is a good illustration of why the
+note was worth writing and why effect size and p-value have to be reported together.
+
+**Next:** Experiment 3, the `k1`/`b` sweep. Two things carry forward. First, recall@100
+is the metric with the statistical power on this dataset, so it deserves to be reported
+alongside nDCG@10 rather than treated as secondary. Second, a sweep is a large family of
+comparisons on one query set; with Holm across a grid of that size, almost nothing will
+clear correction, so the sweep should be framed as choosing a setting rather than as
+testing hypotheses about each cell.
+
+---
+
 ## Pending
 
 Planned runs, in order. Each is a separate entry when it happens.
@@ -102,7 +192,7 @@ Planned runs, in order. Each is a separate entry when it happens.
 | # | Experiment | Settles |
 |---|---|---|
 | 1 | ~~BM25 on SciFact~~ | **Done** — nDCG@10 0.6802 vs published 0.665 |
-| 2 | Tokenisation ablation: stem/no-stem, stopwords/none | How much of BM25's score is tokenisation |
+| 2 | ~~Tokenisation ablation~~ | **Done** — stemming helps recall@100 (Holm p 0.018); stopwords do nothing |
 | 3 | `k1`/`b` sweep | Whether BEIR's 0.9/0.4 is right for this corpus |
 | 4 | BM25 on TREC-COVID and NFCorpus | Does the harness hold on graded qrels |
 | 5 | Dense retrieval, same harness | The first real comparison |

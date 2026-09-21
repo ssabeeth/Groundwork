@@ -15,6 +15,7 @@ import argparse
 import json
 import logging
 import platform
+import re
 import sys
 import time
 from datetime import UTC, datetime
@@ -24,8 +25,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from groundwork import __version__
 from groundwork.data import load_beir_dataset
-from groundwork.eval import evaluate_run
-from groundwork.retrieval import BM25Retriever, Tokenizer
+from groundwork.eval import evaluate_run, evaluate_run_per_query
+from groundwork.retrieval import LUCENE_ENGLISH_STOPWORDS, BM25Retriever, Tokenizer
 
 # BM25 nDCG@10 as published in the BEIR paper (Thakur et al., 2021), which used
 # Elasticsearch with k1=0.9, b=0.4. A reimplementation will not match to three decimal
@@ -37,6 +38,10 @@ REFERENCE_NDCG_10 = {
     "nfcorpus": 0.325,
 }
 REFERENCE_TOLERANCE = 0.03
+
+# A tag becomes part of the results filename, so keep it to characters that are safe
+# there and cannot climb out of results/.
+TAG_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 
 
 def parse_args() -> argparse.Namespace:
@@ -62,6 +67,12 @@ def main() -> int:
     args = parse_args()
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
+    if args.tag and not TAG_PATTERN.fullmatch(args.tag):
+        raise ValueError(
+            f"--tag must match {TAG_PATTERN.pattern} (it becomes part of the results filename); "
+            f"got {args.tag!r}"
+        )
+
     print(f"Loading {args.dataset} ({args.split})")
     dataset = load_beir_dataset(args.dataset, split=args.split, data_dir=args.data_dir)
     print(f"  {len(dataset.corpus)} documents, {len(dataset.queries)} judged queries")
@@ -72,7 +83,7 @@ def main() -> int:
     print(f"  {judgements} judgements, {relevant} relevant, levels {levels}")
 
     tokenizer = Tokenizer(
-        stopwords=None if args.no_stopwords else Tokenizer().stopwords,
+        stopwords=None if args.no_stopwords else LUCENE_ENGLISH_STOPWORDS,
         stem=not args.no_stem,
     )
     retriever = BM25Retriever(k1=args.k1, b=args.b, tokenizer=tokenizer)
@@ -86,6 +97,7 @@ def main() -> int:
     retrieve_seconds = time.perf_counter() - start
 
     metrics = evaluate_run(run, dataset.qrels, k_values=(1, 10, 100))
+    per_query = evaluate_run_per_query(run, dataset.qrels, k_values=(1, 10, 100))
 
     print(f"\n{args.dataset} / {args.split} / BM25 (k1={args.k1}, b={args.b})")
     print("-" * 52)
@@ -125,10 +137,31 @@ def main() -> int:
         "run_at": datetime.now(UTC).isoformat(timespec="seconds"),
     }
 
-    output = Path(args.output) if args.output else Path("results") / f"{args.dataset}-bm25.json"
+    suffix = f"-{args.tag}" if args.tag else ""
+    default_output = Path("results") / f"{args.dataset}-bm25{suffix}.json"
+    output = Path(args.output) if args.output else default_output
+
+    # Per-query scores live beside the summary rather than inside it. A paired
+    # significance test needs them, so they have to be committed for a comparison to be
+    # reproducible from a clean clone - but 300 queries x 6 metrics would bury the
+    # summary this file exists to be.
+    per_query_path = output.parent / "per-query" / output.name
+    record["per_query_file"] = str(per_query_path.relative_to(output.parent))
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+
+    per_query_path.parent.mkdir(parents=True, exist_ok=True)
+    per_query_record = {
+        "dataset": args.dataset,
+        "split": args.split,
+        "tag": args.tag,
+        "retriever": retriever.describe(),
+        "per_query": per_query,
+    }
+    per_query_path.write_text(json.dumps(per_query_record, indent=2) + "\n", encoding="utf-8")
+
     print(f"\nWrote {output}")
+    print(f"Wrote {per_query_path}")
 
     return 0 if within_tolerance is not False else 1
 
