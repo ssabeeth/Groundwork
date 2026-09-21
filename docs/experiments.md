@@ -956,6 +956,67 @@ NFCorpus suggests.
 
 ---
 
+## Experiment 11 (pre-registration): SciDocs as a third dataset
+
+**This entry was written and committed before the dataset was retrieved even once.**
+Everything below the line is a prediction. The git history is the evidence: if the
+numbers disagree with what is written here, the prediction was wrong and stays on the
+page. That is the whole point of writing it first.
+
+Experiment 8 found that BM25's per-query advantage over a dense encoder rises with the
+rarity of the query's rarest term. Experiment 9 attacked it with a better encoder and it
+half-survived — consistent in direction across two encoders and two corpora, but which
+dataset clears p < 0.05 depends on which encoder measures it. Two datasets of ~300
+queries cannot separate "small real effect" from "noise with a consistent sign".
+
+**Why SciDocs.** 25,657 documents, 1,000 test queries, binary qrels, and a published
+BM25 baseline of 0.158 (Thakur et al. 2021, Table 2). Three properties earn it the slot:
+
+- **Power.** 1,000 queries is more than SciFact and NFCorpus combined. If the effect is
+  the size those two suggest, this is enough to detect it; if nothing shows up here,
+  that is informative rather than inconclusive.
+- **Binary qrels**, like SciFact, so exponential and linear gain coincide and the gain
+  choice cannot confound anything.
+- **It is hostile to the hypothesis.** SciDocs queries are paper titles and relevance is
+  citation-based — "papers this paper cites" is a semantic relation, not a lexical one,
+  which is why BM25 scores 0.158 there against 0.665 on SciFact. A predictor of *BM25's
+  relative advantage* is being tested in the regime where BM25 is weakest overall. That
+  is the condition under which it is most likely to fail, which is why it is worth
+  running.
+
+**No train split.** BEIR ships qrels for SciDocs test only. Nothing here needs tuning:
+the baseline uses BEIR's `k1=0.9, b=0.4` and the query analysis has no free parameters.
+Fusion is run at `k=60`, the conventional default, fixed here in advance and explicitly
+untuned — not swept, and not to be swept on test later.
+
+---
+
+**H1 (primary, carried over unchanged from experiment 8).** Per-query
+`nDCG@10(BM25) − nDCG@10(dense)` correlates **positively** with `max_idf`.
+Prior point estimates: +0.158 and +0.119 (MiniLM), +0.092 and +0.155 (bge-small).
+Predicted here: positive, and significant at p < 0.05 given 1,000 queries.
+
+**H2 (promoted from secondary, and this is its first honest test).** Per-query advantage
+correlates **negatively** with query length (`num_terms`). This was *found by looking* on
+NFCorpus (rho −0.2219, Holm p 0.0004) and has never been tested on data that did not
+generate it. Predicted: negative. A result here counts; the NFCorpus one never did.
+
+**H3 (harness check).** Multi-field BM25 lands within 0.03 of the published 0.158.
+
+One caveat on H3 that the tolerance rule does not capture: `REFERENCE_TOLERANCE` is
+absolute, so ±0.03 is ±4.5% of SciFact's 0.665 but ±19% of SciDocs' 0.158. Passing on
+SciDocs is therefore much weaker evidence than passing on SciFact, and should not be
+read as an equally strong reproduction. The rule is left alone rather than tuned to
+taste after seeing which way the number went.
+
+**Two further expectations, recorded so they can be wrong.** Dense retrieval should beat
+BM25 outright here — the first dataset in this project where that is predicted in
+advance, because citation relatedness is not a lexical relation. And if H1 survives
+*while* BM25 loses overall, that is a stronger result than either dataset so far has
+produced: it would mean the predictor tracks BM25's relative standing even where BM25 is
+the wrong tool, which is what a genuine query-level effect should do and what an artefact
+of one weak encoder should not.
+
 ## Still open
 
 | Experiment | Settles |

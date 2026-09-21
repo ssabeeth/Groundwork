@@ -35,14 +35,17 @@ from groundwork.retrieval import (
     Tokenizer,
 )
 
-# BM25 nDCG@10 as published in the BEIR paper (Thakur et al., 2021), which used
-# Elasticsearch with k1=0.9, b=0.4. A reimplementation will not match to three decimal
-# places - tokenisation and stemming differ - but landing far outside the tolerance
-# below means the harness is wrong, not the method.
+# BM25 nDCG@10 as published in the BEIR paper (Thakur et al., 2021), Table 2. Kamalloo
+# et al. (2023), "Resources for Brewing BEIR", reproduce the same column and state the
+# configuration explicitly: Anserini/Lucene with k1=0.9, b=0.4, indexing title and body
+# as separate fields of equal weight. That last detail is why experiment 10 exists.
+# A reimplementation will not match to three decimal places - tokenisation and stemming
+# differ - but landing far outside the tolerance below means the harness is wrong.
 REFERENCE_NDCG_10 = {
     "scifact": 0.665,
     "trec-covid": 0.656,
     "nfcorpus": 0.325,
+    "scidocs": 0.158,
 }
 REFERENCE_TOLERANCE = 0.03
 

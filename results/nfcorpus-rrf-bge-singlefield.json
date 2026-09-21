@@ -1,0 +1,92 @@
+{
+  "dataset": "nfcorpus",
+  "split": "test",
+  "tag": "bge",
+  "method": "rrf",
+  "systems": [
+    "bm25",
+    "dense"
+  ],
+  "rrf_k": 10.0,
+  "reranker": null,
+  "metrics": {
+    "ndcg@1": 0.4840041279669762,
+    "recall@1": 0.06923340081094537,
+    "ndcg@10": 0.3658945621518833,
+    "recall@10": 0.17310758237347168,
+    "ndcg@100": 0.3372463330655141,
+    "recall@100": 0.31350102983718975
+  },
+  "num_queries": 323,
+  "num_documents": 3633,
+  "oracle_recall_at_100": 0.9647038661258809,
+  "retrievers": {
+    "bm25": {
+      "method": "bm25",
+      "variant": "lucene",
+      "k1": 0.9,
+      "b": 0.4,
+      "tokenizer": {
+        "stopwords": "lucene_english",
+        "stem": "porter",
+        "min_length": 1
+      }
+    },
+    "dense": {
+      "method": "dense",
+      "model": "BAAI/bge-small-en-v1.5",
+      "similarity": "cosine",
+      "pooling": "mean",
+      "normalized": true,
+      "max_seq_length": 512,
+      "truncation_rate": 0.09083402146985962,
+      "chunk_words": null,
+      "chunk_overlap": null,
+      "num_chunks": 3633,
+      "batch_size": 64
+    }
+  },
+  "retriever": {
+    "method": "rrf",
+    "systems": [
+      "bm25",
+      "dense"
+    ],
+    "k": 10.0,
+    "tokenizer": {}
+  },
+  "top_k": 100,
+  "gain": "exponential",
+  "graded_qrels": true,
+  "relevance_levels": [
+    1,
+    2
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.4840041279669762,
+      "recall@1": 0.06923340081094537,
+      "ndcg@10": 0.3658945621518833,
+      "recall@10": 0.17310758237347168,
+      "ndcg@100": 0.3372463330655141,
+      "recall@100": 0.31350102983718975
+    },
+    "linear": {
+      "ndcg@1": 0.4891640866873065,
+      "recall@1": 0.06923340081094537,
+      "ndcg@10": 0.36461137523857,
+      "recall@10": 0.17310758237347168,
+      "ndcg@100": 0.33046252251878916,
+      "recall@100": 0.31350102983718975
+    }
+  },
+  "timing_seconds": {
+    "build": 14.18
+  },
+  "per_query_file": "per-query/nfcorpus-rrf-bge-singlefield.json",
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T10:58:30+00:00",
+  "note": "Pre-migration run: BM25 scored title+text concatenated as one field. Preserved because the experiment log entries written before experiment 10 quote these numbers, and those entries describe real runs. See docs/decisions.md."
+}
