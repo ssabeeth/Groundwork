@@ -1,0 +1,36 @@
+{
+  "dataset": "scifact",
+  "split": "test",
+  "tag": "",
+  "metrics": {
+    "ndcg@1": 0.5533333333333333,
+    "recall@1": 0.5397222222222222,
+    "ndcg@10": 0.6802137133984872,
+    "recall@10": 0.8029999999999999,
+    "ndcg@100": 0.7072131083058675,
+    "recall@100": 0.922
+  },
+  "num_queries": 300,
+  "num_documents": 5183,
+  "retriever": {
+    "method": "bm25",
+    "variant": "lucene",
+    "k1": 0.9,
+    "b": 0.4,
+    "tokenizer": {
+      "stopwords": "lucene_english",
+      "stem": "porter",
+      "min_length": 1
+    }
+  },
+  "top_k": 100,
+  "timing_seconds": {
+    "index": 14.95,
+    "retrieve": 0.1
+  },
+  "reference_ndcg_at_10": 0.665,
+  "within_reference_tolerance": true,
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "run_at": "2026-09-21T00:54:41+00:00"
+}

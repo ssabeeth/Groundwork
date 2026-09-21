@@ -85,7 +85,13 @@ python scripts/run_baseline.py --dataset scifact
 
 | Dataset | Method | nDCG@10 | Recall@100 | BEIR published BM25 nDCG@10 |
 |---|---|---|---|---|
-| SciFact | BM25 (k1=0.9, b=0.4, Porter) | _pending first run_ | _pending_ | 0.665 |
+| SciFact | BM25 (k1=0.9, b=0.4, Porter) | **0.6802** | 0.9220 | 0.665 |
+
+That run is +0.0152 from the published figure, inside the tolerance — the harness
+reproduces a number someone else measured with different software, which is the whole
+reason this milestone exists. Landing slightly above Elasticsearch rather than below is
+the expected direction for a tokenisation difference: Porter stemming plus a 33-word
+stopword list normalises more aggressively than Elasticsearch's default analyzer chain.
 
 The script prints the delta against the published figure and exits non-zero if it is
 more than 0.03 away. That tolerance is deliberate: a reimplementation will not match

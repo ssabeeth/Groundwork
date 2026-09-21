@@ -42,13 +42,66 @@ title is concatenated with the body.
 
 ---
 
+## 2026-09-21 — BM25 baseline on SciFact
+
+**Question:** Does the harness reproduce the BM25 number BEIR publishes for SciFact?
+
+**Setup:** SciFact test split — 5,183 documents, 300 judged queries, 339 judgements,
+all binary (level 1 only). Lucene-variant BM25, `k1=0.9`, `b=0.4`, retrieval depth 100.
+Tokenisation: lowercased alphanumeric runs, Lucene's 33-word English stopword list,
+Porter stemming via snowballstemmer, `min_length=1`. Exponential nDCG gain, which makes
+no difference here — the qrels are binary and `2¹ - 1 = 1`. groundwork 0.1.0,
+Python 3.11.16.
+
+**Result:**
+
+| | @1 | @10 | @100 |
+|---|---|---|---|
+| nDCG | 0.5533 | 0.6802 | 0.7072 |
+| Recall | 0.5397 | 0.8030 | 0.9220 |
+
+Published BEIR BM25 nDCG@10 is 0.665. This run gives 0.6802, a delta of **+0.0152**,
+inside the ±0.03 tolerance. Index 15.0s, retrieve 0.1s over 300 queries. Full record
+with settings and timings in `results/scifact-bm25.json`.
+
+**Read:** The harness reproduces the published number, so the evaluation code that
+every later result depends on is doing what it claims. The run lands slightly *above*
+Elasticsearch's rather than below, which is the expected direction for a tokenisation
+difference rather than a scoring bug: Porter stemming plus a 33-word stopword list is a
+more aggressive normalisation than Elasticsearch's default analyzer chain, and on a
+binary-qrel dataset that is worth about this much. Nothing needs fixing before moving on.
+
+Two observations worth recording while they are in front of us.
+
+Recall@1 (0.5397) sits *below* nDCG@1 (0.5533), which looks wrong at a glance and is
+not. 23 of the 300 queries have more than one relevant document (distribution: 277
+queries with 1, 14 with 2, 4 with 3, 3 with 4, 2 with 5). Recall@1 divides by the number
+of relevant documents, so a query with 5 relevant documents scores at most 0.2 at rank 1;
+nDCG@1 divides by an IDCG truncated to k=1, so the same query can score 1.0. The gap is
+arithmetic, not a defect, and it will widen on the graded datasets in experiment 4.
+
+Recall@100 of 0.9220 is a ceiling, not just a result. It is a macro-average, so the
+statement it supports is that the average query is already missing 7.8% of its relevant
+documents at depth 100 — not that 7.8% of all judgements are unreachable, which is a
+different (micro-averaged) quantity this run does not report. Either way a reranker only
+reorders the candidate set it is given, so nothing downstream of this retrieval can
+exceed 0.9220 on this metric however good it is. That is the wall experiment 7 runs into, and
+it is worth knowing the number before designing the reranking experiment rather than
+after.
+
+**Next:** Experiment 2, the tokenisation ablation. The +0.0152 delta is the argument for
+running it: it says tokenisation is doing something measurable on this corpus, and the
+ablation is what puts a number on how much.
+
+---
+
 ## Pending
 
 Planned runs, in order. Each is a separate entry when it happens.
 
 | # | Experiment | Settles |
 |---|---|---|
-| 1 | BM25 on SciFact | Does the harness reproduce a published number |
+| 1 | ~~BM25 on SciFact~~ | **Done** — nDCG@10 0.6802 vs published 0.665 |
 | 2 | Tokenisation ablation: stem/no-stem, stopwords/none | How much of BM25's score is tokenisation |
 | 3 | `k1`/`b` sweep | Whether BEIR's 0.9/0.4 is right for this corpus |
 | 4 | BM25 on TREC-COVID and NFCorpus | Does the harness hold on graded qrels |
