@@ -1,0 +1,139 @@
+{
+  "dataset": "scifact",
+  "split": "train",
+  "method": "query-expansion",
+  "kind": "query",
+  "gain": "exponential",
+  "select_on": "ndcg@10",
+  "grid": [
+    0,
+    1,
+    2,
+    3,
+    5,
+    8,
+    12,
+    20
+  ],
+  "best": {
+    "weight": 8,
+    "metrics": {
+      "ndcg@10": 0.6718009161659939,
+      "recall@10": 0.8048825710754017,
+      "ndcg@100": 0.6970358132045088,
+      "recall@100": 0.9179645653069634
+    }
+  },
+  "cells": [
+    {
+      "weight": 0,
+      "metrics": {
+        "ndcg@10": 0.6535409052574557,
+        "recall@10": 0.7871652245570663,
+        "ndcg@100": 0.681783214261665,
+        "recall@100": 0.9138442521631644
+      }
+    },
+    {
+      "weight": 1,
+      "metrics": {
+        "ndcg@10": 0.6688287520189243,
+        "recall@10": 0.8019983518747426,
+        "ndcg@100": 0.6947724900257292,
+        "recall@100": 0.915492377420684
+      }
+    },
+    {
+      "weight": 2,
+      "metrics": {
+        "ndcg@10": 0.6706395887891108,
+        "recall@10": 0.8024103831891224,
+        "ndcg@100": 0.6963639146385563,
+        "recall@100": 0.915492377420684
+      }
+    },
+    {
+      "weight": 3,
+      "metrics": {
+        "ndcg@10": 0.6714784007727703,
+        "recall@10": 0.803646477132262,
+        "ndcg@100": 0.6969969107961512,
+        "recall@100": 0.9167284713638236
+      }
+    },
+    {
+      "weight": 5,
+      "metrics": {
+        "ndcg@10": 0.6713357445352359,
+        "recall@10": 0.803646477132262,
+        "ndcg@100": 0.696993132926186,
+        "recall@100": 0.9179645653069634
+      }
+    },
+    {
+      "weight": 8,
+      "metrics": {
+        "ndcg@10": 0.6718009161659939,
+        "recall@10": 0.8048825710754017,
+        "ndcg@100": 0.6970358132045088,
+        "recall@100": 0.9179645653069634
+      }
+    },
+    {
+      "weight": 12,
+      "metrics": {
+        "ndcg@10": 0.6712619335545782,
+        "recall@10": 0.8048825710754017,
+        "ndcg@100": 0.6967623603736312,
+        "recall@100": 0.9196126905644829
+      }
+    },
+    {
+      "weight": 20,
+      "metrics": {
+        "ndcg@10": 0.6704807293932389,
+        "recall@10": 0.8048825710754017,
+        "ndcg@100": 0.6959769098882453,
+        "recall@100": 0.9196126905644829
+      }
+    }
+  ],
+  "expansion": {
+    "dataset": "scifact",
+    "split": "train",
+    "kind": "query",
+    "model": "google/flan-t5-base",
+    "prompt": "Write a short scientific abstract that would answer this question.\n\nQuestion: {text}\n\nAbstract:",
+    "generations_per_input": 1,
+    "sampling": false,
+    "max_new_tokens": 128,
+    "seed": 0,
+    "num_inputs": 809,
+    "num_empty": 0,
+    "seconds": 56.8,
+    "groundwork_version": "0.1.0",
+    "python": "3.11.16",
+    "run_at": "2026-09-21T18:38:34+00:00"
+  },
+  "retriever": {
+    "method": "bm25",
+    "variant": "lucene-multifield",
+    "fields": [
+      "title",
+      "text"
+    ],
+    "field_weights": [
+      1.0,
+      1.0
+    ],
+    "k1": 0.9,
+    "b": 0.4,
+    "tokenizer": {
+      "stopwords": "lucene_english",
+      "stem": "porter",
+      "min_length": 1
+    }
+  },
+  "groundwork_version": "0.1.0",
+  "run_at": "2026-09-21T18:40:03+00:00"
+}

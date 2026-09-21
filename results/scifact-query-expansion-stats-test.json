@@ -1,0 +1,54 @@
+{
+  "dataset": "scifact",
+  "split": "test",
+  "kind": "query",
+  "method": "expansion-vocabulary-analysis",
+  "expansion": {
+    "dataset": "scifact",
+    "split": "test",
+    "kind": "query",
+    "model": "google/flan-t5-base",
+    "prompt": "Write a short scientific abstract that would answer this question.\n\nQuestion: {text}\n\nAbstract:",
+    "generations_per_input": 1,
+    "sampling": false,
+    "max_new_tokens": 128,
+    "seed": 0,
+    "num_inputs": 300,
+    "num_empty": 0,
+    "seconds": 39.3,
+    "groundwork_version": "0.1.0",
+    "python": "3.11.16",
+    "run_at": "2026-09-21T18:37:34+00:00"
+  },
+  "tokenizer": {
+    "stopwords": "lucene_english",
+    "stem": "porter",
+    "min_length": 1
+  },
+  "statistics": {
+    "num_inputs": 300,
+    "num_empty": 0,
+    "num_adding_nothing": 249,
+    "generated_words": {
+      "median": 11.0,
+      "mean": 11.7933,
+      "p25": 8.0,
+      "p75": 14.0,
+      "min": 4.0,
+      "max": 65.0
+    },
+    "added_terms": {
+      "median": 0.0,
+      "mean": 0.2867,
+      "p25": 0.0,
+      "p75": 0.0,
+      "min": 0.0,
+      "max": 6.0
+    },
+    "added_term_fraction": 0.0349
+  },
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T18:39:59+00:00"
+}

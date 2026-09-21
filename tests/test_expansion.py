@@ -11,11 +11,14 @@ numbers, and the only sign would be a result that did not reproduce.
 
 import pytest
 
+from groundwork.retrieval import LUCENE_ENGLISH_STOPWORDS, Tokenizer
 from groundwork.retrieval.expansion import (
     DEFAULT_QUERY_WEIGHT,
+    added_terms,
     expand_documents,
     expand_queries,
     generate_expansions,
+    summarise_expansions,
 )
 
 QUERIES = {"q1": "statin muscle pain", "q2": "vitamin d deficiency"}
@@ -112,3 +115,121 @@ class TestGenerationGuards:
         receiving five copies would look like a working doc2query and expand nothing."""
         with pytest.raises(ValueError, match="do_sample=True"):
             generate_expansions({"d1": "text"}, "any-model", num_return_sequences=5)
+
+
+# Tokenisation without stemming, so the arithmetic in these tests is readable: every
+# expected term below is the literal lowercased word. Stemming gets its own test.
+PLAIN = Tokenizer(stopwords=LUCENE_ENGLISH_STOPWORDS, stem=False)
+
+
+class TestAddedTerms:
+    """What an expansion contributes that the query did not already have.
+
+    This is the measurement that separates a real expansion from a fluent restatement.
+    Only terms absent from the original can change which documents match; repeating terms
+    the query already has changes term frequency, not reachability.
+    """
+
+    def test_a_pure_restatement_adds_nothing(self):
+        assert added_terms("vitamin d deficiency", "vitamin d deficiency", PLAIN) == set()
+
+    def test_new_words_are_returned(self):
+        # "in" is a Lucene stopword, so the additions are statins, cause, myopathy.
+        assert added_terms("statin muscle pain", "statins cause myopathy in", PLAIN) == {
+            "statins",
+            "cause",
+            "myopathy",
+        }
+
+    def test_terms_already_in_the_query_are_not_counted_however_often_repeated(self):
+        assert added_terms("aspirin dose", "aspirin aspirin dose aspirin", PLAIN) == set()
+
+    def test_stopwords_in_the_generated_text_are_not_additions(self):
+        """A generated passage padded with function words adds no retrievable vocabulary."""
+        assert added_terms("aspirin", "the aspirin and the dose", PLAIN) == {"dose"}
+
+    def test_the_comparison_happens_after_stemming(self):
+        """'cells' cannot reach a document 'cell' does not, so it is not an addition.
+
+        The comparison has to happen in the index's term space or the statistic overstates
+        what the expansion bought.
+        """
+        pytest.importorskip("snowballstemmer")
+        stemming = Tokenizer(stopwords=LUCENE_ENGLISH_STOPWORDS, stem=True)
+        assert added_terms("cell", "cells", stemming) == set()
+        assert added_terms("cell", "cells", PLAIN) == {"cells"}
+
+    def test_an_empty_expansion_adds_nothing(self):
+        assert added_terms("aspirin", "", PLAIN) == set()
+
+
+class TestSummariseExpansions:
+    """Worked by hand against the four inputs below; see the arithmetic in comments."""
+
+    ORIGINALS = {
+        "q1": "vitamin d deficiency",
+        "q2": "statin muscle pain",
+        "q3": "aspirin",
+        "q4": "cancer screening",
+    }
+    EXPANSIONS = {
+        "q1": ["vitamin d deficiency"],              # restatement: 3 words, 0 new
+        "q2": ["statins cause myopathy in adults"],  # 5 words, 4 new of 4 distinct
+        "q3": [],                                    # nothing generated
+        "q4": ["screening reduces mortality"],       # 3 words, 2 new of 3 distinct
+    }
+
+    def summary(self):
+        return summarise_expansions(self.ORIGINALS, self.EXPANSIONS, PLAIN)
+
+    def test_inputs_with_no_generated_text_are_counted_separately(self):
+        """An id that generated nothing is not an expansion that added nothing; conflating
+        them would hide a broken generation run inside a weak-expansion statistic."""
+        summary = self.summary()
+        assert summary.num_inputs == 4
+        assert summary.num_empty == 1
+
+    def test_restatements_are_counted(self):
+        # q1 only: q3 generated nothing and is excluded rather than counted here.
+        assert self.summary().num_adding_nothing == 1
+
+    def test_generated_word_counts(self):
+        # Word counts [3, 5, 3] -> sorted [3, 3, 5]; mean 11/3 = 3.6667.
+        words = self.summary().generated_words
+        assert words["median"] == 3.0
+        assert words["mean"] == 3.6667
+        assert words["min"] == 3.0
+        assert words["max"] == 5.0
+
+    def test_added_term_counts(self):
+        # Added [0, 4, 2] -> sorted [0, 2, 4]; median 2, mean 6/3 = 2.0.
+        added = self.summary().added_terms
+        assert added["median"] == 2.0
+        assert added["mean"] == 2.0
+
+    def test_added_term_fraction_is_the_mean_of_per_input_fractions(self):
+        # q1 0/3 = 0.0, q2 4/4 = 1.0, q4 2/3 = 0.6667; (0 + 1 + 2/3)/3 = 0.5556.
+        assert self.summary().added_term_fraction == 0.5556
+
+    def test_several_generations_for_one_input_are_pooled(self):
+        """doc2query produces many short queries per document and all are appended, so the
+        statistic must describe their union rather than the first one."""
+        summary = summarise_expansions(
+            {"d1": "cell growth"},
+            {"d1": ["what regulates division", "how do tumours spread"]},
+            PLAIN,
+        )
+        # Union of new terms: regulates, division, how, do, tumours, spread = 6
+        # ("what" is not a Lucene stopword, so it counts too -> 7).
+        assert summary.added_terms["median"] == 7.0
+        assert summary.num_adding_nothing == 0
+
+    def test_an_input_missing_from_the_expansions_counts_as_empty(self):
+        summary = summarise_expansions({"q1": "aspirin"}, {}, PLAIN)
+        assert summary.num_empty == 1
+        assert summary.added_term_fraction == 0.0
+
+    def test_the_record_is_json_safe(self):
+        import json
+
+        json.dumps(self.summary().describe())

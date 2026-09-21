@@ -1,0 +1,87 @@
+{
+  "dataset": "scifact",
+  "split": "test",
+  "tag": "hyde",
+  "method": "query-expansion",
+  "query_weight": 8,
+  "metrics": {
+    "ndcg@1": 0.5333333333333333,
+    "recall@1": 0.5152777777777777,
+    "ndcg@10": 0.6642997434739017,
+    "recall@10": 0.7986666666666666,
+    "ndcg@100": 0.6880559992974802,
+    "recall@100": 0.902
+  },
+  "num_queries": 300,
+  "num_documents": 5183,
+  "oracle_recall_at_100": 1.0,
+  "expansion": {
+    "dataset": "scifact",
+    "split": "test",
+    "kind": "query",
+    "model": "google/flan-t5-base",
+    "prompt": "Write a short scientific abstract that would answer this question.\n\nQuestion: {text}\n\nAbstract:",
+    "generations_per_input": 1,
+    "sampling": false,
+    "max_new_tokens": 128,
+    "seed": 0,
+    "num_inputs": 300,
+    "num_empty": 0,
+    "seconds": 39.3,
+    "groundwork_version": "0.1.0",
+    "python": "3.11.16",
+    "run_at": "2026-09-21T18:37:34+00:00"
+  },
+  "retriever": {
+    "method": "bm25",
+    "variant": "lucene-multifield",
+    "fields": [
+      "title",
+      "text"
+    ],
+    "field_weights": [
+      1.0,
+      1.0
+    ],
+    "k1": 0.9,
+    "b": 0.4,
+    "tokenizer": {
+      "stopwords": "lucene_english",
+      "stem": "porter",
+      "min_length": 1
+    }
+  },
+  "top_k": 100,
+  "gain": "exponential",
+  "graded_qrels": false,
+  "relevance_levels": [
+    1
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.5333333333333333,
+      "recall@1": 0.5152777777777777,
+      "ndcg@10": 0.6642997434739017,
+      "recall@10": 0.7986666666666666,
+      "ndcg@100": 0.6880559992974802,
+      "recall@100": 0.902
+    },
+    "linear": {
+      "ndcg@1": 0.5333333333333333,
+      "recall@1": 0.5152777777777777,
+      "ndcg@10": 0.6642997434739017,
+      "recall@10": 0.7986666666666666,
+      "ndcg@100": 0.6880559992974802,
+      "recall@100": 0.902
+    }
+  },
+  "gain_difference_ndcg_at_10": 0.0,
+  "timing_seconds": {
+    "build": 14.12
+  },
+  "per_query_file": "per-query/scifact-query-expansion-hyde.json",
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T18:40:19+00:00"
+}

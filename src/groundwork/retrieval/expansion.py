@@ -25,8 +25,11 @@ stop being reproducible from the repository.
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
+
+import numpy as np
 
 if TYPE_CHECKING:  # pragma: no cover - import only for type checking
     from transformers import PreTrainedModel, PreTrainedTokenizerBase
@@ -217,3 +220,111 @@ def describe_expansion(
         "seed": seed,
         "query_weight": weight,
     }
+
+
+@dataclass(frozen=True)
+class ExpansionStatistics:
+    """How much indexable vocabulary an expansion actually contributes.
+
+    Retrieval does not see generated prose; it sees the terms that survive tokenisation,
+    and only the ones that were not in the query already can change which documents match.
+    A fluent expansion that restates the query in its own words adds nothing but term
+    weight. These fields separate the two.
+    """
+
+    num_inputs: int
+    num_empty: int
+    num_adding_nothing: int
+    generated_words: dict[str, float]
+    added_terms: dict[str, float]
+    added_term_fraction: float
+
+    def describe(self) -> dict[str, object]:
+        """A JSON-safe record."""
+        return {
+            "num_inputs": self.num_inputs,
+            "num_empty": self.num_empty,
+            "num_adding_nothing": self.num_adding_nothing,
+            "generated_words": self.generated_words,
+            "added_terms": self.added_terms,
+            "added_term_fraction": self.added_term_fraction,
+        }
+
+
+def added_terms(original: str, generated: str, tokenizer: Callable[[str], list[str]]) -> set[str]:
+    """The distinct indexable terms ``generated`` contributes that ``original`` lacked.
+
+    This is the only part of an expansion that can change which documents match. Terms
+    already present in the query are not counted: repeating them alters term frequency,
+    not reachability.
+
+    Args:
+        original: The unexpanded text.
+        generated: The generated text to be appended.
+        tokenizer: Applied to both, so the comparison happens in the space the index
+            actually uses — stemmed and stopped, not raw words.
+
+    Returns:
+        The set difference, which is empty when the expansion is a pure restatement.
+    """
+    return set(tokenizer(generated)) - set(tokenizer(original))
+
+
+def summarise_expansions(
+    originals: Mapping[str, str],
+    expansions: Mapping[str, Sequence[str]],
+    tokenizer: Callable[[str], list[str]],
+) -> ExpansionStatistics:
+    """Summarise what a set of generated expansions contributes, before any retrieval.
+
+    Args:
+        originals: ``{id: text}`` for the queries or documents being expanded.
+        expansions: ``{id: [generated, ...]}``. All generations for an id are pooled,
+            since they are all appended.
+        tokenizer: The tokenizer the index will use.
+
+    Returns:
+        An :class:`ExpansionStatistics`. Distributions are reported as median and
+        quartiles rather than a mean alone, because generation length is skewed: a
+        handful of long outputs will drag a mean well above what a typical query gets.
+    """
+    word_counts: list[int] = []
+    added_counts: list[int] = []
+    fractions: list[float] = []
+    empty = 0
+    adding_nothing = 0
+
+    for key, original in originals.items():
+        generated = " ".join(g.strip() for g in expansions.get(key, ()) if g and g.strip())
+        if not generated:
+            empty += 1
+            continue
+        word_counts.append(len(generated.split()))
+        new = added_terms(original, generated, tokenizer)
+        added_counts.append(len(new))
+        distinct = set(tokenizer(generated))
+        fractions.append(len(new) / len(distinct) if distinct else 0.0)
+        if not new:
+            adding_nothing += 1
+
+    def distribution(values: list[int]) -> dict[str, float]:
+        if not values:
+            return {"median": 0.0, "mean": 0.0, "p25": 0.0, "p75": 0.0, "min": 0.0, "max": 0.0}
+        array = np.asarray(values, dtype=float)
+        return {
+            "median": float(np.median(array)),
+            "mean": round(float(array.mean()), 4),
+            "p25": float(np.percentile(array, 25)),
+            "p75": float(np.percentile(array, 75)),
+            "min": float(array.min()),
+            "max": float(array.max()),
+        }
+
+    return ExpansionStatistics(
+        num_inputs=len(originals),
+        num_empty=empty,
+        num_adding_nothing=adding_nothing,
+        generated_words=distribution(word_counts),
+        added_terms=distribution(added_counts),
+        added_term_fraction=round(sum(fractions) / len(fractions), 4) if fractions else 0.0,
+    )

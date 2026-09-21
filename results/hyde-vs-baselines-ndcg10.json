@@ -1,0 +1,96 @@
+{
+  "metric": "ndcg@10",
+  "seed": 0,
+  "resamples": 10000,
+  "holm_adjusted": true,
+  "comparisons": [
+    {
+      "a": {
+        "file": "results/nfcorpus-query-expansion-hyde.json",
+        "label": "hyde [query-expansion] (stem=porter, stopwords=lucene_english)"
+      },
+      "b": {
+        "file": "results/nfcorpus-bm25-graded.json",
+        "label": "graded [bm25] (stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": -0.004590027994949181,
+      "p_value": 0.0913908609139086,
+      "num_queries": 323,
+      "num_ties": 271,
+      "effective_queries": 52,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.2552744725527447
+    },
+    {
+      "a": {
+        "file": "results/nfcorpus-query-expansion-hyde.json",
+        "label": "hyde [query-expansion] (stem=porter, stopwords=lucene_english)"
+      },
+      "b": {
+        "file": "results/nfcorpus-rm3-tuned.json",
+        "label": "tuned [rm3] (fb=5, terms=50, alpha=0.8, stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": -0.02335657976503474,
+      "p_value": 9.999000099990002e-05,
+      "num_queries": 323,
+      "num_ties": 147,
+      "effective_queries": 176,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.00039996000399960006
+    },
+    {
+      "a": {
+        "file": "results/scifact-query-expansion-hyde.json",
+        "label": "hyde [query-expansion] (stem=porter, stopwords=lucene_english)"
+      },
+      "b": {
+        "file": "results/scifact-bm25.json",
+        "label": "bm25 [bm25] (stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.000682517153259176,
+      "p_value": 0.5426457354264573,
+      "num_queries": 300,
+      "num_ties": 293,
+      "effective_queries": 7,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.5426457354264573
+    },
+    {
+      "a": {
+        "file": "results/scifact-query-expansion-hyde.json",
+        "label": "hyde [query-expansion] (stem=porter, stopwords=lucene_english)"
+      },
+      "b": {
+        "file": "results/scifact-rm3-tuned.json",
+        "label": "tuned [rm3] (fb=20, terms=50, alpha=0.3, stem=porter, stopwords=lucene_english)"
+      },
+      "metric": "ndcg@10",
+      "test": "paired_randomisation",
+      "alternative": "two-sided",
+      "delta": 0.009274298583089206,
+      "p_value": 0.08509149085091491,
+      "num_queries": 300,
+      "num_ties": 247,
+      "effective_queries": 53,
+      "method": "monte-carlo",
+      "num_assignments": 10000,
+      "seed": 0,
+      "p_value_holm": 0.2552744725527447
+    }
+  ]
+}

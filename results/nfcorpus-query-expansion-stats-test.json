@@ -1,0 +1,54 @@
+{
+  "dataset": "nfcorpus",
+  "split": "test",
+  "kind": "query",
+  "method": "expansion-vocabulary-analysis",
+  "expansion": {
+    "dataset": "nfcorpus",
+    "split": "test",
+    "kind": "query",
+    "model": "google/flan-t5-base",
+    "prompt": "Write a short scientific abstract that would answer this question.\n\nQuestion: {text}\n\nAbstract:",
+    "generations_per_input": 1,
+    "sampling": false,
+    "max_new_tokens": 128,
+    "seed": 0,
+    "num_inputs": 323,
+    "num_empty": 0,
+    "seconds": 505.9,
+    "groundwork_version": "0.1.0",
+    "python": "3.11.16",
+    "run_at": "2026-09-21T17:23:34+00:00"
+  },
+  "tokenizer": {
+    "stopwords": "lucene_english",
+    "stem": "porter",
+    "min_length": 1
+  },
+  "statistics": {
+    "num_inputs": 323,
+    "num_empty": 0,
+    "num_adding_nothing": 99,
+    "generated_words": {
+      "median": 10.0,
+      "mean": 15.0526,
+      "p25": 5.0,
+      "p75": 14.0,
+      "min": 1.0,
+      "max": 109.0
+    },
+    "added_terms": {
+      "median": 2.0,
+      "mean": 2.5232,
+      "p25": 0.0,
+      "p75": 4.0,
+      "min": 0.0,
+      "max": 14.0
+    },
+    "added_term_fraction": 0.4498
+  },
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T18:39:57+00:00"
+}

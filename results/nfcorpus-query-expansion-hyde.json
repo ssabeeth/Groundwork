@@ -1,0 +1,88 @@
+{
+  "dataset": "nfcorpus",
+  "split": "test",
+  "tag": "hyde",
+  "method": "query-expansion",
+  "query_weight": 20,
+  "metrics": {
+    "ndcg@1": 0.4220846233230133,
+    "recall@1": 0.05627685722593117,
+    "ndcg@10": 0.32066854257509214,
+    "recall@10": 0.15596535679081253,
+    "ndcg@100": 0.2825288682462324,
+    "recall@100": 0.256022302645747
+  },
+  "num_queries": 323,
+  "num_documents": 3633,
+  "oracle_recall_at_100": 0.9647038661258809,
+  "expansion": {
+    "dataset": "nfcorpus",
+    "split": "test",
+    "kind": "query",
+    "model": "google/flan-t5-base",
+    "prompt": "Write a short scientific abstract that would answer this question.\n\nQuestion: {text}\n\nAbstract:",
+    "generations_per_input": 1,
+    "sampling": false,
+    "max_new_tokens": 128,
+    "seed": 0,
+    "num_inputs": 323,
+    "num_empty": 0,
+    "seconds": 505.9,
+    "groundwork_version": "0.1.0",
+    "python": "3.11.16",
+    "run_at": "2026-09-21T17:23:34+00:00"
+  },
+  "retriever": {
+    "method": "bm25",
+    "variant": "lucene-multifield",
+    "fields": [
+      "title",
+      "text"
+    ],
+    "field_weights": [
+      1.0,
+      1.0
+    ],
+    "k1": 0.9,
+    "b": 0.4,
+    "tokenizer": {
+      "stopwords": "lucene_english",
+      "stem": "porter",
+      "min_length": 1
+    }
+  },
+  "top_k": 100,
+  "gain": "exponential",
+  "graded_qrels": true,
+  "relevance_levels": [
+    1,
+    2
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.4220846233230133,
+      "recall@1": 0.05627685722593117,
+      "ndcg@10": 0.32066854257509214,
+      "recall@10": 0.15596535679081253,
+      "ndcg@100": 0.2825288682462324,
+      "recall@100": 0.256022302645747
+    },
+    "linear": {
+      "ndcg@1": 0.42879256965944273,
+      "recall@1": 0.05627685722593117,
+      "ndcg@10": 0.3197166400593356,
+      "recall@10": 0.15596535679081253,
+      "ndcg@100": 0.2769658885733889,
+      "recall@100": 0.256022302645747
+    }
+  },
+  "gain_difference_ndcg_at_10": 0.000951902515756553,
+  "timing_seconds": {
+    "build": 10.6
+  },
+  "per_query_file": "per-query/nfcorpus-query-expansion-hyde.json",
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T18:39:27+00:00"
+}
