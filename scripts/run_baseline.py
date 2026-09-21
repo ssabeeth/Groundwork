@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import platform
 import sys
 import time
@@ -59,6 +60,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
 
     print(f"Loading {args.dataset} ({args.split})")
     dataset = load_beir_dataset(args.dataset, split=args.split, data_dir=args.data_dir)
