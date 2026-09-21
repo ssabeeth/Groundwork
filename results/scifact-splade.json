@@ -1,0 +1,65 @@
+{
+  "dataset": "scifact",
+  "split": "test",
+  "tag": "",
+  "method": "splade",
+  "metrics": {
+    "ndcg@1": 0.59,
+    "recall@1": 0.5638333333333333,
+    "ndcg@10": 0.702446604065687,
+    "recall@10": 0.8230000000000001,
+    "ndcg@100": 0.7247657158862175,
+    "recall@100": 0.932
+  },
+  "num_queries": 300,
+  "num_documents": 5183,
+  "oracle_recall_at_100": 1.0,
+  "retriever": {
+    "method": "splade",
+    "model": "naver/splade-cocondenser-ensembledistil",
+    "similarity": "dot-product",
+    "pooling": "max",
+    "activation": "log1p-relu",
+    "max_length": 256,
+    "truncation_rate": 0.710206444144318,
+    "top_terms": null,
+    "mean_terms_per_document": 190.06810727377967,
+    "batch_size": 8,
+    "device": "mps"
+  },
+  "published_ndcg_at_10": 0.693,
+  "delta_vs_published_ndcg_at_10": 0.0094,
+  "top_k": 100,
+  "gain": "exponential",
+  "graded_qrels": false,
+  "relevance_levels": [
+    1
+  ],
+  "metrics_by_gain": {
+    "exponential": {
+      "ndcg@1": 0.59,
+      "recall@1": 0.5638333333333333,
+      "ndcg@10": 0.702446604065687,
+      "recall@10": 0.8230000000000001,
+      "ndcg@100": 0.7247657158862175,
+      "recall@100": 0.932
+    },
+    "linear": {
+      "ndcg@1": 0.59,
+      "recall@1": 0.5638333333333333,
+      "ndcg@10": 0.702446604065687,
+      "recall@10": 0.8230000000000001,
+      "ndcg@100": 0.7247657158862175,
+      "recall@100": 0.932
+    }
+  },
+  "timing_seconds": {
+    "index": 147.99,
+    "retrieve": 4.03
+  },
+  "per_query_file": "per-query/scifact-splade.json",
+  "groundwork_version": "0.1.0",
+  "python": "3.11.16",
+  "numpy": "1.26.4",
+  "run_at": "2026-09-21T23:01:53+00:00"
+}

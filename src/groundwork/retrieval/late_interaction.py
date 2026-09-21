@@ -60,6 +60,55 @@ QUERY_MARKER = "[unused0]"
 DOC_MARKER = "[unused1]"
 
 
+def prepare_ids(
+    input_ids: np.ndarray,
+    attention_mask: np.ndarray,
+    marker_id: int,
+    pad_id: int,
+    mask_id: int,
+    is_query: bool,
+    skiplist: frozenset[int] = frozenset(),
+) -> tuple[np.ndarray, np.ndarray]:
+    """Apply ColBERT's input conventions, and say which positions produce a vector.
+
+    Kept as a pure function over arrays because this is where the method's fiddly,
+    easy-to-get-silently-wrong details live, and because it lets them be tested without
+    torch or a downloaded checkpoint.
+
+    Args:
+        input_ids: ``(batch, length)`` token ids, already padded. Position 1 must be a
+            placeholder token, which this overwrites with ``marker_id``.
+        attention_mask: ``(batch, length)``, 1 for real tokens.
+        marker_id: ``[Q]`` or ``[D]``.
+        pad_id: The tokenizer's padding id.
+        mask_id: The tokenizer's ``[MASK]`` id.
+        is_query: Queries get augmented and keep every position; documents do not.
+        skiplist: Token ids to drop from documents, normally punctuation.
+
+    Returns:
+        ``(ids, keep)``. ``ids`` goes to the model; ``keep`` selects the output positions
+        that become the representation.
+    """
+    ids = np.array(input_ids, copy=True)
+    # Overwriting position 1 rather than prepending the marker as text is not a
+    # micro-optimisation: this tokenizer lowercases and splits, so "[unused0] query"
+    # becomes '[', 'unused', '##0', ']' -- four junk tokens that consume four of the
+    # thirty-two query positions and can win a MaxSim on their own.
+    ids[:, 1] = marker_id
+
+    if is_query:
+        # Query augmentation: padding becomes [MASK], and every position contributes a
+        # vector. The attention mask handed to the model keeps its zeros there, so
+        # nothing attends *to* them, which is the checkpoint's attend_to_mask_tokens.
+        ids[ids == pad_id] = mask_id
+        return ids, np.ones_like(ids, dtype=bool)
+
+    keep = attention_mask.astype(bool)
+    if skiplist:
+        keep = keep & ~np.isin(ids, list(skiplist))
+    return ids, keep
+
+
 class ColbertRetriever:
     """Retrieve by late interaction over token-level embeddings.
 
@@ -113,7 +162,7 @@ class ColbertRetriever:
         self._tokenizer = None
         self._projection = None
         self._device: str | None = None
-        self._skiplist: set[int] = set()
+        self._skiplist: frozenset[int] = frozenset()
 
     def _load(self) -> None:
         if self._model is not None:
@@ -136,11 +185,11 @@ class ColbertRetriever:
         self._model = model
         self._device = device
         if self.mask_punctuation:
-            self._skiplist = {
+            self._skiplist = frozenset(
                 tokenizer.convert_tokens_to_ids(symbol)
                 for symbol in string.punctuation
                 if tokenizer.convert_tokens_to_ids(symbol) != tokenizer.unk_token_id
-            }
+            )
         logger.info("Loaded %s onto %s", self.model_name, device)
 
     def _load_projection(self, device: str):  # noqa: ANN202 - a torch tensor, not ours to name
@@ -192,9 +241,13 @@ class ColbertRetriever:
         from tqdm.auto import tqdm
 
         self._load()
-        marker = QUERY_MARKER if is_query else DOC_MARKER
+        marker_id = self._tokenizer.convert_tokens_to_ids(QUERY_MARKER if is_query else DOC_MARKER)
         limit = self.query_length if is_query else self.doc_length
-        marked = [f"{marker} {text}" for text in texts]
+        # A placeholder token whose slot is overwritten with the marker id below. Writing
+        # the marker as text does not work: this tokenizer lowercases and splits, so
+        # "[unused0] text" becomes '[', 'unused', '##0', ']' -- four junk tokens that eat
+        # four of the thirty-two query positions and can win a MaxSim on their own.
+        marked = [f". {text}" for text in texts]
 
         out: list[np.ndarray] = []
         truncated = 0
@@ -213,29 +266,26 @@ class ColbertRetriever:
             )
             lengths = self._tokenizer(chunk, truncation=False, padding=False)["input_ids"]
             truncated += sum(1 for ids in lengths if len(ids) > limit)
-            ids = inputs["input_ids"]
-            if is_query:
-                # Padding becomes [MASK], and attends, which is what query augmentation is.
-                ids = ids.masked_fill(
-                    ids == self._tokenizer.pad_token_id, self._tokenizer.mask_token_id
-                )
-                inputs["input_ids"] = ids
-                inputs["attention_mask"] = torch.ones_like(ids)
+            ids_array, keep_array = prepare_ids(
+                inputs["input_ids"].numpy(),
+                inputs["attention_mask"].numpy(),
+                marker_id=marker_id,
+                pad_id=self._tokenizer.pad_token_id,
+                mask_id=self._tokenizer.mask_token_id,
+                is_query=is_query,
+                skiplist=self._skiplist,
+            )
+            # The attention mask keeps its zeros at the augmented positions on purpose.
+            inputs["input_ids"] = torch.from_numpy(ids_array)
             device_inputs = {k: v.to(self._device) for k, v in inputs.items()}
             with torch.no_grad():
                 hidden = self._model(**device_inputs).last_hidden_state
                 projected = hidden @ self._projection.T
                 projected = torch.nn.functional.normalize(projected, p=2, dim=-1)
 
-            keep = inputs["attention_mask"].bool()
-            if not is_query and self._skiplist:
-                punctuation = torch.zeros_like(ids, dtype=torch.bool)
-                for token_id in self._skiplist:
-                    punctuation |= ids == token_id
-                keep &= ~punctuation
-            for row in range(projected.shape[0]):
-                selected = projected[row][keep[row].to(self._device)]
-                out.append(selected.cpu().numpy().astype(np.float32))
+            numpy_projected = projected.cpu().numpy().astype(np.float32)
+            for row in range(numpy_projected.shape[0]):
+                out.append(numpy_projected[row][keep_array[row]])
         if texts and not is_query:
             self.truncation_rate = truncated / len(texts)
         return out

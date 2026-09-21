@@ -15,7 +15,7 @@ same fixtures are run at a block size that splits the corpus.
 import numpy as np
 import pytest
 
-from groundwork.retrieval.late_interaction import ColbertRetriever
+from groundwork.retrieval.late_interaction import ColbertRetriever, prepare_ids
 
 # Two orthogonal unit vectors, so every dot product below is 0, 1 or -1.
 RIGHT = [1.0, 0.0]
@@ -129,3 +129,66 @@ class TestDescribe:
         import json
 
         json.dumps(ColbertRetriever().describe())
+
+
+class TestPrepareIds:
+    """ColBERT's input conventions, which are where it goes silently wrong.
+
+    This function exists as a pure array operation so these can be checked without torch
+    or a downloaded checkpoint — CI has neither. The first implementation wrote the
+    marker as text, which this tokenizer lowercases and splits into '[', 'unused', '##0',
+    ']'. That produced a model that ran, retrieved, and missed its published nDCG@10 by
+    0.0859 without erroring once.
+    """
+
+    # [CLS] placeholder tok1 tok2 [SEP] [PAD] [PAD], with 101/102/0/103 as BERT's ids.
+    IDS = np.array([[101, 1012, 7592, 2088, 102, 0, 0]], dtype=np.int64)
+    MASK = np.array([[1, 1, 1, 1, 1, 0, 0]], dtype=np.int64)
+    MARKER, PAD, MASK_ID = 1, 0, 103
+
+    def prepared(self, is_query, skiplist=frozenset()):
+        return prepare_ids(
+            self.IDS, self.MASK, self.MARKER, self.PAD, self.MASK_ID, is_query, skiplist
+        )
+
+    def test_the_marker_occupies_exactly_one_position(self):
+        """The bug this function was extracted for. One token, at position 1, not four."""
+        ids, _ = self.prepared(is_query=True)
+        assert ids[0][1] == self.MARKER
+        assert list(ids[0]).count(self.MARKER) == 1
+
+    def test_the_marker_replaces_the_placeholder_and_keeps_cls_first(self):
+        ids, _ = self.prepared(is_query=False)
+        assert ids[0][0] == 101
+        assert ids[0][2:5].tolist() == [7592, 2088, 102]
+
+    def test_query_padding_becomes_mask_not_pad(self):
+        ids, _ = self.prepared(is_query=True)
+        assert ids[0][-2:].tolist() == [self.MASK_ID, self.MASK_ID]
+
+    def test_a_query_keeps_every_position_including_the_augmented_ones(self):
+        """Query augmentation is the method, not padding to be discarded: all positions
+        contribute a vector."""
+        _, keep = self.prepared(is_query=True)
+        assert keep.all()
+        assert keep.shape == self.IDS.shape
+
+    def test_a_document_drops_its_padding(self):
+        _, keep = self.prepared(is_query=False)
+        assert keep[0].tolist() == [True, True, True, True, True, False, False]
+
+    def test_a_document_drops_skiplisted_tokens(self):
+        # 7592 stands in for a punctuation id here.
+        _, keep = self.prepared(is_query=False, skiplist=frozenset({7592}))
+        assert keep[0].tolist() == [True, True, False, True, True, False, False]
+
+    def test_document_padding_is_not_turned_into_mask(self):
+        """Only queries are augmented. Doing it to documents would add vectors for
+        tokens the document does not contain."""
+        ids, _ = self.prepared(is_query=False)
+        assert ids[0][-2:].tolist() == [self.PAD, self.PAD]
+
+    def test_the_input_array_is_not_modified(self):
+        before = self.IDS.copy()
+        self.prepared(is_query=True)
+        assert (before == self.IDS).all()
