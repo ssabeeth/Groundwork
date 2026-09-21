@@ -49,7 +49,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dataset", default="scidocs")
     parser.add_argument("--split", default="test")
     parser.add_argument("--data-dir", default="data")
-    parser.add_argument("--depth", type=int, default=10, help="How far down each ranking to judge")
+    parser.add_argument(
+        "--depth", type=int, default=10, help="Ranking depth, for --source retrieved"
+    )
+    parser.add_argument(
+        "--source",
+        default="qrels",
+        choices=["qrels", "retrieved"],
+        help="Sample the pool from all human judgements, or from a retrieval run",
+    )
     parser.add_argument("--model", default=DEFAULT_JUDGE)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--seed", type=int, default=0)
@@ -88,17 +96,24 @@ def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
     dataset = load_beir_dataset(args.dataset, split=args.split, data_dir=args.data_dir)
-    run, retriever_settings = retrieve_pool(dataset, top_k=max(args.depth, 100))
+    run, retriever_settings = (
+        retrieve_pool(dataset, top_k=max(args.depth, 100))
+        if args.source == "retrieved"
+        else (None, None)
+    )
 
     # Raises when the qrels carry no non-relevant judgements, which is the case for
     # SciFact and NFCorpus and is the reason this experiment covers two datasets.
-    pairs = judgeable_pairs(dataset.qrels, run, depth=args.depth)
+    pairs = judgeable_pairs(dataset.qrels, run, depth=args.depth, source=args.source)
     if args.max_pairs is not None and len(pairs) > args.max_pairs:
+        # Even, deterministic thinning rather than a random sample, so the run
+        # reproduces and the class balance of the pool is preserved.
         step = len(pairs) / args.max_pairs
         pairs = [pairs[int(i * step)] for i in range(args.max_pairs)]
 
     print(f"{args.dataset} / {args.split} / judging with {args.model}")
-    print(f"  {len(pairs)} judged pairs in the top {args.depth} of a BM25 ranking")
+    where = f"the top {args.depth} of a BM25 ranking" if args.source == "retrieved" else "the qrels"
+    print(f"  {len(pairs)} judged pairs sampled from {where}")
     relevant = sum(1 for _, _, grade in pairs if grade > 0)
     print(f"  humans called {relevant} of them relevant ({100 * relevant / len(pairs):.1f}%)")
 
@@ -144,6 +159,7 @@ def main() -> int:
         "split": args.split,
         "tag": args.tag,
         "method": "llm-judge-calibration",
+        "pool_source": args.source,
         "pool_retriever": retriever_settings,
         "depth": args.depth,
         "num_pairs": len(pairs),

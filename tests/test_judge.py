@@ -21,6 +21,12 @@ RUN = {
     "q1": {"d1": 3.0, "d2": 2.0, "d9": 1.0},
     "q2": {"d5": 5.0, "d4": 4.0},
 }
+# Four relevant and four not, for testing the qrels source without tripping the
+# class-balance guard.
+BALANCED = {
+    "q1": {"a1": 1, "a2": 1, "a3": 0, "a4": 0},
+    "q2": {"b1": 2, "b2": 1, "b3": 0, "b4": 0},
+}
 
 
 class TestParseVerdict:
@@ -45,10 +51,20 @@ class TestParseVerdict:
 
 
 class TestJudgeablePairs:
-    def test_only_pairs_a_human_labelled_are_eligible(self):
-        """d9 was retrieved but never judged, so there is nothing to agree with."""
-        pairs = judgeable_pairs(QRELS, RUN, depth=10)
-        assert ("q1", "d9", 0) not in pairs
+    """Pool construction, which is where this experiment first went wrong.
+
+    The original version sampled the top 10 of a retrieval run, on the reasoning that
+    those are the documents a RAG system would show a model. On SciDocs that produced 819
+    labelled pairs of which 814 were relevant, and a kappa of 0.011 that reflected the
+    pool rather than the judge.
+    """
+
+    def test_qrels_source_takes_every_human_labelled_pair(self):
+        pairs = judgeable_pairs(BALANCED, min_per_class=2)
+        assert len(pairs) == 8
+
+    def test_retrieved_source_is_limited_to_the_ranking(self):
+        pairs = judgeable_pairs(QRELS, RUN, depth=10, source="retrieved", min_per_class=1)
         assert {(q, d) for q, d, _ in pairs} == {
             ("q1", "d1"),
             ("q1", "d2"),
@@ -56,23 +72,47 @@ class TestJudgeablePairs:
             ("q2", "d5"),
         }
 
+    def test_an_unjudged_retrieved_document_is_not_eligible(self):
+        """d9 was retrieved but never judged, so there is nothing to agree with."""
+        pairs = judgeable_pairs(QRELS, RUN, depth=10, source="retrieved", min_per_class=1)
+        assert ("q1", "d9", 0) not in pairs
+
     def test_the_human_grade_travels_with_the_pair(self):
-        pairs = dict(((q, d), g) for q, d, g in judgeable_pairs(QRELS, RUN, depth=10))
+        pairs = {
+            (q, d): g
+            for q, d, g in judgeable_pairs(
+                QRELS, RUN, depth=10, source="retrieved", min_per_class=1
+            )
+        }
         assert pairs[("q1", "d1")] == 1
         assert pairs[("q2", "d4")] == 2
         assert pairs[("q1", "d2")] == 0
 
     def test_depth_limits_how_far_down_each_ranking_it_looks(self):
-        """d2 ranks second for q1, so depth=1 must exclude it."""
-        pairs = judgeable_pairs(QRELS, RUN, depth=1)
+        pairs = judgeable_pairs(QRELS, RUN, depth=1, source="retrieved", min_per_class=0)
         assert {(q, d) for q, d, _ in pairs} == {("q1", "d1"), ("q2", "d5")}
 
     def test_qrels_without_negative_labels_are_refused(self):
-        """SciFact and NFCorpus ship only positive judgements. Calibrating on them would
-        measure how often the judge says yes, not whether it agrees with anyone."""
+        """SciFact and NFCorpus ship only positive judgements."""
         positive_only = {"q1": {"d1": 1, "d2": 1}, "q2": {"d4": 2}}
         with pytest.raises(ValueError, match="no non-relevant judgements"):
-            judgeable_pairs(positive_only, RUN, depth=10)
+            judgeable_pairs(positive_only, min_per_class=0)
+
+    def test_a_pool_that_is_almost_all_one_class_is_refused(self):
+        """The failure that produced an uninterpretable kappa on the first run. Chance
+        agreement approaches the observed rate, so kappa approaches zero however good
+        the judge is."""
+        lopsided = {"q1": {f"d{i}": 1 for i in range(50)} | {"d99": 0}}
+        with pytest.raises(ValueError, match="at least 30 of each"):
+            judgeable_pairs(lopsided)
+
+    def test_retrieved_without_a_run_fails_loudly(self):
+        with pytest.raises(ValueError, match="needs a run"):
+            judgeable_pairs(QRELS, source="retrieved", min_per_class=0)
+
+    def test_an_unknown_source_fails_loudly(self):
+        with pytest.raises(ValueError, match='must be "qrels" or "retrieved"'):
+            judgeable_pairs(QRELS, source="sampled", min_per_class=0)
 
 
 class TestCalibrate:

@@ -56,27 +56,38 @@ NEGATIVE = ("no", "false", "not relevant", "irrelevant")
 
 def judgeable_pairs(
     qrels: Mapping[str, Mapping[str, int]],
-    run: Mapping[str, Mapping[str, float]],
+    run: Mapping[str, Mapping[str, float]] | None = None,
     depth: int = 10,
+    source: str = "qrels",
+    min_per_class: int = 30,
 ) -> list[tuple[str, str, int]]:
-    """Retrieved query-document pairs that a human actually labelled.
-
-    Restricted to the top ``depth`` of the run, because those are the documents a RAG
-    system would put in front of a model, and unjudged pairs are dropped because there is
-    no human label to agree or disagree with.
+    """Query-document pairs carrying a human label, for scoring a judge against.
 
     Args:
         qrels: ``{query_id: {doc_id: grade}}``.
-        run: ``{query_id: {doc_id: score}}``.
-        depth: How far down each ranking to go.
+        run: ``{query_id: {doc_id: score}}``. Required when ``source`` is "retrieved".
+        depth: How far down each ranking to go, when sampling from a run.
+        source: Where the pool comes from.
+
+            ``"qrels"`` (the default) takes every human-labelled pair. This is the right
+            population for calibrating a judge: it is the set of decisions humans
+            actually made.
+
+            ``"retrieved"`` takes the top ``depth`` of a run, which sounds more
+            realistic - those are the documents a RAG system would show a model - and on
+            this data is degenerate. BM25's top 10 on SciDocs contains 819 labelled pairs
+            of which 814 are relevant, because the corpus is large, the judged pool is
+            small, and the non-relevant judgements are hard negatives a lexical matcher
+            does not surface. Agreement over five negative examples is not agreement.
+        min_per_class: Refuse a pool with fewer than this many of either class.
 
     Returns:
         ``[(query_id, doc_id, human_grade), ...]``.
 
     Raises:
-        ValueError: If the qrels carry no non-relevant judgements. Agreement over a pool
-            in which every human label is "relevant" is not agreement, it is a measure of
-            how often the judge says yes.
+        ValueError: If the qrels carry no non-relevant judgements at all, if "retrieved"
+            is requested without a run, or if the resulting pool is too one-sided to
+            support an agreement statistic.
     """
     grades = {grade for relevance in qrels.values() for grade in relevance.values()}
     if not any(grade <= 0 for grade in grades):
@@ -88,12 +99,32 @@ def judgeable_pairs(
         )
 
     pairs: list[tuple[str, str, int]] = []
-    for query_id, scores in run.items():
-        relevance = qrels.get(query_id, {})
-        ranked = sorted(scores.items(), key=lambda kv: (-kv[1], kv[0]))[:depth]
-        for doc_id, _ in ranked:
-            if doc_id in relevance:
-                pairs.append((query_id, doc_id, int(relevance[doc_id])))
+    if source == "qrels":
+        for query_id, relevance in qrels.items():
+            for doc_id, grade in relevance.items():
+                pairs.append((query_id, doc_id, int(grade)))
+    elif source == "retrieved":
+        if run is None:
+            raise ValueError('source="retrieved" needs a run to sample from')
+        for query_id, scores in run.items():
+            relevance = qrels.get(query_id, {})
+            ranked = sorted(scores.items(), key=lambda kv: (-kv[1], kv[0]))[:depth]
+            for doc_id, _ in ranked:
+                if doc_id in relevance:
+                    pairs.append((query_id, doc_id, int(relevance[doc_id])))
+    else:
+        raise ValueError(f'source must be "qrels" or "retrieved", got {source!r}')
+
+    positive = sum(1 for _, _, grade in pairs if grade > 0)
+    negative = len(pairs) - positive
+    if min(positive, negative) < min_per_class:
+        raise ValueError(
+            f"this pool has {positive} relevant and {negative} non-relevant pairs, and "
+            f"at least {min_per_class} of each are needed for agreement to mean "
+            "anything. A pool that is almost all one class makes chance agreement "
+            "approach the observed rate and kappa approach zero regardless of how good "
+            "the judge is."
+        )
     return pairs
 
 
