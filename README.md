@@ -403,30 +403,32 @@ support a decision rule, and this is what that sentence means in practice.
   domain-matched bi-encoder was tried and was worse; a domain-matched *cross-encoder* is
   untested, so "reranking does not help here" is a claim about `ms-marco-MiniLM-L-6-v2`.
 
-## Roadmap
+## What was built and measured
 
-Numbered as in [`docs/experiments.md`](docs/experiments.md), which is the full log.
+All complete. Numbered as in [`docs/experiments.md`](docs/experiments.md), which is the
+full chronological log, including the runs that settled nothing.
 
-1. ~~Tested metrics and BM25 baseline~~
-2. ~~Tokenisation ablation, with paired significance testing~~
-3. ~~`k1`/`b` sweep, tuned on train and checked on held-out test~~
-4. ~~BM25 on graded qrels: NFCorpus and TREC-COVID~~
-4b. ~~RM3 pseudo-relevance feedback~~
-5. ~~Dense retrieval on the same harness~~
-6. ~~Hybrid by reciprocal rank fusion~~
-7. ~~Cross-encoder reranking over the fused candidates~~
-8. ~~Results broken down by query type — the actual question~~
-9. ~~Encoder choice and chunking, as a falsification test of 8~~
-10. ~~Multi-field indexing, and the migration that followed~~
-11. ~~SciDocs as a third dataset, hypotheses pre-registered~~
-12. ~~Query routing: is the central finding actionable?~~
-
-13. ~~Query expansion with an LLM, against RM3~~ — *pre-registered; H1 failed*
-14. ~~Document expansion with doc2query~~ — *pre-registered; all three predictions failed*
-15. ~~A reranker that was not trained on web search~~ — *pre-registered; all three predictions failed*
-16. ~~An LLM judge, calibrated against human assessors~~
-17. ~~Answer generation with citations checked against what was retrieved~~
-18. ~~MCP server, so it plugs into any assistant~~
+| # | Experiment | What it settled |
+|---|---|---|
+| 1 | Tested metrics and BM25 baseline | Four published BEIR baselines reproduced, three within 0.0014 |
+| 2 | Tokenisation ablation | Stemming helps ranking: +0.0309 nDCG@10, Holm 0.0156 |
+| 3 | `k1`/`b` sweep, tuned on train | Tuning buys nothing on test: +0.0000, p 0.9899 |
+| 4 | BM25 on graded qrels | Exponential vs linear gain, on NFCorpus and TREC-COVID |
+| 4b | RM3 pseudo-relevance feedback | Helps NFCorpus (+0.0188), hurts SciFact (−0.0086) |
+| 5 | Dense retrieval on the same harness | Claimed dense never beats BM25 — **later overturned by 9** |
+| 6 | Hybrid by reciprocal rank fusion | Beats both its components on both datasets, Holm ≤ 0.0006 |
+| 7 | Cross-encoder reranking | Costs the most of anything here and earns almost nothing |
+| 8 | Results broken down by query type | The project's central finding: which method wins varies by query |
+| 9 | Encoder choice and chunking | Falsification test of 8. Overturned 5; halved 8 |
+| 10 | Multi-field indexing | Nine experiments had been indexed wrongly. Everything re-run; two conclusions reversed |
+| 11 | SciDocs, pre-registered | **Prediction failed.** The query-length effect does not generalise |
+| 12 | Query routing | 3–5.5 points of headroom exist; no router recovers any of it. Fusion wins |
+| 13 | LLM query expansion vs RM3 | **RM3 from 2001 wins**, Holm 0.0004. The expander mostly restated the query |
+| 14 | Document expansion with doc2query | Expanded every document, moved nothing. All three predictions failed |
+| 15 | A reranker not trained on web search | Reranks *worse* than the small model it replaced. All three predictions failed |
+| 16 | An LLM judge vs human assessors | Cohen's kappa 0.1433 and 0.1965 — slight agreement, not ground truth |
+| 17 | Answer generation with citations | Citations checked against the retrieved set; answer quality declared unmeasurable here |
+| 18 | MCP server | Exposes the measured comparison, not a hidden "best" method |
 
 Experiments 13 to 16 exist because "this project stops at 2021" is a fair criticism. Each
 puts a method from the RAG era against the older method with the same mechanism, measured
