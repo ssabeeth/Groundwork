@@ -2039,6 +2039,97 @@ and writing it down in advance is what makes it visible that it did not.
 
 ---
 
+## Experiment 19 (pre-registration): learned sparse retrieval
+
+**Written before any SPLADE code existed.**
+
+The most citable gap in this project is that its "modern methods" are generative ones.
+Experiments 13 and 14 tested a language model writing text and appending it. Neither
+helped. But that is not what the state of the art in lexical retrieval actually does.
+
+**SPLADE** learns a sparse representation over the BERT vocabulary end to end for
+retrieval: each document and query becomes a weighted bag of terms, most weights zero,
+and scoring is a dot product over an inverted index exactly like BM25. It expands — a
+document acquires terms it does not contain — but the expansion is trained against
+relevance rather than generated to look plausible. That makes it the right comparison for
+experiments 13 and 14, in the same way RM3 was the right comparison for HyDE.
+
+**Setup.** `naver/splade-cocondenser-ensembledistil`, the checkpoint the published BEIR
+figures use. Document and query representations are `max` over sequence positions of
+`log(1 + ReLU(logits))`, masked by attention. Scoring is a plain dot product. SciFact and
+NFCorpus, the two datasets with train splits used throughout experiments 13 to 15.
+
+---
+
+**H1.** SPLADE beats BM25 on nDCG@10 on both datasets, Holm-significant.
+
+**H2.** SPLADE does **not** beat this project's BM25+dense RRF fusion on either dataset.
+
+**H3, the one worth running this for.** SPLADE beats *both* generative expansion methods —
+HyDE from experiment 13 and doc2query from experiment 14 — by a Holm-significant margin on
+NFCorpus. If it does, the lesson from those two experiments is not "expansion does not work
+here", it is "expansion learned for retrieval works and expansion that generates plausible
+text does not", which is a much more useful thing to know.
+
+**Declaring the weakness of H1 and H2 in advance.** Published BEIR numbers for this
+checkpoint are available and I have read them, so H1 and H2 are informed predictions rather
+than blind ones. They are worth stating because reproducing a published figure on this
+harness is the check that the implementation is right, and because H2 compares against a
+system no published table contains. H3 is the only one no published number answers, and it
+is the reason for the experiment.
+
+**What would falsify the approach rather than the hypothesis.** If SPLADE lands far from
+its published nDCG@10 on either dataset, the implementation is wrong and no comparison
+below it means anything. That check comes first, as it did for BM25 in experiment 1.
+
+---
+
+## Experiment 20 (pre-registration): late interaction
+
+**Written at the same time as experiment 19, before either was implemented.**
+
+The second gap. Every dense method measured here compresses a document into one vector,
+and experiment 9 found that removing truncation by chunking made results slightly *worse* —
+the tails carried no signal. **ColBERT** attacks the same problem differently: it keeps one
+vector per token and scores by summing, over query tokens, the best match against any
+document token. No pooling, so nothing is averaged away.
+
+This matters for the project's central finding. Experiment 8 established that which method
+wins varies by query, and experiment 12 that no router recovers the headroom. Late
+interaction is the method most likely to do well on exactly the queries a single-vector
+model loses: those where one specific term must match.
+
+**Setup.** `colbert-ir/colbertv2.0`, with the settings carried in its own
+`artifact.metadata` rather than guessed: 128 dimensions, query length 32, document length
+180, cosine similarity, punctuation masked out of document representations. Query
+augmentation with `[MASK]` padding and the `[Q]`/`[D]` marker tokens, as in the paper.
+SciFact and NFCorpus only — TREC-COVID would need roughly 16GB of token embeddings, which
+does not fit on the machine this is measured on, and saying so is better than quietly
+running a different experiment.
+
+---
+
+**H1.** ColBERT beats BM25 on nDCG@10 on both datasets, Holm-significant.
+
+**H2.** ColBERT does **not** beat `bge-small-en-v1.5` on SciFact. Published ColBERTv2 is
+around 0.693 there; this project measures bge-small at 0.7200. If that holds, a 2020
+late-interaction model loses to a 2023 single-vector model a fraction of its size, and the
+"more expressive representation" argument needs the same scrutiny experiment 9 applied to
+domain matching.
+
+**H3.** Fusing ColBERT with BM25 beats ColBERT alone on both datasets. Every fusion this
+project has measured beats its own components, and there is no reason a token-level model
+should be the exception — but if it is, that is the first sign of a retriever this
+project's central recommendation does not apply to.
+
+**The honest limitation.** ColBERT's published numbers come with an engineered retrieval
+stack — centroid-based candidate generation, residual compression, PLAID. This measures
+exhaustive MaxSim over the full corpus, which is the *upper bound* of that stack's quality
+and none of its efficiency. So a timing comparison against the other methods here would be
+meaningless, and none is claimed. Quality is the only axis this can speak to.
+
+---
+
 ## Experiments 13, 14 and 15: what they cost to run
 
 All three are finished and written up above. What is kept here is the operational part,
