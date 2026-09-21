@@ -8,25 +8,34 @@ against the same human relevance judgements, with a tested evaluation harness, a
 results are reported including the ones that did not help — and including the ones this
 project got wrong and had to take back.
 
-The short version of what it found: **the older methods keep winning.** RM3, a
-pseudo-relevance-feedback technique from 2001, beats LLM query expansion by a
-Holm-significant margin. A modern cross-encoder reranks *worse* than the small one it was
-meant to replace, and on nDCG@10 both leave a good ranking worse than they found it.
-doc2query expands every document in a corpus — a median of six new indexable terms each —
-and retrieval does not move. The one thing that reliably helped was the least fashionable:
-fusing a lexical and a dense retriever, which beats both of its own components on both
-datasets at Holm 0.0006 or below. No router built on this project's own central finding
-beat simply doing that.
+The short version of what it found: **what a model was trained to optimise decides
+whether it helps — not how modern it is.**
 
-**Status:** sixteen experiments across four BEIR datasets, all complete, with an LLM judge,
+The methods trained to *generate plausible text* all failed. LLM query expansion loses to
+RM3, a pseudo-relevance-feedback technique from 2001, by a Holm-significant margin.
+doc2query expands every document in a corpus — a median of six new indexable terms each —
+and retrieval does not move. A modern cross-encoder reranks *worse* than the small one it
+was meant to replace, and on nDCG@10 both leave a good ranking worse than they found it.
+
+The methods trained *against relevance* did better. **SPLADE**, which learns sparse term
+weights end to end, beats BM25 on both datasets and beats both generative expanders by
+0.0341 and 0.0287 (Holm 0.0006) — it expands too, so the difference is what the expansion
+was optimised for. **ColBERT** reproduces but loses to a bi-encoder a fraction of its size.
+
+Through all of it the most boring option kept winning: fusing a lexical and a dense
+retriever beats both of its own components at Holm 0.0006 or below, and no single
+retriever measured here — including SPLADE — has beaten it. No router built on this
+project's own central finding beat simply doing that either.
+
+**Status:** eighteen experiments across four BEIR datasets, all complete, with an LLM judge,
 cited answer generation and an MCP server on top. Every method is measured on one harness
 with paired significance testing throughout, and every figure in this file is checked
 against a committed run by CI.
 
-Start with the note below. Six experiments were pre-registered in the log and committed to
-git before their data was touched. **In five of those six, at least one prediction turned
-out wrong** — including the one this project's central claim rested on — and every one of
-them is still on the page. Three further results replaced earlier results of this project's
+Start with the note below. Eight experiments were pre-registered in the log and committed
+to git before their data was touched. **In six of those eight, at least one prediction
+turned out wrong** — including the one this project's central claim rested on — and every
+one of them is still on the page. Three further results replaced earlier results of this project's
 own.
 
 ---
@@ -234,6 +243,31 @@ task is one where it is not.
 on SciFact (0.7200 against 0.6451) and lost to it on SciDocs (0.1973 against 0.2164), while
 truncating far less of the input. "Use the better encoder" is sound; "bge-small is the
 better encoder" is a statement about two corpora, not about the model.
+## What did work
+
+**Learned sparse retrieval.** SPLADE learns a weight for every term in the BERT vocabulary
+and scores with a dot product over an inverted index — the same operation as BM25, so the
+cost structure is the same too: indexing is a one-off and retrieval is seconds. It beats
+BM25 by **+0.0443 on SciFact (Holm 0.0069) and +0.0295 on NFCorpus (Holm 0.0006)**, and it
+reproduces its published BEIR figures to +0.0149 and +0.0068.
+
+It is also the experiment that corrected two earlier ones. Experiments 13 and 14 found that
+LLM query expansion and doc2query both failed, which reads like "expansion does not help on
+this data". SPLADE expands as well — a document gains weight on terms it does not contain —
+and beats HyDE by 0.0341 and doc2query by 0.0287, both at Holm 0.0006. The difference is
+not care, it is objective: those two were trained to produce text a human would judge
+plausible, and SPLADE was trained against relevance judgements. Only one of those is the
+thing being measured.
+
+One claim this repository made four times is now dead because of it. Every time an MS
+MARCO-trained model underperformed here — a cross-encoder, two bi-encoders, doc2query — the
+explanation offered was domain mismatch. **SPLADE is MS MARCO-trained and is the best
+single retriever measured here**, so that explanation is refuted as stated. Something more
+specific is wrong in those four cases, and nothing here identifies what.
+
+**Fusion, still.** SPLADE does not beat the BM25+dense fusion on either dataset (−0.0128
+and −0.0062). Six methods in, no single retriever has.
+
 ## What didn't work
 
 **LLM query expansion loses to a technique from 2001 — and mostly never ran.** HyDE and
@@ -429,6 +463,8 @@ full chronological log, including the runs that settled nothing.
 | 16 | An LLM judge vs human assessors | Cohen's kappa 0.1433 and 0.1965 — slight agreement, not ground truth |
 | 17 | Answer generation with citations | Citations checked against the retrieved set; answer quality declared unmeasurable here |
 | 18 | MCP server | Exposes the measured comparison, not a hidden "best" method |
+| 19 | Learned sparse retrieval (SPLADE) | **All three predictions held.** Beats BM25, RM3 and both generative expanders; still below fusion |
+| 20 | Late interaction (ColBERT) | One of three held. Loses to a bi-encoder a fraction of its size; two silent implementation bugs found by the reproduction check |
 
 Experiments 13 to 16 exist because "this project stops at 2021" is a fair criticism. Each
 puts a method from the RAG era against the older method with the same mechanism, measured
@@ -858,6 +894,82 @@ corrected within its own family of two:
 |---|---|---|---|---|
 | NFCorpus RM3+doc2query − RM3 | +0.0067 | 0.0692 | +0.0049 | 0.1610 |
 | SciFact RM3+doc2query − RM3 | **+0.0145** | **0.0170** | +0.0033 | 1.0000 |
+
+### A.13 Learned sparse and late interaction
+
+`naver/splade-cocondenser-ensembledistil` and `colbert-ir/colbertv2.0`, both with documents
+capped at 512 tokens, scored on the same harness as everything else.
+
+| nDCG@10 | SciFact | NFCorpus |
+|---|---|---|
+| BM25 | 0.6636 | 0.3253 |
+| RM3 | 0.6550 | 0.3440 |
+| HyDE | 0.6643 | 0.3207 |
+| doc2query | 0.6695 | 0.3260 |
+| ColBERT | 0.6959 | 0.3535 |
+| **SPLADE** | **0.7079** | **0.3548** |
+| bge-small dense | 0.7200 | 0.3391 |
+| RRF fusion, BM25+dense | **0.7207** | **0.3610** |
+| RRF fusion, BM25+ColBERT | 0.7053 | 0.3488 |
+
+Reproduction against published BEIR figures, which is the check everything else rests on:
+
+| | measured | published | delta |
+|---|---|---|---|
+| SPLADE, SciFact | 0.7079 | 0.693 | +0.0149 |
+| SPLADE, NFCorpus | 0.3548 | 0.348 | +0.0068 |
+| ColBERT, SciFact | 0.6959 | 0.693 | +0.0029 |
+| ColBERT, NFCorpus | 0.3535 | 0.338 | +0.0155 |
+
+Paired randomisation, Holm-corrected within each family of six:
+
+| Comparison | nDCG@10 | Holm | Recall@100 | Holm |
+|---|---|---|---|---|
+| SPLADE − BM25, SciFact | **+0.0443** | **0.0069** | **+0.0478** | **0.0063** |
+| SPLADE − BM25, NFCorpus | **+0.0295** | **0.0006** | **+0.0397** | **0.0006** |
+| SPLADE − fusion, SciFact | −0.0128 | 0.7021 | −0.0080 | 0.5090 |
+| SPLADE − fusion, NFCorpus | −0.0062 | 0.7021 | **−0.0257** | **0.0063** |
+| SPLADE − HyDE, NFCorpus | **+0.0341** | **0.0006** | **+0.0331** | **0.0006** |
+| SPLADE − doc2query, NFCorpus | **+0.0287** | **0.0006** | **+0.0376** | **0.0006** |
+| ColBERT − BM25, SciFact | +0.0322 | 0.1515 | +0.0278 | 0.2148 |
+| ColBERT − BM25, NFCorpus | **+0.0282** | **0.0006** | **+0.0362** | **0.0006** |
+| ColBERT − bge-small, SciFact | −0.0241 | 0.4692 | −0.0247 | 0.3096 |
+| ColBERT − bge-small, NFCorpus | +0.0144 | 0.4692 | −0.0204 | 0.0865 |
+| ColBERT fusion − ColBERT, SciFact | +0.0095 | 0.5383 | +0.0067 | 1.0000 |
+| ColBERT fusion − ColBERT, NFCorpus | −0.0046 | 0.5383 | −0.0002 | 1.0000 |
+
+```bash
+python scripts/run_learned.py --dataset scifact --method splade --max-length 512
+python scripts/run_learned.py --dataset scifact --method colbert --doc-length 512
+python scripts/run_hybrid.py --dataset scifact --systems bm25,colbert --k 5.0
+```
+
+**Truncation is not a detail.** Both methods' defaults truncate these corpora heavily, and
+the cost differs by a factor of ten:
+
+| | short | long | delta nDCG@10 | Holm |
+|---|---|---|---|---|
+| SPLADE, SciFact | 256 | 512 | +0.0055 | 0.5672 |
+| SPLADE, NFCorpus | 256 | 512 | +0.0049 | 0.2342 |
+| ColBERT, SciFact | 180 | 512 | **+0.0494** | **0.0004** |
+| ColBERT, SciFact | 180 | 300 | **+0.0453** | **0.0006** |
+
+SPLADE takes a maximum over positions, so a term mentioned anywhere early carries the
+document. ColBERT matches query tokens against document tokens, so a truncated document
+loses those matches outright. With experiment 9 — where chunking a *bi-encoder* to see
+whole documents made results slightly worse — that is three representation types answering
+the same question differently.
+
+Cost, recorded with each run:
+
+| | index | retrieve |
+|---|---|---|
+| SPLADE, SciFact | 292.1s | 7.4s |
+| ColBERT, SciFact | 213.8s | 35.4s |
+
+ColBERT here is exhaustive MaxSim with none of its serving machinery — no centroid
+candidate generation, no residual compression, no PLAID — so these bound quality, not
+efficiency, and no efficiency claim is made from them.
 
 ## Annexe B — superseded results, and why they are still here
 

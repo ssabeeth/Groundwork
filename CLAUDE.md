@@ -164,17 +164,33 @@ prediction turns out wrong it stays on the page; that is what pre-registration i
   did not, and so kept sweeping a concatenated index through the whole migration without
   anything noticing.
 
-**All eighteen roadmap items are done.** Experiments 13, 14 and 15 put an LLM query
-expander, doc2query and a modern reranker against the older methods with the same mechanism.
-Seven of their nine pre-registered predictions failed or could not be scored, and the
-failures are the content: a 2001 technique beats HyDE, a better reranker reranks worse, and
-doc2query expands every document in a corpus without moving retrieval.
+**Twenty experiments, all complete.** Experiments 13, 14 and 15 put an LLM query expander,
+doc2query and a modern reranker against the older methods with the same mechanism; seven of
+those nine pre-registered predictions failed. Experiments 19 and 20 added the two methods
+whose absence was the most citable gap — learned sparse and late interaction.
+
+**SPLADE is the one modern method that wins**, and it corrected the story the others told.
+Read alone, 13 and 14 say expansion does not help here. SPLADE expands too and beats both
+by Holm 0.0006, so the real division is between models trained to generate plausible text
+and models trained against relevance. It also killed this repository's four-times-repeated
+"MS MARCO training does not transfer" line: SPLADE is MS MARCO-trained and is the best
+single retriever measured here.
+
+**Fusion still beats every single retriever**, including SPLADE — but experiment 20 found
+the first fusion that does not beat its own components, which is the first crack in that
+recommendation and is flagged in the log as the most interesting thing left open.
 
 **Two things to know before adding an experiment here.** Pre-register the hypotheses in
 `docs/experiments.md` and commit before touching data — three experiments have now had
 predictions fail, and that is only worth anything because the prediction was on the page
 first. And write hypotheses that are scoreable whatever happens: experiment 15's H3 was
 conditioned on a gain existing, there were no gains, and it could not be scored at all.
+
+**Check a reproduction before building on it, and check truncation before either.** Two
+silent bugs in experiment 20 cost 0.0393 and 0.0494 nDCG@10; neither raised an error and
+both produced runs that would have supported a confident wrong conclusion. A checkpoint's
+own default length is a statement about its training data, not yours: ColBERT's
+`doc_maxlen: 180` truncated 91% of SciFact.
 
 **Before believing an expansion or generation step did anything**, run
 `scripts/analyse_expansions.py`. It counts the new indexable terms a generated expansion
