@@ -205,7 +205,36 @@ MiniLM-L6 for bge-small moves SciFact dense retrieval from 0.6451 to 0.7200 — 
 gain than fusion, reranking, RM3, stemming and the entire `k1`/`b` parameter space put
 together. Before reaching for an architecture, try a better encoder.
 
-**Two methods earned their place, and each only on one dataset.** RM3 gains +0.0188
+**What a model was trained to optimise predicts whether it helps; how modern it is does
+not.** Six methods from the RAG era were measured against the older method attacking the
+same problem. The ones trained to *generate plausible text* all lost: LLM query expansion
+is beaten by RM3 from 2001 (−0.0234, Holm 0.0004), doc2query expands every document in a
+corpus and moves nothing (+0.0008, Holm 1.0000), and two cross-encoders both leave a good
+ranking worse. The one trained *against relevance judgements* won: SPLADE beats BM25 by
++0.0443 and +0.0295 (Holm 0.0069 and 0.0006), and beats both generative expanders by
++0.0341 and +0.0287 at Holm 0.0006 — while expanding documents itself. The dividing line
+is the objective, not the year.
+
+This is also why single experiments mislead. Experiments 13 and 14 alone read as
+"expansion does not help on this data". SPLADE is the control that shows the conclusion
+was about the training objective all along.
+
+**A claim this project made four times is dead.** Every time an MS MARCO-trained model
+underperformed here — a cross-encoder, two bi-encoders, doc2query — the explanation
+offered was domain mismatch with scientific text. SPLADE is MS MARCO-trained and is the
+best single retriever measured here. Whatever is wrong in those four cases is more
+specific than the training corpus, and nothing here says what.
+
+**Truncation costs some representations ten times what it costs others.** Cutting
+documents short costs ColBERT +0.0494 nDCG@10 (Holm 0.0004) and SPLADE nothing detectable
+(+0.0055, Holm 0.5672), while experiment 9 found that letting a *bi-encoder* see whole
+documents made results slightly worse. Three representation types, three answers: the
+tails of these documents do carry retrievable signal, and whether a method can use it
+depends on how it represents them. A checkpoint's default length is a statement about its
+training data, not yours — ColBERT's `doc_maxlen: 180` is right for MS MARCO passages and
+truncated 91% of SciFact.
+
+**Two of the older methods earned their place, and each only on one dataset.** RM3 gains +0.0188
 nDCG@10 on NFCorpus (Holm p 0.0006) and nothing on SciFact (−0.0086, p 0.117). Fusion
 gains +0.0219 over its stronger parent on NFCorpus (Holm p 0.0010) and **+0.0007 on
 SciFact (p 0.94)** — nothing at all. The same recall ceiling explains both: BM25 has
@@ -218,10 +247,14 @@ than fusion on the same dataset, and free. Stopword removal, `k1`/`b` tuning, ch
 a domain-matched encoder are all worth nothing measurable. Before reaching for a second
 retrieval system, check the tokeniser.
 
-**One method costs the most and earns the least.** Cross-encoder reranking is by a wide
-margin the most expensive thing here, and it lowered nDCG@10 in three of the four
-configurations tried — the exception being a +0.0062 on NFCorpus that does not survive
-testing.
+**One method costs the most and earns the least, and that now holds for two models.**
+Cross-encoder reranking is by a wide margin the most expensive thing here. The original
+conclusion was bounded to `ms-marco-MiniLM-L-6-v2`, the model most likely to be
+domain-mismatched. A larger, more recent, non-MS-MARCO reranker was then pre-registered
+with the prediction that it would do better: it is worse, taking NFCorpus' best fused run
+from 0.3610 to 0.3155 (Holm 0.0004), below plain BM25, at 1292 seconds against roughly
+fifteen to build the fusion it degraded. Two rerankers, different training corpora, an
+order of magnitude apart in size, both make a good ranking worse.
 
 **An uncalibrated LLM judge is not evidence.** Asked whether a retrieved document is
 relevant, `flan-t5-base` agrees with the human assessors 74.9% of the time on SciDocs —
@@ -238,6 +271,15 @@ even monotone. Across all six tests of the hypothesis, two survive Holm correcti
 left is a narrower and more defensible statement — term rarity tracks BM25's relative
 standing where term overlap is a mechanism of relevance, and SciDocs' citation-prediction
 task is one where it is not.
+
+**Fusion beat every single retriever, and then found its first exception.** Six methods
+in — including SPLADE, the best of them — nothing measured here beats fusing a lexical and
+a dense retriever. But fusing BM25 with ColBERT is the first fusion in this project that
+does *not* beat its own components: −0.0046 against ColBERT alone on NFCorpus, where the
+BM25+dense fusion gained +0.0219 over *its* stronger parent on the same data. Neither result is significant, so the honest
+statement is that fusion stopped paying rather than that it hurt. It was flagged in the
+pre-registration as the thing to watch for, and it is the most interesting question left
+open here.
 
 **Encoder quality does not transfer between corpora.** bge-small beat MiniLM-L6 decisively
 on SciFact (0.7200 against 0.6451) and lost to it on SciDocs (0.1973 against 0.2164), while
@@ -433,9 +475,17 @@ support a decision rule, and this is what that sentence means in practice.
 - The reference tolerance against published baselines is absolute (±0.03), so it is a much
   weaker check on a dataset scoring 0.158 than on one scoring 0.665. This was written down
   before SciDocs was run rather than after seeing which way it went.
-- Every dense and reranking result uses models trained on web search text. A
-  domain-matched bi-encoder was tried and was worse; a domain-matched *cross-encoder* is
-  untested, so "reranking does not help here" is a claim about `ms-marco-MiniLM-L-6-v2`.
+- Every dense, sparse and reranking result uses models trained on web search text. A
+  domain-matched bi-encoder was tried and was worse, and a second reranker trained on
+  other data was tried and was worse still, so "reranking does not help here" is no longer
+  a claim about one model. A genuinely domain-matched *cross-encoder* remains untested.
+- SPLADE and ColBERT were measured on SciFact and NFCorpus only. ColBERT stores a vector
+  per token, and TREC-COVID would need roughly 16GB of them, which does not fit on the
+  machine these were measured on.
+- The ColBERT numbers come from exhaustive MaxSim with none of its serving machinery — no
+  centroid candidate generation, no residual compression, no PLAID. They bound its
+  retrieval quality and say nothing about its latency, so no efficiency claim is made from
+  them.
 
 ## What was built and measured
 
