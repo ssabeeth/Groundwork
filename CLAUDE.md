@@ -164,7 +164,8 @@ prediction turns out wrong it stays on the page; that is what pre-registration i
   did not, and so kept sweeping a concatenated index through the whole migration without
   anything noticing.
 
-**Twenty experiments, all complete.** Experiments 13, 14 and 15 put an LLM query expander,
+**Eighteen experiments, all complete** (roadmap numbering reaches 20; items 17 and 18
+are built, not measured). Experiments 13, 14 and 15 put an LLM query expander,
 doc2query and a modern reranker against the older methods with the same mechanism; seven of
 those nine pre-registered predictions failed. Experiments 19 and 20 added the two methods
 whose absence was the most citable gap — learned sparse and late interaction.

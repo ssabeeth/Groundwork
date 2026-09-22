@@ -361,3 +361,27 @@ def test_no_figure_in_the_docs_is_untraceable(traceable_figures, document):
         if figure not in traceable_figures and figure not in NON_MEASUREMENT
     )
     assert not untraceable, f"{document} quotes figures no results file contains: {untraceable}."
+
+
+def _github_anchor(heading: str) -> str:
+    """The fragment GitHub generates for a Markdown heading.
+
+    Lowercased, punctuation dropped, spaces to hyphens — so "## Annexe A — full results"
+    becomes "annexe-a--full-results", with the double hyphen the em dash leaves behind.
+    """
+    text = re.sub(r"^#+\s*", "", heading).strip()
+    text = re.sub(r"`([^`]*)`", r"\1", text)
+    text = re.sub(r"[^\w\s-]", "", text.lower())
+    return text.replace(" ", "-")
+
+
+def test_every_internal_link_points_at_a_heading_that_exists():
+    """A contents list that has drifted is worse than none: it sends a reader nowhere and
+    looks maintained while doing it. Renaming a section silently breaks every link to it,
+    which is the same class of rot this file exists to catch in the figures."""
+    for path in (ROOT / "README.md", *(ROOT / "docs").glob("*.md")):
+        text = path.read_text(encoding="utf-8")
+        anchors = {_github_anchor(line) for line in text.splitlines() if line.startswith("#")}
+        links = set(re.findall(r"\]\(#([^)]+)\)", text))
+        broken = sorted(links - anchors)
+        assert not broken, f"{path.name} links to missing anchors: {broken}"

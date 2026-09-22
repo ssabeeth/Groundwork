@@ -35,8 +35,19 @@ against a committed run by CI.
 Start with the note below. Eight experiments were pre-registered in the log and committed
 to git before their data was touched. **In six of those eight, at least one prediction
 turned out wrong** — including the one this project's central claim rested on — and every
-one of them is still on the page. Three further results replaced earlier results of this project's
-own.
+one of them is still on the page. Three further results replaced earlier results of this
+project's own.
+
+---
+
+**Contents** — [What it got wrong](#note-what-this-project-got-wrong-and-what-changed) ·
+[The question](#the-question) · [Data](#the-data) · [Method](#the-method) ·
+[What was built](#what-was-built-and-measured) ·
+[What the measurements show](#what-the-measurements-show) ·
+[What did work](#what-did-work) · [What didn't work](#what-didnt-work) ·
+[Limitations](#limitations) · [Install](#install) ·
+[Annexe A — full results](#annexe-a--full-results) ·
+[Annexe B — superseded runs](#annexe-b--superseded-results-and-why-they-are-still-here)
 
 ---
 
@@ -55,8 +66,9 @@ this matched BEIR's convention. It does not. BEIR indexes "the title (if availab
 passage as separate fields", each with its own lengths and its own document frequencies.
 Nobody checked until a reproduction failure on TREC-COVID forced the question. Indexing
 the way BEIR does brings all four published baselines inside tolerance, three of them to
-within 0.0014; concatenation missed TREC-COVID by 0.0916. **Every BM25-derived number in this repository was re-run**, and
-the entries whose conclusions moved say so explicitly — one of them reversed sign.
+within 0.0014; concatenation missed TREC-COVID by 0.0916. **Every BM25-derived number
+in this repository was re-run**, and the entries whose conclusions moved say so
+explicitly — one of them reversed sign.
 
 **2. "Dense retrieval never beats BM25 at ranking" was a claim about one weak model.**
 Experiment 5 reported it. Experiment 9 re-ran the identical comparison with a better
@@ -183,6 +195,39 @@ traces to a value in a committed results file. It also checks that a results fil
 agrees with how its index was actually built. Both checks exist because the failure they
 catch had already happened.
 
+## What was built and measured
+
+All complete. Numbered as in [`docs/experiments.md`](docs/experiments.md), which is the
+full chronological log, including the runs that settled nothing.
+
+| # | Experiment | What it settled |
+|---|---|---|
+| 1 | Tested metrics and BM25 baseline | Four published BEIR baselines reproduced, three within 0.0014 |
+| 2 | Tokenisation ablation | Stemming helps ranking: +0.0309 nDCG@10, Holm 0.0156 |
+| 3 | `k1`/`b` sweep, tuned on train | Tuning buys nothing on test: +0.0000, p 0.9899 |
+| 4 | BM25 on graded qrels | Exponential vs linear gain, on NFCorpus and TREC-COVID |
+| 4b | RM3 pseudo-relevance feedback | Helps NFCorpus (+0.0188), hurts SciFact (−0.0086) |
+| 5 | Dense retrieval on the same harness | Claimed dense never beats BM25 — **later overturned by 9** |
+| 6 | Hybrid by reciprocal rank fusion | Beats both its components on both datasets, Holm ≤ 0.0006 |
+| 7 | Cross-encoder reranking | Costs the most of anything here and earns almost nothing |
+| 8 | Results broken down by query type | The project's central finding: which method wins varies by query |
+| 9 | Encoder choice and chunking | Falsification test of 8. Overturned 5; halved 8 |
+| 10 | Multi-field indexing | Nine experiments had been indexed wrongly. Everything re-run; two conclusions reversed |
+| 11 | SciDocs, pre-registered | **Prediction failed.** The query-length effect does not generalise |
+| 12 | Query routing | 3–5.5 points of headroom exist; no router recovers any of it. Fusion wins |
+| 13 | LLM query expansion vs RM3 | **RM3 from 2001 wins**, Holm 0.0004. The expander mostly restated the query |
+| 14 | Document expansion with doc2query | Expanded every document, moved nothing. All three predictions failed |
+| 15 | A reranker not trained on web search | Reranks *worse* than the small model it replaced. All three predictions failed |
+| 16 | An LLM judge vs human assessors | Cohen's kappa 0.1433 and 0.1965 — slight agreement, not ground truth |
+| 17 | Answer generation with citations | Citations checked against the retrieved set; answer quality declared unmeasurable here |
+| 18 | MCP server | Exposes the measured comparison, not a hidden "best" method |
+| 19 | Learned sparse retrieval (SPLADE) | **All three predictions held.** Beats BM25, RM3 and both generative expanders; still below fusion |
+| 20 | Late interaction (ColBERT) | One of three held. Loses to a bi-encoder a fraction of its size; two silent implementation bugs found by the reproduction check |
+
+Experiments 13 to 16 exist because "this project stops at 2021" is a fair criticism. Each
+puts a method from the RAG era against the older method with the same mechanism, measured
+on the same harness — rather than adding a modern method and admiring it.
+
 ## What the measurements show
 
 Reproduce any of it with one command:
@@ -191,7 +236,9 @@ Reproduce any of it with one command:
 python scripts/run_baseline.py --dataset scifact
 ```
 
-Full tables are in **Annexe A**. The findings, in the order they are worth knowing:
+These are the lessons that transfer beyond this benchmark, in the order they are worth
+knowing. Verdicts on individual methods are in [What did work](#what-did-work) and
+[What didn't work](#what-didnt-work); full tables are in **Annexe A**.
 
 **The harness reproduces published baselines, which is the only reason to trust anything
 below it.** Four BEIR datasets, four published BM25 figures, all inside tolerance and
@@ -210,10 +257,9 @@ not.** Six methods from the RAG era were measured against the older method attac
 same problem. The ones trained to *generate plausible text* all lost: LLM query expansion
 is beaten by RM3 from 2001 (−0.0234, Holm 0.0004), doc2query expands every document in a
 corpus and moves nothing (+0.0008, Holm 1.0000), and two cross-encoders both leave a good
-ranking worse. The one trained *against relevance judgements* won: SPLADE beats BM25 by
-+0.0443 and +0.0295 (Holm 0.0069 and 0.0006), and beats both generative expanders by
-+0.0341 and +0.0287 at Holm 0.0006 — while expanding documents itself. The dividing line
-is the objective, not the year.
+ranking worse. The one trained *against relevance judgements* won: SPLADE beats BM25 on
+both datasets and beats both generative expanders, while expanding documents itself. The
+dividing line is the objective, not the year.
 
 This is also why single experiments mislead. Experiments 13 and 14 alone read as
 "expansion does not help on this data". SPLADE is the control that shows the conclusion
@@ -234,27 +280,17 @@ depends on how it represents them. A checkpoint's default length is a statement 
 training data, not yours — ColBERT's `doc_maxlen: 180` is right for MS MARCO passages and
 truncated 91% of SciFact.
 
-**Two of the older methods earned their place, and each only on one dataset.** RM3 gains +0.0188
-nDCG@10 on NFCorpus (Holm p 0.0006) and nothing on SciFact (−0.0086, p 0.117). Fusion
-gains +0.0219 over its stronger parent on NFCorpus (Holm p 0.0010) and **+0.0007 on
-SciFact (p 0.94)** — nothing at all. The same recall ceiling explains both: BM25 has
-already found 90.1% of what exists on SciFact and 25.9% on NFCorpus, so on SciFact there
-is almost nothing left for a second system to add.
+**A method's value depends on how much room the baseline left it.** RM3 and fusion each
+earn their place on NFCorpus and neither does on SciFact, and one number explains both:
+BM25 has already found 90.1% of what exists on SciFact and 25.9% on NFCorpus. Where the
+baseline has found nearly everything, a second system has almost nothing to add — so the
+recall ceiling, not the method, sets the headroom.
 
 **The cheapest thing measured is worth more than most of the expensive ones.** Porter
 stemming is worth +0.0309 nDCG@10 on SciFact (Holm p 0.0156) — larger than RM3, larger
 than fusion on the same dataset, and free. Stopword removal, `k1`/`b` tuning, chunking and
 a domain-matched encoder are all worth nothing measurable. Before reaching for a second
 retrieval system, check the tokeniser.
-
-**One method costs the most and earns the least, and that now holds for two models.**
-Cross-encoder reranking is by a wide margin the most expensive thing here. The original
-conclusion was bounded to `ms-marco-MiniLM-L-6-v2`, the model most likely to be
-domain-mismatched. A larger, more recent, non-MS-MARCO reranker was then pre-registered
-with the prediction that it would do better: it is worse, taking NFCorpus' best fused run
-from 0.3610 to 0.3155 (Holm 0.0004), below plain BM25, at 1292 seconds against roughly
-fifteen to build the fusion it degraded. Two rerankers, different training corpora, an
-order of magnitude apart in size, both make a good ranking worse.
 
 **An uncalibrated LLM judge is not evidence.** Asked whether a retrieved document is
 relevant, `flan-t5-base` agrees with the human assessors 74.9% of the time on SciDocs —
@@ -276,8 +312,9 @@ task is one where it is not.
 in — including SPLADE, the best of them — nothing measured here beats fusing a lexical and
 a dense retriever. But fusing BM25 with ColBERT is the first fusion in this project that
 does *not* beat its own components: −0.0046 against ColBERT alone on NFCorpus, where the
-BM25+dense fusion gained +0.0219 over *its* stronger parent on the same data. Neither result is significant, so the honest
-statement is that fusion stopped paying rather than that it hurt. It was flagged in the
+BM25+dense fusion gained +0.0219 over *its* stronger parent on the same data. Neither
+result is significant, so the honest statement is that fusion stopped paying rather than
+that it hurt. It was flagged in the
 pre-registration as the thing to watch for, and it is the most interesting question left
 open here.
 
@@ -487,39 +524,6 @@ support a decision rule, and this is what that sentence means in practice.
   retrieval quality and say nothing about its latency, so no efficiency claim is made from
   them.
 
-## What was built and measured
-
-All complete. Numbered as in [`docs/experiments.md`](docs/experiments.md), which is the
-full chronological log, including the runs that settled nothing.
-
-| # | Experiment | What it settled |
-|---|---|---|
-| 1 | Tested metrics and BM25 baseline | Four published BEIR baselines reproduced, three within 0.0014 |
-| 2 | Tokenisation ablation | Stemming helps ranking: +0.0309 nDCG@10, Holm 0.0156 |
-| 3 | `k1`/`b` sweep, tuned on train | Tuning buys nothing on test: +0.0000, p 0.9899 |
-| 4 | BM25 on graded qrels | Exponential vs linear gain, on NFCorpus and TREC-COVID |
-| 4b | RM3 pseudo-relevance feedback | Helps NFCorpus (+0.0188), hurts SciFact (−0.0086) |
-| 5 | Dense retrieval on the same harness | Claimed dense never beats BM25 — **later overturned by 9** |
-| 6 | Hybrid by reciprocal rank fusion | Beats both its components on both datasets, Holm ≤ 0.0006 |
-| 7 | Cross-encoder reranking | Costs the most of anything here and earns almost nothing |
-| 8 | Results broken down by query type | The project's central finding: which method wins varies by query |
-| 9 | Encoder choice and chunking | Falsification test of 8. Overturned 5; halved 8 |
-| 10 | Multi-field indexing | Nine experiments had been indexed wrongly. Everything re-run; two conclusions reversed |
-| 11 | SciDocs, pre-registered | **Prediction failed.** The query-length effect does not generalise |
-| 12 | Query routing | 3–5.5 points of headroom exist; no router recovers any of it. Fusion wins |
-| 13 | LLM query expansion vs RM3 | **RM3 from 2001 wins**, Holm 0.0004. The expander mostly restated the query |
-| 14 | Document expansion with doc2query | Expanded every document, moved nothing. All three predictions failed |
-| 15 | A reranker not trained on web search | Reranks *worse* than the small model it replaced. All three predictions failed |
-| 16 | An LLM judge vs human assessors | Cohen's kappa 0.1433 and 0.1965 — slight agreement, not ground truth |
-| 17 | Answer generation with citations | Citations checked against the retrieved set; answer quality declared unmeasurable here |
-| 18 | MCP server | Exposes the measured comparison, not a hidden "best" method |
-| 19 | Learned sparse retrieval (SPLADE) | **All three predictions held.** Beats BM25, RM3 and both generative expanders; still below fusion |
-| 20 | Late interaction (ColBERT) | One of three held. Loses to a bi-encoder a fraction of its size; two silent implementation bugs found by the reproduction check |
-
-Experiments 13 to 16 exist because "this project stops at 2021" is a fair criticism. Each
-puts a method from the RAG era against the older method with the same mechanism, measured
-on the same harness — rather than adding a modern method and admiring it.
-
 ## Install
 
 ```bash
@@ -548,8 +552,9 @@ python -m groundwork.server --dataset scifact
 ```
 
 The core package stays on numpy and tqdm; everything except dense retrieval, generation
-and the server runs without it. The `dense` extra is pinned rather than ranged, because the obvious unpinned
-specification resolves to a torch/numpy combination that fails at import — see
+and the server runs without it. The `dense` extra is pinned rather than ranged, because
+the obvious unpinned specification resolves to a torch/numpy combination that fails at
+import — see
 `docs/decisions.md`.
 
 ## Development
@@ -600,6 +605,16 @@ tests/                  394 tests
 ```
 
 ## Annexe A — full results
+
+Every figure below is read from a committed file in `results/` and checked by
+`tests/test_documentation.py`.
+
+| | | | |
+|---|---|---|---|
+| [A.1](#a1-bm25-against-the-published-baselines) Published baselines | [A.2](#a2-every-method-on-the-same-harness) Every method | [A.3](#a3-where-the-headroom-is) Headroom | [A.4](#a4-tokenisation-ablation) Tokenisation |
+| [A.5](#a5-parameter-sweeps-all-tuned-on-train-and-scored-once-on-test) Parameter sweeps | [A.6](#a6-query-dependence-corrected-across-every-test-of-it) Query-dependence | [A.7](#a7-query-routing-and-its-ceiling) Routing | [A.8](#a8-trec-covid-query-formulation) TREC-COVID |
+| [A.9](#a9-what-an-llm-judge-is-worth) LLM judge | [A.10](#a10-llm-query-expansion-against-rm3) Query expansion | [A.11](#a11-two-rerankers-over-the-same-candidates) Rerankers | [A.12](#a12-document-expansion-with-doc2query) doc2query |
+| [A.13](#a13-learned-sparse-and-late-interaction) SPLADE and ColBERT | | | |
 
 Every figure below is read out of a JSON file in `results/`, written by a script in this
 repository, and checked by `tests/test_documentation.py`: a number in this README that no
