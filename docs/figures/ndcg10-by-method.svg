@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 486" width="900" height="486" role="img" aria-labelledby="t d">
+<title id="t">Fusing keyword and dense search scored highest on both datasets</title>
+<desc id="d">nDCG@10 on each BEIR test set; higher is better. Every method ran on the same harness.</desc>
+<style>text{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px}.title{font-size:18px;font-weight:600}.panel{font-size:14px;font-weight:600}.strong{font-weight:600}.small{font-size:11.5px}.tick{text-anchor:middle;font-size:12px}.value{font-size:12px}.grid{stroke-width:1}.reference{stroke-width:1.5;stroke-dasharray:4 3}circle{stroke-width:2}.surface{fill:#fcfcfb}.title,.ink,.panel{fill:#0b0b0b}.ink2{fill:#52514e}.grid{stroke:#e6e5e1}.reference{stroke:#52514e}.reference-dot{fill:#52514e}circle{stroke:#fcfcfb}.g0{fill:#2a78d6}.g1{fill:#eb6834}.g2{fill:#8a8984}@media (prefers-color-scheme:dark){.surface{fill:#1a1a19}.title,.ink,.panel{fill:#ffffff}.ink2{fill:#c3c2b7}.grid{stroke:#383835}.reference{stroke:#c3c2b7}.reference-dot{fill:#c3c2b7}circle{stroke:#1a1a19}.g0{fill:#3987e5}.g1{fill:#d95926}.g2{fill:#8a8984}}</style>
+<rect class="surface" width="900" height="486" rx="8"/>
+<text class="title" x="24" y="34">Fusing keyword and dense search scored highest on both datasets</text>
+<text class="ink2" x="24" y="56">nDCG@10 on each BEIR test set; higher is better. Every method ran on the same harness.</text>
+<circle class="g0" cx="29" cy="80" r="5"/>
+<text class="ink" x="40" y="84">Fusion of keyword + another retriever</text>
+<circle class="g1" cx="339.40000000000003" cy="80" r="5"/>
+<text class="ink" x="350.40000000000003" y="84">Adds LLM-generated text</text>
+<circle class="g2" cx="549.0" cy="80" r="5"/>
+<text class="ink" x="560.0" y="84">Other methods</text>
+<line class="reference" x1="681.6" y1="72" x2="681.6" y2="88"/>
+<text class="ink" x="691.6" y="84">BM25 keyword baseline</text>
+<text class="ink strong" x="24" y="145.0">Fusion: BM25 + dense (bge-small)</text>
+<text class="ink" x="24" y="171.0">SPLADE (learned sparse)</text>
+<text class="ink" x="24" y="197.0">Dense embeddings (bge-small)</text>
+<text class="ink" x="24" y="223.0">Fusion: BM25 + ColBERT</text>
+<text class="ink" x="24" y="249.0">ColBERT (late interaction)</text>
+<text class="ink" x="24" y="275.0">Fusion + MiniLM reranker</text>
+<text class="ink" x="24" y="301.0">Fusion + bge reranker</text>
+<text class="ink" x="24" y="327.0">RM3 (keyword feedback)</text>
+<text class="ink" x="24" y="353.0">doc2query (generated document text)</text>
+<text class="ink" x="24" y="379.0">LLM query expansion (HyDE)</text>
+<text class="ink" x="24" y="405.0">BM25 keyword baseline</text>
+<text class="panel" x="270.0" y="118">SciFact</text>
+<line class="grid" x1="270.0" y1="128" x2="270.0" y2="414"/>
+<text class="ink2 tick" x="270.0" y="432">0.64</text>
+<line class="grid" x1="325.4" y1="128" x2="325.4" y2="414"/>
+<text class="ink2 tick" x="325.4" y="432">0.66</text>
+<line class="grid" x1="380.8" y1="128" x2="380.8" y2="414"/>
+<text class="ink2 tick" x="380.8" y="432">0.68</text>
+<line class="grid" x1="436.2" y1="128" x2="436.2" y2="414"/>
+<text class="ink2 tick" x="436.2" y="432">0.70</text>
+<line class="grid" x1="491.6" y1="128" x2="491.6" y2="414"/>
+<text class="ink2 tick" x="491.6" y="432">0.72</text>
+<line class="grid" x1="547.0" y1="128" x2="547.0" y2="414"/>
+<text class="ink2 tick" x="547.0" y="432">0.74</text>
+<line class="reference" x1="335.4" y1="128" x2="335.4" y2="414"/>
+<circle class="g0" cx="493.5" cy="141.0" r="5"><title>Fusion: BM25 + dense (bge-small), SciFact: 0.7207</title></circle>
+<text class="ink strong value" x="503.5" y="145.0">0.7207</text>
+<circle class="g2" cx="458.1" cy="167.0" r="5"><title>SPLADE (learned sparse), SciFact: 0.7079</title></circle>
+<circle class="g2" cx="491.6" cy="193.0" r="5"><title>Dense embeddings (bge-small), SciFact: 0.7200</title></circle>
+<circle class="g0" cx="451.0" cy="219.0" r="5"><title>Fusion: BM25 + ColBERT, SciFact: 0.7053</title></circle>
+<circle class="g2" cx="424.7" cy="245.0" r="5"><title>ColBERT (late interaction), SciFact: 0.6959</title></circle>
+<circle class="g2" cx="403.1" cy="271.0" r="5"><title>Fusion + MiniLM reranker, SciFact: 0.6881</title></circle>
+<circle class="g2" cx="462.4" cy="297.0" r="5"><title>Fusion + bge reranker, SciFact: 0.7095</title></circle>
+<circle class="g2" cx="311.6" cy="323.0" r="5"><title>RM3 (keyword feedback), SciFact: 0.6550</title></circle>
+<circle class="g1" cx="351.7" cy="349.0" r="5"><title>doc2query (generated document text), SciFact: 0.6695</title></circle>
+<circle class="g1" cx="337.3" cy="375.0" r="5"><title>LLM query expansion (HyDE), SciFact: 0.6643</title></circle>
+<circle class="reference-dot" cx="335.4" cy="401.0" r="5"><title>BM25 keyword baseline, SciFact: 0.6636</title></circle>
+<text class="panel" x="599.0" y="118">NFCorpus</text>
+<line class="grid" x1="599.0" y1="128" x2="599.0" y2="414"/>
+<text class="ink2 tick" x="599.0" y="432">0.31</text>
+<line class="grid" x1="645.2" y1="128" x2="645.2" y2="414"/>
+<text class="ink2 tick" x="645.2" y="432">0.32</text>
+<line class="grid" x1="691.3" y1="128" x2="691.3" y2="414"/>
+<text class="ink2 tick" x="691.3" y="432">0.33</text>
+<line class="grid" x1="737.5" y1="128" x2="737.5" y2="414"/>
+<text class="ink2 tick" x="737.5" y="432">0.34</text>
+<line class="grid" x1="783.7" y1="128" x2="783.7" y2="414"/>
+<text class="ink2 tick" x="783.7" y="432">0.35</text>
+<line class="grid" x1="829.8" y1="128" x2="829.8" y2="414"/>
+<text class="ink2 tick" x="829.8" y="432">0.36</text>
+<line class="grid" x1="876.0" y1="128" x2="876.0" y2="414"/>
+<text class="ink2 tick" x="876.0" y="432">0.37</text>
+<line class="reference" x1="669.4" y1="128" x2="669.4" y2="414"/>
+<circle class="g0" cx="834.5" cy="141.0" r="5"><title>Fusion: BM25 + dense (bge-small), NFCorpus: 0.3610</title></circle>
+<text class="ink strong value" x="844.5" y="145.0">0.3610</text>
+<circle class="g2" cx="805.6" cy="167.0" r="5"><title>SPLADE (learned sparse), NFCorpus: 0.3548</title></circle>
+<circle class="g2" cx="733.4" cy="193.0" r="5"><title>Dense embeddings (bge-small), NFCorpus: 0.3391</title></circle>
+<circle class="g0" cx="778.3" cy="219.0" r="5"><title>Fusion: BM25 + ColBERT, NFCorpus: 0.3488</title></circle>
+<circle class="g2" cx="799.6" cy="245.0" r="5"><title>ColBERT (late interaction), NFCorpus: 0.3535</title></circle>
+<circle class="g2" cx="810.1" cy="271.0" r="5"><title>Fusion + MiniLM reranker, NFCorpus: 0.3557</title></circle>
+<circle class="g2" cx="624.4" cy="297.0" r="5"><title>Fusion + bge reranker, NFCorpus: 0.3155</title></circle>
+<circle class="g2" cx="756.1" cy="323.0" r="5"><title>RM3 (keyword feedback), NFCorpus: 0.3440</title></circle>
+<circle class="g1" cx="672.9" cy="349.0" r="5"><title>doc2query (generated document text), NFCorpus: 0.3260</title></circle>
+<circle class="g1" cx="648.3" cy="375.0" r="5"><title>LLM query expansion (HyDE), NFCorpus: 0.3207</title></circle>
+<circle class="reference-dot" cx="669.4" cy="401.0" r="5"><title>BM25 keyword baseline, NFCorpus: 0.3253</title></circle>
+<text class="ink2 small" x="24" y="472">Values from results/, drawn by scripts/plot_methods.py. Full tables: README Annexe A.11 and A.13.</text>
+</svg>
