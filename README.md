@@ -2,6 +2,28 @@
 
 Retrieval over scientific literature, with the numbers measured rather than assumed.
 
+## In short
+
+If you are building search or RAG over scientific papers, which way of finding the right
+documents should you use? Groundwork compares the common answers — keyword search,
+embeddings, rerankers, language-model query rewriting and more — on public benchmarks
+where people have marked which papers answer each question. Every method runs on the same
+tested harness, and the differences reported are checked with paired significance tests.
+
+**The practical answer: run a keyword search and an embedding search, and merge the two
+rankings.** That combination scored highest on both datasets where every method was
+compared (nDCG@10 of 0.7207 on SciFact and 0.3610 on NFCorpus), and no single method
+scored higher. Using a language model to generate extra query or document text did not
+help, and a newer, larger reranker made rankings worse on NFCorpus. SPLADE, the only single
+method that beat keyword search significantly on both datasets, still did not beat the
+simple combination.
+
+![Dot plot of nDCG@10 for eleven retrieval methods on SciFact and NFCorpus. Fusing BM25 with a dense retriever is highest on both; LLM query expansion and doc2query sit on the BM25 baseline.](docs/figures/ndcg10-by-method.svg)
+
+The rest of this page is the detail, including what the project got wrong along the way.
+
+## What it found, in retrieval terms
+
 Most RAG projects pick a retrieval method and move on. This one treats the choice as the
 experiment: BM25, RM3, dense, hybrid, reranked, expanded and routed retrieval are scored
 against the same human relevance judgements, with a tested evaluation harness, and the
@@ -560,7 +582,7 @@ import — see
 ## Development
 
 ```bash
-pytest          # 394 tests
+pytest          # 460 tests
 ruff check .
 ruff format .
 ```
@@ -586,6 +608,7 @@ src/groundwork/
   eval/judge.py         an LLM relevance judge, and what it is worth
   generate.py           answers with citations, checked against what was retrieved
   server.py             MCP server (optional extra)
+  figures.py            the README chart, drawn as SVG with no plotting library
 scripts/run_baseline.py  the one command behind the results table
 scripts/run_sweep.py     k1/b grid over one shared index
 scripts/run_rm3.py       RM3, with its own train-tuned sweep
@@ -599,9 +622,11 @@ scripts/compare_runs.py            paired significance test between two runs
 scripts/analyse_queries.py         the pre-specified query-type hypothesis
 scripts/combine_query_analyses.py  Holm correction across every test of it
 scripts/diagnose_query_fields.py   TREC-COVID query formulation spread
+scripts/plot_methods.py            redraws the README chart from results/
 docs/experiments.md     running log, including what failed
 docs/decisions.md       why the load-bearing choices are what they are
-tests/                  394 tests
+docs/figures/           the README chart; a test fails if it drifts from results/
+tests/                  460 tests
 ```
 
 ## Annexe A — full results
