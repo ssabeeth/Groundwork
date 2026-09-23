@@ -127,6 +127,17 @@ re-run under numpy 1.26.4 reproduces 0.6802137133984872 bit-for-bit, and all tes
 Every results file now records its numpy version alongside its Python version, because
 this episode demonstrates that it is a variable and not a constant.
 
+The caps were later scoped to where they are needed. They are a property of macOS on
+x86_64, not of the project, and applied everywhere they made a Linux or Apple Silicon
+install look years out of date. `pyproject.toml` now applies them only under
+`sys_platform == 'darwin' and platform_machine == 'x86_64'`. The unpinned side was checked
+the same way as the numpy downgrade: a native arm64 environment with torch 2.14.0,
+numpy 2.4.6, sentence-transformers 5.7.0 and transformers 4.57.6 passes every test, and
+re-encoding SciFact from scratch with bge-small reproduces the committed dense run
+exactly — nDCG@10 0.7200042547439364 on both, and all 1,800 per-query values identical.
+That checks the dense path only; SPLADE, ColBERT, the rerankers and generation were not
+re-run on the newer stack. `transformers` stays below 5 on every platform for that reason.
+
 ## Query-type analysis uses one pre-specified continuous predictor
 
 The obvious way to test "retrieval method is query-dependent" is to label queries by

@@ -20,18 +20,21 @@ stem = ["snowballstemmer>=2.2"]
 # Dense and hybrid retrieval only. Kept out of the core install because a torch
 # dependency tree is a reason people do not run portfolio code, and everything except
 # these two methods runs on numpy and tqdm alone.
-# Upper bounds are deliberate and were arrived at the hard way. On a macOS x86_64
-# interpreter pip serves no torch newer than 2.2.2, and torch 2.2.2 predates numpy 2:
-# it fails to initialise against it, transformers then concludes torch is absent, and
-# the first symptom is a NameError from an unrelated module. An unpinned
-# "sentence-transformers>=2.7" resolves to a 6.x release expecting a much newer torch,
-# which reproduces exactly that failure. This is the combination actually verified here;
-# on a platform with current torch wheels the caps can be raised.
+# The caps below apply only to macOS on x86_64 (an Intel Mac, or an x86_64 interpreter
+# running under Rosetta), where they were arrived at the hard way: pip serves no torch
+# newer than 2.2.2 there, and torch 2.2.2 predates numpy 2. It fails to initialise
+# against it, transformers then concludes torch is absent, and the first symptom is a
+# NameError from an unrelated module. An unpinned "sentence-transformers>=2.7" resolves
+# to a release expecting a much newer torch, which reproduces exactly that failure.
+# Everywhere else current torch and numpy 2 install normally; see docs/decisions.md for
+# the run that checked a dense result reproduces on that stack.
 dense = [
-    "sentence-transformers>=2.7,<3",
-    "torch>=2.2,<2.3",
+    "sentence-transformers>=2.7,<3; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    "torch>=2.2,<2.3; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    "numpy<2; sys_platform == 'darwin' and platform_machine == 'x86_64'",
+    "sentence-transformers>=2.7; sys_platform != 'darwin' or platform_machine != 'x86_64'",
+    "torch>=2.2; sys_platform != 'darwin' or platform_machine != 'x86_64'",
     "transformers>=4.39,<5",
-    "numpy<2",
 ]
 # The MCP server only. Kept optional for the same reason as dense: the measurement
 # harness is the point of this repository, and a protocol server is a way to use it

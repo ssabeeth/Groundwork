@@ -574,10 +574,10 @@ python -m groundwork.server --dataset scifact
 ```
 
 The core package stays on numpy and tqdm; everything except dense retrieval, generation
-and the server runs without it. The `dense` extra is pinned rather than ranged, because
-the obvious unpinned specification resolves to a torch/numpy combination that fails at
-import — see
-`docs/decisions.md`.
+and the server runs without it. On macOS x86_64 (an Intel Mac, or an x86_64 Python under
+Rosetta) the `dense` extra caps torch at 2.2 and numpy below 2, because pip serves no newer
+torch there and the obvious unpinned specification fails at import. Everywhere else it
+installs current torch and numpy 2 — see `docs/decisions.md`.
 
 ## Development
 
